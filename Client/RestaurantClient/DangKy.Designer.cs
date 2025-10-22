@@ -43,6 +43,8 @@
             btn_dangky = new Button();
             linkLabel_quaylai = new LinkLabel();
             label1 = new Label();
+            tb_email = new TextBox();
+            label2 = new Label();
             SuspendLayout();
             // 
             // lbl_title
@@ -69,7 +71,7 @@
             // 
             lbl_passwd.AutoSize = true;
             lbl_passwd.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_passwd.Location = new Point(52, 211);
+            lbl_passwd.Location = new Point(52, 253);
             lbl_passwd.Name = "lbl_passwd";
             lbl_passwd.Size = new Size(84, 23);
             lbl_passwd.TabIndex = 2;
@@ -99,7 +101,7 @@
             // 
             lbl_checkpasswd.AutoSize = true;
             lbl_checkpasswd.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_checkpasswd.Location = new Point(52, 256);
+            lbl_checkpasswd.Location = new Point(52, 296);
             lbl_checkpasswd.Name = "lbl_checkpasswd";
             lbl_checkpasswd.Size = new Size(161, 23);
             lbl_checkpasswd.TabIndex = 5;
@@ -115,14 +117,14 @@
             // 
             // tb_passwd
             // 
-            tb_passwd.Location = new Point(270, 211);
+            tb_passwd.Location = new Point(270, 249);
             tb_passwd.Name = "tb_passwd";
             tb_passwd.Size = new Size(324, 27);
             tb_passwd.TabIndex = 7;
             // 
             // tb_checkpasswd
             // 
-            tb_checkpasswd.Location = new Point(270, 256);
+            tb_checkpasswd.Location = new Point(270, 292);
             tb_checkpasswd.Name = "tb_checkpasswd";
             tb_checkpasswd.Size = new Size(324, 27);
             tb_checkpasswd.TabIndex = 8;
@@ -160,7 +162,7 @@
             // 
             btn_dangky.AutoSize = true;
             btn_dangky.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            btn_dangky.Location = new Point(361, 325);
+            btn_dangky.Location = new Point(364, 343);
             btn_dangky.Name = "btn_dangky";
             btn_dangky.Size = new Size(94, 33);
             btn_dangky.TabIndex = 13;
@@ -189,11 +191,30 @@
             label1.TabIndex = 15;
             label1.Text = "Bạn đã có tài khoản?";
             // 
+            // tb_email
+            // 
+            tb_email.Location = new Point(270, 206);
+            tb_email.Name = "tb_email";
+            tb_email.Size = new Size(324, 27);
+            tb_email.TabIndex = 17;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label2.Location = new Point(52, 210);
+            label2.Name = "label2";
+            label2.Size = new Size(55, 23);
+            label2.TabIndex = 16;
+            label2.Text = "Email:";
+            // 
             // DangKy
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(tb_email);
+            Controls.Add(label2);
             Controls.Add(label1);
             Controls.Add(linkLabel_quaylai);
             Controls.Add(btn_dangky);
@@ -233,5 +254,7 @@
         private Button btn_dangky;
         private LinkLabel linkLabel_quaylai;
         private Label label1;
+        private TextBox tb_email;
+        private Label label2;
     }
 }
