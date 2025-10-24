@@ -34,7 +34,8 @@ namespace RestaurantClient
 
         private void linkLabel_forgetpasswd_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-
+            NhapEmail p = new NhapEmail();
+            p.Show();
         }
     }
 }
