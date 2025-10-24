@@ -36,6 +36,7 @@ namespace RestaurantClient
         {
             NhapEmail a = new NhapEmail();
             a.Show();
+
         }
     }
 }
