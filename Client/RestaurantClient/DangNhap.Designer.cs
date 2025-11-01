@@ -29,10 +29,10 @@
         private void InitializeComponent()
         {
             groupBox_dangnhap = new GroupBox();
+            tb_passwd = new TextBox();
+            tb_username = new TextBox();
             lbl_passwd = new Label();
             lbl_username = new Label();
-            textBox1 = new TextBox();
-            textBox2 = new TextBox();
             label1 = new Label();
             label2 = new Label();
             linkLabel_dangky = new LinkLabel();
@@ -43,8 +43,8 @@
             // 
             // groupBox_dangnhap
             // 
-            groupBox_dangnhap.Controls.Add(textBox2);
-            groupBox_dangnhap.Controls.Add(textBox1);
+            groupBox_dangnhap.Controls.Add(tb_passwd);
+            groupBox_dangnhap.Controls.Add(tb_username);
             groupBox_dangnhap.Controls.Add(lbl_passwd);
             groupBox_dangnhap.Controls.Add(lbl_username);
             groupBox_dangnhap.Location = new Point(12, 161);
@@ -53,7 +53,20 @@
             groupBox_dangnhap.TabIndex = 0;
             groupBox_dangnhap.TabStop = false;
             groupBox_dangnhap.Text = "Thông tin đăng nhập";
-            groupBox_dangnhap.Enter += groupBox_dangnhap_Enter;
+            // 
+            // tb_passwd
+            // 
+            tb_passwd.Location = new Point(183, 88);
+            tb_passwd.Name = "tb_passwd";
+            tb_passwd.Size = new Size(281, 27);
+            tb_passwd.TabIndex = 3;
+            // 
+            // tb_username
+            // 
+            tb_username.Location = new Point(183, 39);
+            tb_username.Name = "tb_username";
+            tb_username.Size = new Size(281, 27);
+            tb_username.TabIndex = 2;
             // 
             // lbl_passwd
             // 
@@ -73,20 +86,6 @@
             lbl_username.Size = new Size(91, 23);
             lbl_username.TabIndex = 0;
             lbl_username.Text = "Username:";
-            // 
-            // textBox1
-            // 
-            textBox1.Location = new Point(183, 39);
-            textBox1.Name = "textBox1";
-            textBox1.Size = new Size(281, 27);
-            textBox1.TabIndex = 2;
-            // 
-            // textBox2
-            // 
-            textBox2.Location = new Point(183, 88);
-            textBox2.Name = "textBox2";
-            textBox2.Size = new Size(281, 27);
-            textBox2.TabIndex = 3;
             // 
             // label1
             // 
@@ -166,8 +165,8 @@
         private GroupBox groupBox_dangnhap;
         private Label lbl_passwd;
         private Label lbl_username;
-        private TextBox textBox2;
-        private TextBox textBox1;
+        private TextBox tb_passwd;
+        private TextBox tb_username;
         private Label label1;
         private Label label2;
         private LinkLabel linkLabel_dangky;
