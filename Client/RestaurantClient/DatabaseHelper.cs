@@ -1,28 +1,27 @@
 ﻿// Thêm các thư viện cần thiết
 using System;
 using System.Data;
-using System.Data.SqlClient;
-using System.Security.Cryptography;
-using System.Text;
-using System.Windows.Forms;
+using System.Data.SqlClient; // Thư viện chính để làm việc với SQL Server
+using System.Security.Cryptography; // Thư viện để băm mật khẩu
+using System.Text; // Thư viện để chuyển đổi chuỗi
+using System.Windows.Forms; // Để dùng MessageBox
 
 public class DatabaseHelper
 {
 	// =================================================================
-	// PHẦN 1: THAY ĐỔI THEO CSDL CỦA BẠN
+	// PHẦN 1: CHUỖI KẾT NỐI
 	// =================================================================
 
-	// 1. Chuỗi kết nối (Connection String)
+	// Tên CSDL đã được cập nhật thành "QLQuanAn"
 	private string connectionString = "Server=.\\SQLEXPRESS;Database=QLQuanAn;Integrated Security=True;";
 	// (Hãy đảm bảo "Server=.\\SQLEXPRESS" là đúng với máy của bạn)
 
 	// =================================================================
-	// PHẦN 2: HÀM BẢO MẬT (Giữ nguyên)
+	// PHẦN 2: HÀM BẢO MẬT (Hashing)
 	// =================================================================
 
 	/// <summary>
-	/// Băm mật khẩu bằng SHA-256.
-	/// Kết quả là 64 ký tự Hex, vừa vặn với cột MatKhau (NVARCHAR(100)) của bạn.
+	/// Băm một chuỗi mật khẩu gốc (plain text) bằng thuật toán SHA-256.
 	/// </summary>
 	private string HashPassword(string password)
 	{
@@ -30,10 +29,11 @@ public class DatabaseHelper
 		{
 			byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
 			byte[] hashBytes = sha256.ComputeHash(passwordBytes);
+
 			StringBuilder sb = new StringBuilder();
 			foreach (byte b in hashBytes)
 			{
-				sb.Append(b.ToString("x2"));
+				sb.Append(b.ToString("x2")); // "x2" là định dạng Hex
 			}
 			return sb.ToString();
 		}
@@ -44,31 +44,42 @@ public class DatabaseHelper
 	// =================================================================
 
 	/// <summary>
-	/// Đăng ký người dùng mới vào bảng NGUOIDUNG.
+	/// Đăng ký người dùng mới vào CSDL (Phiên bản cập nhật cho Form mới)
 	/// </summary>
-	public bool RegisterUser(string username, string password, string fullName)
+	public bool RegisterUser(string username, string password, string fullName, string email, string vaiTro)
 	{
 		// 1. Băm mật khẩu
 		string hashedPassword = HashPassword(password);
 
 		using (SqlConnection connection = new SqlConnection(connectionString))
 		{
-			// 2. **** CẬP NHẬT CÂU LỆNH SQL ****
-			// Đã đổi "INSERT INTO TaiKhoan..." thành "INSERT INTO NGUOIDUNG..."
-			// Đã đổi các cột cho khớp: (TenDangNhap, MatKhau, HoTen)
-			// Cột MatKhau của bạn sẽ lưu mật khẩu đã băm (hashedPassword)
-			string query = "INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen) VALUES (@Username, @PasswordHash, @FullName)";
+			// 2. Cập nhật câu lệnh SQL INSERT
+			// Thêm các cột Email và VaiTro cho khớp với CSDL và Form
+			string query = "INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen, Email, VaiTro) 
+
+							VALUES(@Username, @PasswordHash, @FullName, @Email, @VaiTro)";
+
 
 			using (SqlCommand command = new SqlCommand(query, connection))
 			{
-				// 3. Gán giá trị cho tham số
+				// 3. Gán giá trị cho các tham số (thêm @Email và @VaiTro)
 				command.Parameters.AddWithValue("@Username", username);
 				command.Parameters.AddWithValue("@PasswordHash", hashedPassword);
 				command.Parameters.AddWithValue("@FullName", fullName);
-				// Các cột khác (VaiTro, SDT, Email) của bạn cho phép NULL
-				// nên chúng ta không cần chèn vào lúc đăng ký.
-				// Các cột (TrangThai, NgayTao) đã có DEFAULT.
 
+				// Nếu email rỗng, truyền DBNull.Value để CSDL hiểu là NULL
+				if (string.IsNullOrWhiteSpace(email))
+				{
+					command.Parameters.AddWithValue("@Email", DBNull.Value);
+				}
+				else
+				{
+					command.Parameters.AddWithValue("@Email", email);
+				}
+
+				command.Parameters.AddWithValue("@VaiTro", vaiTro);
+
+				// 4. Phần thực thi (Giữ nguyên)
 				try
 				{
 					connection.Open();
@@ -98,7 +109,7 @@ public class DatabaseHelper
 	}
 
 	// =================================================================
-	// PHẦN 4: LOGIC ĐĂNG NHẬP (Đã cập nhật)
+	// PHẦN 4: LOGIC ĐĂNG NHẬP (Không đổi)
 	// =================================================================
 
 	/// <summary>
@@ -110,9 +121,7 @@ public class DatabaseHelper
 
 		using (SqlConnection connection = new SqlConnection(connectionString))
 		{
-			// 1. **** CẬP NHẬT CÂU LỆNH SQL ****
-			// Đã đổi "SELECT MatKhauHash FROM TaiKhoan..." thành:
-			// "SELECT MatKhau FROM NGUOIDUNG..."
+			// Câu lệnh SQL khớp với CSDL của bạn
 			string query = "SELECT MatKhau FROM NGUOIDUNG WHERE TenDangNhap = @Username";
 
 			using (SqlCommand command = new SqlCommand(query, connection))
