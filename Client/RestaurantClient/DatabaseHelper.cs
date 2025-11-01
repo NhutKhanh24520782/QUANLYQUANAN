@@ -1,159 +1,132 @@
-﻿// Thêm các thư viện cần thiết
-using System;
+﻿using System;
 using System.Data;
-using System.Data.SqlClient; // Thư viện chính để làm việc với SQL Server
-using System.Security.Cryptography; // Thư viện để băm mật khẩu
-using System.Text; // Thư viện để chuyển đổi chuỗi
-using System.Windows.Forms; // Để dùng MessageBox
+using System.Data.SqlClient;
+using System.Security.Cryptography;
+using System.Text;
+using System.Windows.Forms;
 
 public class DatabaseHelper
 {
-	// =================================================================
-	// PHẦN 1: CHUỖI KẾT NỐI
-	// =================================================================
+    // ================================================================
+    // 1. CHUỖI KẾT NỐI
+    // ================================================================
+    private string connectionString =
+        "Server=localhost;Database=QLQuanAn;Integrated Security=True;TrustServerCertificate=True;";
 
-	// Tên CSDL đã được cập nhật thành "QLQuanAn"
-	private string connectionString = "Server=.\\SQLEXPRESS;Database=QLQuanAn;Integrated Security=True;";
-	// (Hãy đảm bảo "Server=.\\SQLEXPRESS" là đúng với máy của bạn)
+    // ================================================================
+    // 2. HÀM BĂM MẬT KHẨU (SHA-256)
+    // ================================================================
+    private string HashPassword(string password)
+    {
+        using (SHA256 sha256 = SHA256.Create())
+        {
+            byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
+            byte[] hashBytes = sha256.ComputeHash(passwordBytes);
 
-	// =================================================================
-	// PHẦN 2: HÀM BẢO MẬT (Hashing)
-	// =================================================================
+            StringBuilder sb = new StringBuilder();
+            foreach (byte b in hashBytes)
+            {
+                sb.Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+        }
+    }
 
-	/// <summary>
-	/// Băm một chuỗi mật khẩu gốc (plain text) bằng thuật toán SHA-256.
-	/// </summary>
-	private string HashPassword(string password)
-	{
-		using (SHA256 sha256 = SHA256.Create())
-		{
-			byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
-			byte[] hashBytes = sha256.ComputeHash(passwordBytes);
+    // ================================================================
+    // 3. ĐĂNG KÝ NGƯỜI DÙNG
+    // ================================================================
+    public bool RegisterUser(string username, string password, string fullName, string email = null, string vaiTro = "PhucVu")
+    {
+        string hashedPassword = HashPassword(password);
 
-			StringBuilder sb = new StringBuilder();
-			foreach (byte b in hashBytes)
-			{
-				sb.Append(b.ToString("x2")); // "x2" là định dạng Hex
-			}
-			return sb.ToString();
-		}
-	}
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            string query = @"
+                INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen, Email, VaiTro)
+                VALUES (@Username, @PasswordHash, @FullName, @Email, @VaiTro)
+            ";
 
-	// =================================================================
-	// PHẦN 3: LOGIC ĐĂNG KÝ (Đã cập nhật)
-	// =================================================================
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@Username", username);
+                command.Parameters.AddWithValue("@PasswordHash", hashedPassword);
+                command.Parameters.AddWithValue("@FullName", fullName);
 
-	/// <summary>
-	/// Đăng ký người dùng mới vào CSDL (Phiên bản cập nhật cho Form mới)
-	/// </summary>
-	public bool RegisterUser(string username, string password, string fullName, string email, string vaiTro)
-	{
-		// 1. Băm mật khẩu
-		string hashedPassword = HashPassword(password);
+                // Nếu email rỗng, dùng DBNull.Value
+                if (string.IsNullOrWhiteSpace(email))
+                    command.Parameters.AddWithValue("@Email", DBNull.Value);
+                else
+                    command.Parameters.AddWithValue("@Email", email);
 
-		using (SqlConnection connection = new SqlConnection(connectionString))
-		{
-			// 2. Cập nhật câu lệnh SQL INSERT
-			// Thêm các cột Email và VaiTro cho khớp với CSDL và Form
-			string query = "INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen, Email, VaiTro) 
+                command.Parameters.AddWithValue("@VaiTro", vaiTro);
 
-							VALUES(@Username, @PasswordHash, @FullName, @Email, @VaiTro)";
+                try
+                {
+                    connection.Open();
+                    int rows = command.ExecuteNonQuery();
+                    return rows > 0;
+                }
+                catch (SqlException ex)
+                {
+                    if (ex.Number == 2627 || ex.Number == 2601)
+                    {
+                        MessageBox.Show("Tên đăng nhập đã tồn tại!", "Lỗi",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Lỗi SQL: " + ex.Message);
+                    }
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi: " + ex.Message);
+                    return false;
+                }
+            }
+        }
+    }
 
+    // ================================================================
+    // 4. ĐĂNG NHẬP NGƯỜI DÙNG
+    // ================================================================
+    public bool LoginUser(string username, string password)
+    {
+        string storedHash = "";
 
-			using (SqlCommand command = new SqlCommand(query, connection))
-			{
-				// 3. Gán giá trị cho các tham số (thêm @Email và @VaiTro)
-				command.Parameters.AddWithValue("@Username", username);
-				command.Parameters.AddWithValue("@PasswordHash", hashedPassword);
-				command.Parameters.AddWithValue("@FullName", fullName);
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            string query = @"
+                SELECT MatKhau 
+                FROM NGUOIDUNG 
+                WHERE TenDangNhap = @Username AND TrangThai = 1
+            ";
 
-				// Nếu email rỗng, truyền DBNull.Value để CSDL hiểu là NULL
-				if (string.IsNullOrWhiteSpace(email))
-				{
-					command.Parameters.AddWithValue("@Email", DBNull.Value);
-				}
-				else
-				{
-					command.Parameters.AddWithValue("@Email", email);
-				}
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@Username", username);
 
-				command.Parameters.AddWithValue("@VaiTro", vaiTro);
+                try
+                {
+                    connection.Open();
+                    object result = command.ExecuteScalar();
 
-				// 4. Phần thực thi (Giữ nguyên)
-				try
-				{
-					connection.Open();
-					int rowsAffected = command.ExecuteNonQuery();
-					return rowsAffected > 0;
-				}
-				catch (SqlException ex)
-				{
-					// Lỗi 2627/2601 là lỗi UNIQUE (trùng TenDangNhap)
-					if (ex.Number == 2627 || ex.Number == 2601)
-					{
-						MessageBox.Show("Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.", "Lỗi Đăng ký", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-					}
-					else
-					{
-						MessageBox.Show("Lỗi CSDL: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-					}
-					return false;
-				}
-				catch (Exception ex)
-				{
-					MessageBox.Show("Lỗi không xác định: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-					return false;
-				}
-			}
-		}
-	}
+                    if (result == null)
+                        return false;
 
-	// =================================================================
-	// PHẦN 4: LOGIC ĐĂNG NHẬP (Không đổi)
-	// =================================================================
+                    storedHash = result.ToString();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi đăng nhập: " + ex.Message);
+                    return false;
+                }
+            }
+        }
 
-	/// <summary>
-	/// Xác thực (Login) người dùng từ bảng NGUOIDUNG.
-	/// </summary>
-	public bool LoginUser(string username, string password)
-	{
-		string storedHash = ""; // Lưu mật khẩu băm lấy từ CSDL
-
-		using (SqlConnection connection = new SqlConnection(connectionString))
-		{
-			// Câu lệnh SQL khớp với CSDL của bạn
-			string query = "SELECT MatKhau FROM NGUOIDUNG WHERE TenDangNhap = @Username";
-
-			using (SqlCommand command = new SqlCommand(query, connection))
-			{
-				command.Parameters.AddWithValue("@Username", username);
-
-				try
-				{
-					connection.Open();
-					object result = command.ExecuteScalar();
-
-					if (result != null && result != DBNull.Value)
-					{
-						storedHash = (string)result; // Lấy được mật khẩu băm
-					}
-					else
-					{
-						return false; // Không tìm thấy user
-					}
-				}
-				catch (Exception ex)
-				{
-					MessageBox.Show("Lỗi khi đăng nhập: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-					return false;
-				}
-			}
-		}
-
-		// 2. Băm mật khẩu người dùng nhập
-		string inputHash = HashPassword(password);
-
-		// 3. So sánh
-		return string.Equals(storedHash, inputHash, StringComparison.Ordinal);
-	}
+        // So sánh mật khẩu
+        string inputHash = HashPassword(password);
+        return storedHash == inputHash;
+    }
 }
