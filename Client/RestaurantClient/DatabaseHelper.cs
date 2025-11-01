@@ -13,7 +13,6 @@ public class DatabaseHelper
 	// =================================================================
 
 	// 1. Chuỗi kết nối (Connection String)
-	// **** TÔI ĐÃ CẬP NHẬT TÊN DATABASE THÀNH "QLQuanAn" ****
 	private string connectionString = "Server=.\\SQLEXPRESS;Database=QLQuanAn;Integrated Security=True;";
 	// (Hãy đảm bảo "Server=.\\SQLEXPRESS" là đúng với máy của bạn)
 
