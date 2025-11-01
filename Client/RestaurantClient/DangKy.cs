@@ -34,7 +34,7 @@ namespace RestaurantClient
         {
             // 1. Lấy dữ liệu từ các control trên Form
             string username = tb_username.Text.Trim();
-            string password = tb_passwod.Text;
+            string password = tb_passwd.Text;
             string checkPassword = tb_checkpasswd.Text;
             string fullName = tb_hoten.Text.Trim();
             string email = tb_email.Text.Trim();

@@ -23,7 +23,7 @@ namespace RestaurantClient
 
         private void btn_hoanTat_Click(object sender, EventArgs e)
         {
-            string newPass = tb_newPass.Text; 
+            string newPass = tb_newPass.Text;
             string confirmPass = tb_confirmPass.Text;
 
             if (newPass != confirmPass)
@@ -40,24 +40,23 @@ namespace RestaurantClient
 
             try
             {
-                string HashedPass = PasswordHashing.HashPassword(newPass); 
+                DatabaseHelper dbHelper = new DatabaseHelper();
+                bool updated = dbHelper.UpdatePassword(userEmail, newPass); // Hàm mới bạn sẽ thêm
 
-                using (SqlConnection con = DatabaseConnection.GetConnection())
+                if (updated)
                 {
-                    con.Open();
-                    string query = "UPDATE NGUOIDUNG SET MatKhau=@Password WHERE Email = @Email";
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@Password", HashedPass);
-                    cmd.Parameters.AddWithValue("@Email", this.userEmail); // Dùng email đã được truyền vào
-                    cmd.ExecuteNonQuery();
+                    MessageBox.Show("Đã đổi mật khẩu thành công", "Chúc mừng!", MessageBoxButtons.OK);
                 }
-
-                MessageBox.Show("Đã đổi mật khẩu thành công","Chúc mừng!", MessageBoxButtons.OK);
+                else
+                {
+                    MessageBox.Show("Đổi mật khẩu thất bại. Kiểm tra email hoặc kết nối.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Cập nhật mật khẩu thất bại. Lỗi: " + ex.Message, "Lỗi Database", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi Database", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
     }
 }

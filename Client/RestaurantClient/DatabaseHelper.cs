@@ -129,4 +129,32 @@ public class DatabaseHelper
         string inputHash = HashPassword(password);
         return storedHash == inputHash;
     }
+    public bool UpdatePassword(string email, string newPassword)
+    {
+        string hashedPassword = HashPassword(newPassword);
+
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            string query = "UPDATE NGUOIDUNG SET MatKhau=@Password WHERE Email=@Email";
+
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@Password", hashedPassword);
+                command.Parameters.AddWithValue("@Email", email);
+
+                try
+                {
+                    connection.Open();
+                    int rows = command.ExecuteNonQuery();
+                    return rows > 0;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi cập nhật mật khẩu: " + ex.Message);
+                    return false;
+                }
+            }
+        }
+    }
+
 }
