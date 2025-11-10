@@ -71,19 +71,21 @@
             // 
             // btn_hoanTat
             // 
+            btn_hoanTat.BackColor = SystemColors.ActiveCaption;
             btn_hoanTat.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             btn_hoanTat.Location = new Point(299, 221);
             btn_hoanTat.Name = "btn_hoanTat";
             btn_hoanTat.Size = new Size(157, 45);
             btn_hoanTat.TabIndex = 4;
             btn_hoanTat.Text = "Hoàn tất";
-            btn_hoanTat.UseVisualStyleBackColor = true;
+            btn_hoanTat.UseVisualStyleBackColor = false;
             btn_hoanTat.Click += btn_hoanTat_Click;
             // 
             // MatKhauMoi
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.Cornsilk;
             ClientSize = new Size(800, 358);
             Controls.Add(btn_hoanTat);
             Controls.Add(tb_confirmPass);
@@ -92,6 +94,7 @@
             Controls.Add(label1);
             Name = "MatKhauMoi";
             Text = "MatKhauMoi";
+            Load += MatKhauMoi_Load;
             ResumeLayout(false);
             PerformLayout();
         }

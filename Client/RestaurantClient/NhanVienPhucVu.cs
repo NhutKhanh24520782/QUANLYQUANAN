@@ -16,5 +16,25 @@ namespace RestaurantClient
         {
             InitializeComponent();
         }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void NhanVienPhucVu_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void gb_thongtinban_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btn_datban_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

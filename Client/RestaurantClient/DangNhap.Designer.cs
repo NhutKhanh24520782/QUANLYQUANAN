@@ -145,6 +145,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.Cornsilk;
             ClientSize = new Size(701, 506);
             Controls.Add(linkLabel_forgetpasswd);
             Controls.Add(btn_dangnhap);
@@ -152,8 +153,10 @@
             Controls.Add(label2);
             Controls.Add(label1);
             Controls.Add(groupBox_dangnhap);
+            ForeColor = Color.DarkBlue;
             Name = "DangNhap";
             Text = "DangNhap";
+            Load += DangNhap_Load;
             groupBox_dangnhap.ResumeLayout(false);
             groupBox_dangnhap.PerformLayout();
             ResumeLayout(false);
