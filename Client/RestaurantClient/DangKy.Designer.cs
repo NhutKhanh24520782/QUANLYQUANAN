@@ -51,7 +51,7 @@
             // 
             lbl_title.AutoSize = true;
             lbl_title.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lbl_title.Location = new Point(321, 9);
+            lbl_title.Location = new Point(314, 9);
             lbl_title.Name = "lbl_title";
             lbl_title.Size = new Size(220, 28);
             lbl_title.TabIndex = 0;
@@ -161,13 +161,14 @@
             // btn_dangky
             // 
             btn_dangky.AutoSize = true;
+            btn_dangky.BackColor = SystemColors.ControlDark;
             btn_dangky.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
             btn_dangky.Location = new Point(364, 343);
             btn_dangky.Name = "btn_dangky";
-            btn_dangky.Size = new Size(94, 33);
+            btn_dangky.Size = new Size(95, 43);
             btn_dangky.TabIndex = 13;
             btn_dangky.Text = "Đăng ký";
-            btn_dangky.UseVisualStyleBackColor = true;
+            btn_dangky.UseVisualStyleBackColor = false;
             btn_dangky.Click += btn_dangky_Click;
             // 
             // linkLabel_quaylai
@@ -212,6 +213,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
+            BackColor = SystemColors.Info;
             ClientSize = new Size(800, 450);
             Controls.Add(tb_email);
             Controls.Add(label2);
