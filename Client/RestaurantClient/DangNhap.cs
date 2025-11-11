@@ -58,14 +58,33 @@ namespace RestaurantClient
 
         private void linkLabel_dangky_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            DangKy dk = new DangKy();
-            dk.Show();
+            this.Hide();
+
+            // 2. Tạo và hiển thị form đăng ký dưới dạng modal
+            using (DangKy dk = new DangKy())
+            {
+                dk.ShowDialog();  // Khi đóng form đăng ký, dòng này mới kết thúc
+            }
+
+            // 3. Hiện lại form đăng nhập
+            this.Show();
         }
 
         private void linkLabel_forgetpasswd_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            NhapEmail frm = new NhapEmail();
-            frm.Show();
+            this.Hide();
+
+            using (NhapEmail frm = new NhapEmail())
+            {
+                frm.ShowDialog();
+            }
+
+            this.Show();
+        }
+
+        private void DangNhap_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }
