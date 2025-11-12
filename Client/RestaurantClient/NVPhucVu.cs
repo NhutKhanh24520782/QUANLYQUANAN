@@ -21,5 +21,10 @@ namespace RestaurantClient
         {
 
         }
+
+        private void tp_phucvuqly_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
