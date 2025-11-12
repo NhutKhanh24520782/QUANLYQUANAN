@@ -1,16 +1,17 @@
 ﻿using System;
+using System.Net.Sockets;
+using System.Text;
+using Newtonsoft.Json;
 using System.Windows.Forms;
 
 namespace RestaurantClient
 {
     public partial class DangNhap : Form
     {
-        DatabaseHelper db = new DatabaseHelper();
-
         public DangNhap()
         {
             InitializeComponent();
-            tb_passwd.PasswordChar = '●';   // Ẩn mật khẩu
+            tb_passwd.PasswordChar = '●';
         }
 
         private void btn_dangnhap_Click(object sender, EventArgs e)
@@ -18,73 +19,53 @@ namespace RestaurantClient
             string username = tb_username.Text.Trim();
             string password = tb_passwd.Text.Trim();
 
-            // Kiểm tra nhập đầy đủ
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                MessageBox.Show(
-                    "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!",
-                    "Thiếu thông tin",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning
-                );
+                MessageBox.Show("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!");
                 return;
             }
 
-            // Gọi DatabaseHelper để kiểm tra login
-            bool loginSuccess = db.LoginUser(username, password);
-
-            if (loginSuccess)
+            var request = new
             {
-                MessageBox.Show(
-                    "Đăng nhập thành công!",
-                    "Thông báo",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
-                );
+                Type = "Login",
+                Username = username,
+                Password = password
+            };
 
-                // ✅ Ẩn form đăng nhập → CHẠY NỀN, KHÔNG THOÁT APP
+            string response = SendRequest(request);
+
+            if (response.Contains("\"Success\":true"))
+            {
+                MessageBox.Show("Đăng nhập thành công!");
                 this.Hide();
             }
             else
             {
-                MessageBox.Show(
-                    "Sai tên đăng nhập hoặc mật khẩu!",
-                    "Đăng nhập thất bại",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
+                MessageBox.Show("Sai tên đăng nhập hoặc mật khẩu!");
             }
         }
 
+        private string SendRequest(object data)
+        {
+            string json = JsonConvert.SerializeObject(data);
+            using (TcpClient client = new TcpClient("127.0.0.1", 9000))
+            {
+                NetworkStream stream = client.GetStream();
+                byte[] sendData = Encoding.UTF8.GetBytes(json);
+                stream.Write(sendData, 0, sendData.Length);
+
+                byte[] buffer = new byte[1024];
+                int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                stream.Close();
+                client.Close();
+                return response;
+            }
+        }
         private void linkLabel_dangky_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            this.Hide();
-
-            // 2. Tạo và hiển thị form đăng ký dưới dạng modal
-            using (DangKy dk = new DangKy())
-            {
-                dk.ShowDialog();  // Khi đóng form đăng ký, dòng này mới kết thúc
-            }
-
-            // 3. Hiện lại form đăng nhập
-            this.Show();
-        }
-
-        private void linkLabel_forgetpasswd_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            this.Hide();
-
-            using (NhapEmail frm = new NhapEmail())
-            {
-                frm.ShowDialog();
-            }
-
-            this.Show();
-        }
-
-        private void DangNhap_Load(object sender, EventArgs e)
-        {
-
+            
         }
     }
 }

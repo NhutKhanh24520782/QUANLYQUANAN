@@ -106,7 +106,6 @@
             lbl_checkpasswd.Size = new Size(161, 23);
             lbl_checkpasswd.TabIndex = 5;
             lbl_checkpasswd.Text = "Xác nhận password:";
-            lbl_checkpasswd.Click += lbl_checkpasswd_Click;
             // 
             // tb_hoten
             // 
@@ -180,7 +179,6 @@
             linkLabel_quaylai.TabIndex = 14;
             linkLabel_quaylai.TabStop = true;
             linkLabel_quaylai.Text = "Quay lại";
-            linkLabel_quaylai.LinkClicked += linkLabel_quaylai_LinkClicked;
             // 
             // label1
             // 
@@ -234,7 +232,7 @@
             Controls.Add(lbl_title);
             Name = "DangKy";
             Text = "DangKy";
-            Load += DangKy_Load;
+            
             ResumeLayout(false);
             PerformLayout();
         }
