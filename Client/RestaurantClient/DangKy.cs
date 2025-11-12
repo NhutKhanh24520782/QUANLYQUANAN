@@ -48,7 +48,7 @@ namespace RestaurantClient
             }
             else
             {
-                MessageBox.Show("Đăng ký thất bại!");
+                MessageBox.Show("Đăng ký thất bại! Tài khoản hoặc email đã tồn tại");
             }
         }
 

@@ -37,18 +37,36 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
+
+                    // 1️⃣ Kiểm tra username hoặc email đã tồn tại
+                    string checkQuery = "SELECT COUNT(*) FROM NGUOIDUNG WHERE TenDangNhap=@u OR Email=@e";
+                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                    {
+                        checkCmd.Parameters.AddWithValue("@u", username);
+                        checkCmd.Parameters.AddWithValue("@e", email);
+                        int count = (int)checkCmd.ExecuteScalar();
+                        if (count > 0)
+                        {
+                            Console.WriteLine($"❌ Tài khoản hoặc email đã tồn tại: {username} / {email}");
+                            return false; // đăng ký thất bại
+                        }
+                    }
+
+                    // 2️⃣ Nếu chưa tồn tại, hash mật khẩu và insert
                     string hashed = BCrypt.Net.BCrypt.HashPassword(password);
 
-                    string query = @"INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen, Email, VaiTro)
-                                     VALUES (@u, @p, @n, @e, @r)";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@u", username);
-                    cmd.Parameters.AddWithValue("@p", hashed);
-                    cmd.Parameters.AddWithValue("@n", fullName);
-                    cmd.Parameters.AddWithValue("@e", email);
-                    cmd.Parameters.AddWithValue("@r", role);
+                    string insertQuery = @"INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen, Email, VaiTro)
+                                   VALUES (@u, @p, @n, @e, @r)";
+                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@u", username);
+                        cmd.Parameters.AddWithValue("@p", hashed);
+                        cmd.Parameters.AddWithValue("@n", fullName);
+                        cmd.Parameters.AddWithValue("@e", email);
+                        cmd.Parameters.AddWithValue("@r", role);
 
-                    return cmd.ExecuteNonQuery() > 0;
+                        return cmd.ExecuteNonQuery() > 0;
+                    }
                 }
             }
             catch (Exception ex)
@@ -57,6 +75,7 @@ namespace RestaurantServer
                 return false;
             }
         }
+
         public static bool UpdatePassword(string email, string newPassword)
         {
             try
