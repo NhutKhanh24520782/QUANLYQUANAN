@@ -37,7 +37,6 @@
             tb_soluongmon = new TextBox();
             label3 = new Label();
             cb_namedish = new ComboBox();
-            listView1 = new ListView();
             gb_thongtinban = new GroupBox();
             button2 = new Button();
             btn_datban = new Button();
@@ -47,10 +46,13 @@
             comboBox1 = new ComboBox();
             lbl_chonban = new Label();
             gb_chitietorder = new GroupBox();
+            panel_hienthiNganHang_VNPAY = new Panel();
+            checkBox2 = new CheckBox();
+            checkBox1 = new CheckBox();
+            checkBox_tienmat = new CheckBox();
             btn_thanhtoan = new Button();
             lbl_thongtintongtien = new Label();
             lbl_tongtien = new Label();
-            listView2 = new ListView();
             tb_theodoidon = new TabPage();
             gb_thongtin = new GroupBox();
             label6 = new Label();
@@ -66,10 +68,8 @@
             button1 = new Button();
             textBox1 = new TextBox();
             dataGridView1 = new DataGridView();
-            checkBox_tienmat = new CheckBox();
-            checkBox1 = new CheckBox();
-            checkBox2 = new CheckBox();
-            panel_hienthiNganHang_VNPAY = new Panel();
+            dataGridView2 = new DataGridView();
+            dataGridView3 = new DataGridView();
             tabControl1.SuspendLayout();
             tp_phucvuqly.SuspendLayout();
             gb_thucdonorder.SuspendLayout();
@@ -79,6 +79,8 @@
             gb_thongtin.SuspendLayout();
             tb_chat.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView2).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView3).BeginInit();
             SuspendLayout();
             // 
             // tabControl1
@@ -108,13 +110,13 @@
             // 
             // gb_thucdonorder
             // 
+            gb_thucdonorder.Controls.Add(dataGridView2);
             gb_thucdonorder.Controls.Add(btn_guiorder);
             gb_thucdonorder.Controls.Add(btn_xoamon);
             gb_thucdonorder.Controls.Add(btn_themmon);
             gb_thucdonorder.Controls.Add(tb_soluongmon);
             gb_thucdonorder.Controls.Add(label3);
             gb_thucdonorder.Controls.Add(cb_namedish);
-            gb_thucdonorder.Controls.Add(listView1);
             gb_thucdonorder.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
             gb_thucdonorder.Location = new Point(700, 6);
             gb_thucdonorder.Name = "gb_thucdonorder";
@@ -178,14 +180,6 @@
             cb_namedish.Size = new Size(311, 33);
             cb_namedish.TabIndex = 1;
             cb_namedish.Text = "Tên món";
-            // 
-            // listView1
-            // 
-            listView1.Location = new Point(24, 100);
-            listView1.Name = "listView1";
-            listView1.Size = new Size(648, 314);
-            listView1.TabIndex = 0;
-            listView1.UseCompatibleStateImageBehavior = false;
             // 
             // gb_thongtinban
             // 
@@ -272,6 +266,7 @@
             // 
             // gb_chitietorder
             // 
+            gb_chitietorder.Controls.Add(dataGridView3);
             gb_chitietorder.Controls.Add(panel_hienthiNganHang_VNPAY);
             gb_chitietorder.Controls.Add(checkBox2);
             gb_chitietorder.Controls.Add(checkBox1);
@@ -279,7 +274,6 @@
             gb_chitietorder.Controls.Add(btn_thanhtoan);
             gb_chitietorder.Controls.Add(lbl_thongtintongtien);
             gb_chitietorder.Controls.Add(lbl_tongtien);
-            gb_chitietorder.Controls.Add(listView2);
             gb_chitietorder.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
             gb_chitietorder.Location = new Point(20, 166);
             gb_chitietorder.Name = "gb_chitietorder";
@@ -287,6 +281,46 @@
             gb_chitietorder.TabIndex = 5;
             gb_chitietorder.TabStop = false;
             gb_chitietorder.Text = "Chi tiết order hiện tại";
+            // 
+            // panel_hienthiNganHang_VNPAY
+            // 
+            panel_hienthiNganHang_VNPAY.Location = new Point(245, 242);
+            panel_hienthiNganHang_VNPAY.Name = "panel_hienthiNganHang_VNPAY";
+            panel_hienthiNganHang_VNPAY.Size = new Size(423, 188);
+            panel_hienthiNganHang_VNPAY.TabIndex = 9;
+            // 
+            // checkBox2
+            // 
+            checkBox2.AutoSize = true;
+            checkBox2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox2.Location = new Point(6, 303);
+            checkBox2.Name = "checkBox2";
+            checkBox2.Size = new Size(123, 24);
+            checkBox2.TabIndex = 8;
+            checkBox2.Text = "Chuyển khoản";
+            checkBox2.UseVisualStyleBackColor = true;
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox1.Location = new Point(6, 333);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(99, 24);
+            checkBox1.TabIndex = 7;
+            checkBox1.Text = "QR VNPAY";
+            checkBox1.UseVisualStyleBackColor = true;
+            // 
+            // checkBox_tienmat
+            // 
+            checkBox_tienmat.AutoSize = true;
+            checkBox_tienmat.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            checkBox_tienmat.Location = new Point(6, 276);
+            checkBox_tienmat.Name = "checkBox_tienmat";
+            checkBox_tienmat.Size = new Size(89, 24);
+            checkBox_tienmat.TabIndex = 6;
+            checkBox_tienmat.Text = "Tiền mặt";
+            checkBox_tienmat.UseVisualStyleBackColor = true;
             // 
             // btn_thanhtoan
             // 
@@ -316,14 +350,6 @@
             lbl_tongtien.TabIndex = 3;
             lbl_tongtien.Text = "Tổng tiền:";
             // 
-            // listView2
-            // 
-            listView2.Location = new Point(6, 30);
-            listView2.Name = "listView2";
-            listView2.Size = new Size(662, 206);
-            listView2.TabIndex = 0;
-            listView2.UseCompatibleStateImageBehavior = false;
-            // 
             // tb_theodoidon
             // 
             tb_theodoidon.Controls.Add(gb_thongtin);
@@ -331,7 +357,7 @@
             tb_theodoidon.Location = new Point(4, 29);
             tb_theodoidon.Name = "tb_theodoidon";
             tb_theodoidon.Padding = new Padding(3);
-            tb_theodoidon.Size = new Size(1389, 563);
+            tb_theodoidon.Size = new Size(1389, 605);
             tb_theodoidon.TabIndex = 1;
             tb_theodoidon.Text = "Theo dõi đơn hàng";
             tb_theodoidon.UseVisualStyleBackColor = true;
@@ -443,7 +469,7 @@
             tb_chat.Location = new Point(4, 29);
             tb_chat.Name = "tb_chat";
             tb_chat.Padding = new Padding(3);
-            tb_chat.Size = new Size(1325, 563);
+            tb_chat.Size = new Size(1389, 605);
             tb_chat.TabIndex = 2;
             tb_chat.Text = "Chat";
             tb_chat.UseVisualStyleBackColor = true;
@@ -451,7 +477,7 @@
             // button1
             // 
             button1.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            button1.Location = new Point(1034, 418);
+            button1.Location = new Point(1051, 418);
             button1.Name = "button1";
             button1.Size = new Size(225, 65);
             button1.TabIndex = 5;
@@ -475,45 +501,23 @@
             dataGridView1.Size = new Size(1280, 397);
             dataGridView1.TabIndex = 3;
             // 
-            // checkBox_tienmat
+            // dataGridView2
             // 
-            checkBox_tienmat.AutoSize = true;
-            checkBox_tienmat.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox_tienmat.Location = new Point(6, 276);
-            checkBox_tienmat.Name = "checkBox_tienmat";
-            checkBox_tienmat.Size = new Size(89, 24);
-            checkBox_tienmat.TabIndex = 6;
-            checkBox_tienmat.Text = "Tiền mặt";
-            checkBox_tienmat.UseVisualStyleBackColor = true;
+            dataGridView2.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView2.Location = new Point(18, 85);
+            dataGridView2.Name = "dataGridView2";
+            dataGridView2.RowHeadersWidth = 51;
+            dataGridView2.Size = new Size(650, 342);
+            dataGridView2.TabIndex = 11;
             // 
-            // checkBox1
+            // dataGridView3
             // 
-            checkBox1.AutoSize = true;
-            checkBox1.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox1.Location = new Point(6, 333);
-            checkBox1.Name = "checkBox1";
-            checkBox1.Size = new Size(99, 24);
-            checkBox1.TabIndex = 7;
-            checkBox1.Text = "QR VNPAY";
-            checkBox1.UseVisualStyleBackColor = true;
-            // 
-            // checkBox2
-            // 
-            checkBox2.AutoSize = true;
-            checkBox2.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            checkBox2.Location = new Point(6, 303);
-            checkBox2.Name = "checkBox2";
-            checkBox2.Size = new Size(123, 24);
-            checkBox2.TabIndex = 8;
-            checkBox2.Text = "Chuyển khoản";
-            checkBox2.UseVisualStyleBackColor = true;
-            // 
-            // panel_hienthiNganHang_VNPAY
-            // 
-            panel_hienthiNganHang_VNPAY.Location = new Point(245, 242);
-            panel_hienthiNganHang_VNPAY.Name = "panel_hienthiNganHang_VNPAY";
-            panel_hienthiNganHang_VNPAY.Size = new Size(423, 188);
-            panel_hienthiNganHang_VNPAY.TabIndex = 9;
+            dataGridView3.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView3.Location = new Point(6, 30);
+            dataGridView3.Name = "dataGridView3";
+            dataGridView3.RowHeadersWidth = 51;
+            dataGridView3.Size = new Size(662, 209);
+            dataGridView3.TabIndex = 10;
             // 
             // NVPhucVu
             // 
@@ -538,6 +542,8 @@
             tb_chat.ResumeLayout(false);
             tb_chat.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView2).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView3).EndInit();
             ResumeLayout(false);
         }
 
@@ -554,7 +560,6 @@
         private TextBox tb_soluongmon;
         private Label label3;
         private ComboBox cb_namedish;
-        private ListView listView1;
         private GroupBox gb_thongtinban;
         private Button button2;
         private Button btn_datban;
@@ -567,7 +572,6 @@
         private Button btn_thanhtoan;
         private Label lbl_thongtintongtien;
         private Label lbl_tongtien;
-        private ListView listView2;
         private TextBox tb_chatphucvu;
         private DataGridView dataGridView_chatphucvu;
         private Button btn_sendphucvu;
@@ -589,5 +593,7 @@
         private CheckBox checkBox1;
         private CheckBox checkBox_tienmat;
         private Panel panel_hienthiNganHang_VNPAY;
+        private DataGridView dataGridView2;
+        private DataGridView dataGridView3;
     }
 }
