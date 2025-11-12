@@ -116,6 +116,7 @@
             linkLabel_dangky.TabIndex = 3;
             linkLabel_dangky.TabStop = true;
             linkLabel_dangky.Text = "Đăng ký";
+            linkLabel_dangky.LinkClicked += linkLabel_dangky_LinkClicked_1;
             // 
             // btn_dangnhap
             // 
@@ -138,6 +139,7 @@
             linkLabel_forgetpasswd.TabIndex = 5;
             linkLabel_forgetpasswd.TabStop = true;
             linkLabel_forgetpasswd.Text = "Quên mật khẩu?";
+            linkLabel_forgetpasswd.LinkClicked += linkLabel_forgetpasswd_LinkClicked;
             // 
             // DangNhap
             // 
@@ -154,7 +156,6 @@
             ForeColor = Color.DarkBlue;
             Name = "DangNhap";
             Text = "DangNhap";
-         
             groupBox_dangnhap.ResumeLayout(false);
             groupBox_dangnhap.PerformLayout();
             ResumeLayout(false);

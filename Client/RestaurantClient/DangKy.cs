@@ -55,7 +55,7 @@ namespace RestaurantClient
         private string SendRequest(object data)
         {
             string json = JsonConvert.SerializeObject(data);
-            using (TcpClient client = new TcpClient("127.0.0.1", 9000))
+            using (TcpClient client = new TcpClient("127.0.0.1", 5000))
             {
                 NetworkStream stream = client.GetStream();
                 byte[] sendData = Encoding.UTF8.GetBytes(json);
@@ -69,6 +69,20 @@ namespace RestaurantClient
                 client.Close();
                 return response;
             }
+        }
+
+        private void linkLabel_quaylai_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            this.Hide();
+
+            // Tạo instance Form đăng ký
+            DangNhap frmDangNhap = new DangNhap();
+
+            // Khi Form đăng ký đóng, hiện lại Form đăng nhập
+            frmDangNhap.FormClosed += (s, args) => this.Show();
+
+            // Mở Form đăng ký
+            frmDangNhap.Show();
         }
     }
 }

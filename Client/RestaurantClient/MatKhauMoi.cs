@@ -20,6 +20,24 @@ namespace RestaurantClient
             InitializeComponent();
             this.userEmail = email;
         }
+        private string SendRequest(object data)
+        {
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(data);
+            using (var client = new System.Net.Sockets.TcpClient("127.0.0.1", 5000)) // đổi IP nếu server ở xa
+            {
+                var stream = client.GetStream();
+                byte[] sendData = Encoding.UTF8.GetBytes(json);
+                stream.Write(sendData, 0, sendData.Length);
+
+                byte[] buffer = new byte[1024];
+                int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                stream.Close();
+                client.Close();
+                return response;
+            }
+        }
 
         private void btn_hoanTat_Click(object sender, EventArgs e)
         {
@@ -40,12 +58,22 @@ namespace RestaurantClient
 
             try
             {
-                DatabaseHelper dbHelper = new DatabaseHelper();
-                bool updated = dbHelper.UpdatePassword(userEmail, newPass); // Hàm mới bạn sẽ thêm
-
-                if (updated)
+                var request = new
                 {
-                    MessageBox.Show("Đã đổi mật khẩu thành công", "Chúc mừng!", MessageBoxButtons.OK);
+                    Type = "UpdatePassword",
+                    Email = userEmail,
+                    NewPassword = newPass
+                };
+
+                string response = SendRequest(request);
+                dynamic res = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+
+                if (res.Success == true)
+                {
+                    MessageBox.Show("Đã đổi mật khẩu thành công", "Chúc mừng!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.Close();
+                    DangNhap loginForm = new DangNhap();
+                    loginForm.Show();
                 }
                 else
                 {
@@ -54,7 +82,7 @@ namespace RestaurantClient
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi Database", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi mạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

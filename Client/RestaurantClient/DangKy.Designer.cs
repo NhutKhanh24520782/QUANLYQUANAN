@@ -179,6 +179,7 @@
             linkLabel_quaylai.TabIndex = 14;
             linkLabel_quaylai.TabStop = true;
             linkLabel_quaylai.Text = "Quay lại";
+            linkLabel_quaylai.LinkClicked += linkLabel_quaylai_LinkClicked;
             // 
             // label1
             // 
@@ -232,7 +233,6 @@
             Controls.Add(lbl_title);
             Name = "DangKy";
             Text = "DangKy";
-            
             ResumeLayout(false);
             PerformLayout();
         }

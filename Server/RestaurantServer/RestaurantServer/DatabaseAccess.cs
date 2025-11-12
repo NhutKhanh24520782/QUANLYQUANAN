@@ -57,5 +57,46 @@ namespace RestaurantServer
                 return false;
             }
         }
+        public static bool UpdatePassword(string email, string newPassword)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string hashed = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+                    string query = "UPDATE NGUOIDUNG SET MatKhau = @p WHERE Email = @e";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@p", hashed);
+                    cmd.Parameters.AddWithValue("@e", email);
+
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("⚠️ Lỗi đổi mật khẩu: " + ex.Message);
+                return false;
+            }
+        }
+        // Kiểm tra email có tồn tại trong database hay không
+        public static bool CheckEmailExists(string email)
+        {
+            bool exists = false;
+            string query = "SELECT COUNT(*) FROM NGUOIDUNG WHERE Email = @Email"; 
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@Email", email);
+                conn.Open();
+                int count = (int)cmd.ExecuteScalar();
+                exists = count > 0;
+            }
+
+            return exists;
+        }
     }
 }
+

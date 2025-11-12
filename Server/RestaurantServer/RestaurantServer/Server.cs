@@ -82,6 +82,29 @@ namespace RestaurantServer
                         Success = success
                     });
                 }
+                else if (type == "UpdatePassword")
+                {
+                    string email = request.Email;
+                    string newPass = request.NewPassword;
+                    bool success = DatabaseAccess.UpdatePassword(email, newPass);
+
+                    response = JsonConvert.SerializeObject(new
+                    {
+                        Type = "UpdatePasswordResponse",
+                        Success = success
+                    });
+                }
+                else if (type == "CheckEmail")
+                {
+                    string email = request.Email;
+                    bool exists = DatabaseAccess.CheckEmailExists(email); // trả về true/false
+                    response = JsonConvert.SerializeObject(new
+                    {
+                        Type = "CheckEmailResponse",
+                        Exists = exists
+                    });
+                }
+
 
                 // Gửi phản hồi lại client
                 byte[] data = Encoding.UTF8.GetBytes(response);
