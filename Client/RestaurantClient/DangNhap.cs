@@ -3,9 +3,12 @@ using System.Net.Sockets;
 using System.Text;
 using Newtonsoft.Json;
 using System.Windows.Forms;
+using Models.Request;
+using Models.Response;
 
 namespace RestaurantClient
 {
+
     public partial class DangNhap : Form
     {
         public DangNhap()
@@ -14,53 +17,82 @@ namespace RestaurantClient
             tb_passwd.PasswordChar = '●';
         }
 
-        private void btn_dangnhap_Click(object sender, EventArgs e)
+        private async void btn_dangnhap_Click(object sender, EventArgs e)
         {
-            string username = tb_username.Text.Trim();
-            string password = tb_passwd.Text.Trim();
-
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            var request = new LoginRequest
             {
-                MessageBox.Show("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!");
+                Username = tb_username.Text.Trim(),
+                Password = tb_passwd.Text.Trim()
+            };
+
+            var validation = request.Validate();
+            if (!validation.isValid)
+            {
+                MessageBox.Show(validation.error, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            var request = new
+            try
             {
-                Type = "Login",
-                Username = username,
-                Password = password
-            };
+                string response = await SendRequestAsync(request);
+                var loginResponse = JsonConvert.DeserializeObject<LoginResponse>(response);
 
-            string response = SendRequest(request);
+                if (loginResponse?.Success == true)
+                {
+                    MessageBox.Show($"Đăng nhập thành công! Chào {loginResponse.HoTen}",
+                        "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-            if (response.Contains("\"Success\":true"))
-            {
-                MessageBox.Show("Đăng nhập thành công!");
-                this.Hide();
+                    this.Hide();
+
+                    // Điều hướng theo role
+                    switch (loginResponse.Role)
+                    {
+                        case "Admin":
+                            new Admin().Show();
+                            break;
+                        case "PhucVu":
+                            new NVPhucVu().Show();
+                            break;
+                        case "Bep":
+                            new NVBep().Show();
+                            break;
+                        default:
+                            MessageBox.Show($"Vai trò không xác định: {loginResponse.Role}");
+                            this.Show();
+                            break;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show(loginResponse?.Message ?? "Đăng nhập thất bại",
+                        "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Sai tên đăng nhập hoặc mật khẩu!");
+                MessageBox.Show($"Lỗi kết nối: {ex.Message}",
+                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private string SendRequest(object data)
+        private async Task<string> SendRequestAsync<T>(T data)
         {
-            string json = JsonConvert.SerializeObject(data);
-            using (TcpClient client = new TcpClient("127.0.0.1", 5000))
+            string json = JsonConvert.SerializeObject(data) + "\n";
+            using (TcpClient client = new TcpClient())
             {
+                client.ReceiveTimeout = 5000;
+                client.SendTimeout = 5000;
+
+                await client.ConnectAsync("127.0.0.1", 5000);
                 NetworkStream stream = client.GetStream();
+
                 byte[] sendData = Encoding.UTF8.GetBytes(json);
-                stream.Write(sendData, 0, sendData.Length);
+                await stream.WriteAsync(sendData, 0, sendData.Length);
 
-                byte[] buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                stream.Close();
-                client.Close();
-                return response;
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    return await reader.ReadLineAsync();
+                }
             }
         }
         private void linkLabel_dangky_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -70,16 +102,9 @@ namespace RestaurantClient
 
         private void linkLabel_dangky_LinkClicked_1(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            // Ẩn tạm Form đăng nhập
             this.Hide();
-
-            // Tạo instance Form đăng ký
             DangKy frmDangKy = new DangKy();
-
-            // Khi Form đăng ký đóng, hiện lại Form đăng nhập
             frmDangKy.FormClosed += (s, args) => this.Show();
-
-            // Mở Form đăng ký
             frmDangKy.Show();
         }
 

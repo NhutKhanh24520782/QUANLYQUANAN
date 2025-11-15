@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Packet\Models\Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="MatKhauMoi.cs">
       <SubType>Form</SubType>
     </Compile>

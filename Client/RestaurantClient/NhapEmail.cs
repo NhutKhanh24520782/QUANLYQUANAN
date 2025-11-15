@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Models.Request;
+using Models.Response;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -51,41 +53,60 @@ namespace RestaurantClient
             verifyForm.Show();
             this.Hide();
         }
-
-        // 🔹 Gọi server kiểm tra email (giả sử bạn có TCP client)
-        private Task<bool> CheckEmailInDatabaseAsync(string email)
+        // Sử dụng method SendRequestAsync đã có trong DangNhap.cs
+        private async Task<bool> CheckEmailInDatabaseAsync(string email)
         {
-            return Task.Run(() =>
+            try
             {
-                try
-                {
-                    // Ví dụ dùng TCP gửi request server
-                    using (TcpClient client = new TcpClient("127.0.0.1", 5000))
-                    using (NetworkStream stream = client.GetStream())
-                    {
-                        // Gửi request dạng JSON
-                        string requestJson = Newtonsoft.Json.JsonConvert.SerializeObject(new
-                        {
-                            Type = "CheckEmail",
-                            Email = email
-                        });
-                        byte[] data = Encoding.UTF8.GetBytes(requestJson);
-                        stream.Write(data, 0, data.Length);
+                var request = new CheckEmailRequest { Email = email };
+                string response = await SendRequestAsync(request);
+                var checkResponse = Newtonsoft.Json.JsonConvert.DeserializeObject<CheckEmailResponse>(response);
 
-                        // Nhận phản hồi
-                        byte[] buffer = new byte[1024];
-                        int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                        string responseJson = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                        dynamic response = Newtonsoft.Json.JsonConvert.DeserializeObject(responseJson);
-                        return (bool)response.Exists;
-                    }
-                }
-                catch
+                if (checkResponse == null)
                 {
+                    MessageBox.Show("Lỗi parse response từ server", "Lỗi");
                     return false;
                 }
-            });
+
+                // ✅ DEBUG
+                Console.WriteLine($"📧 Client Response - Success: {checkResponse.Success}, Exists: {checkResponse.Exists}, Message: {checkResponse.Message}");
+
+                if (!checkResponse.Success)
+                {
+                    MessageBox.Show(checkResponse.Message, "Lỗi kiểm tra email");
+                    return false;
+                }
+
+                return checkResponse.Exists;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi kết nối: {ex.Message}", "Lỗi");
+                return false;
+            }
+        }
+
+        // ✅ Thêm method SendRequestAsync vào NhapEmail.cs
+        private async Task<string> SendRequestAsync<T>(T data)
+        {
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(data) + "\n";
+
+            using (TcpClient client = new TcpClient())
+            {
+                client.ReceiveTimeout = 5000;
+                client.SendTimeout = 5000;
+
+                await client.ConnectAsync("127.0.0.1", 5000);
+
+                using (NetworkStream stream = client.GetStream())
+                using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    await writer.WriteLineAsync(json.TrimEnd('\n'));
+                    string response = await reader.ReadLineAsync();
+                    return response ?? "";
+                }
+            }
         }
 
     }

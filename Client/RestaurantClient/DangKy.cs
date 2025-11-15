@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Models.Request;
+using Models.Response;
+using Newtonsoft.Json;
+using System;
 using System.Net.Sockets;
 using System.Text;
-using Newtonsoft.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace RestaurantClient
@@ -13,7 +16,8 @@ namespace RestaurantClient
             InitializeComponent();
         }
 
-        private void btn_dangky_Click(object sender, EventArgs e)
+        // ✅ SỬA: Thêm async
+        private async void btn_dangky_Click(object sender, EventArgs e)
         {
             string username = tb_username.Text.Trim();
             string password = tb_passwd.Text.Trim();
@@ -23,66 +27,103 @@ namespace RestaurantClient
             string role = radioButton_phucvu.Checked ? "PhucVu" :
                           radioButton_bep.Checked ? "Bep" : "";
 
+            // Validation
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) ||
+                string.IsNullOrEmpty(fullname) || string.IsNullOrEmpty(email) ||
+                string.IsNullOrEmpty(role))
+            {
+                MessageBox.Show("Vui lòng nhập đầy đủ thông tin!");
+                return;
+            }
+
             if (password != confirm)
             {
                 MessageBox.Show("Mật khẩu không khớp!");
                 return;
             }
 
-            var request = new
+            if (password.Length < 6)
             {
-                Type = "Register",
-                Username = username,
-                Password = password,
-                FullName = fullname,
-                Email = email,
-                Role = role
-            };
-
-            string response = SendRequest(request);
-
-            if (response.Contains("\"Success\":true"))
-            {
-                MessageBox.Show("Đăng ký thành công!");
-                this.Close();
+                MessageBox.Show("Mật khẩu phải có ít nhất 6 ký tự!");
+                return;
             }
-            else
+
+            // ✅ Disable button khi đang xử lý
+            btn_dangky.Enabled = false;
+            btn_dangky.Text = "Đang đăng ký...";
+
+            try
             {
-                MessageBox.Show("Đăng ký thất bại! Tài khoản hoặc email đã tồn tại");
+                var request = new RegisterRequest
+                {
+                    Username = username,
+                    Password = password,
+                    HoTen = fullname,
+                    Email = email,
+                    Role = role
+                };
+
+                // ✅ SỬA: Gọi async method
+                string response = await SendRequestAsync(request);
+                var registerResponse = JsonConvert.DeserializeObject<RegisterResponse>(response);
+
+                if (registerResponse?.Success == true)
+                {
+                    MessageBox.Show("Đăng ký thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // ✅ SỬA: Set DialogResult để form cha biết
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+                else
+                {
+                    MessageBox.Show(registerResponse?.Message ?? "Đăng ký thất bại!",
+                        "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi kết nối: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // ✅ Re-enable button
+                btn_dangky.Enabled = true;
+                btn_dangky.Text = "Đăng ký";
             }
         }
 
-        private string SendRequest(object data)
+        // ✅ SỬA: Async method thay vì sync
+        private async Task<string> SendRequestAsync<T>(T data)
         {
-            string json = JsonConvert.SerializeObject(data);
-            using (TcpClient client = new TcpClient("127.0.0.1", 5000))
+            string json = JsonConvert.SerializeObject(data) + "\n";
+
+            using (TcpClient client = new TcpClient())
             {
-                NetworkStream stream = client.GetStream();
-                byte[] sendData = Encoding.UTF8.GetBytes(json);
-                stream.Write(sendData, 0, sendData.Length);
+                client.ReceiveTimeout = 5000;
+                client.SendTimeout = 5000;
 
-                byte[] buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                await client.ConnectAsync("127.0.0.1", 5000);
 
-                stream.Close();
-                client.Close();
-                return response;
+                using (NetworkStream stream = client.GetStream())
+                using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    // ✅ Gửi request
+                    await writer.WriteLineAsync(json.TrimEnd('\n'));
+
+                    // ✅ Nhận response
+                    string response = await reader.ReadLineAsync();
+                    return response;
+                }
             }
         }
 
         private void linkLabel_quaylai_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            this.Hide();
-
-            // Tạo instance Form đăng ký
-            DangNhap frmDangNhap = new DangNhap();
-
-            // Khi Form đăng ký đóng, hiện lại Form đăng nhập
-            frmDangNhap.FormClosed += (s, args) => this.Show();
-
-            // Mở Form đăng ký
-            frmDangNhap.Show();
+            this.Close();
         }
     }
 }

@@ -1,122 +1,364 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Models.Database;
+using Models.Request;
+using Models.Response;
+using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using System.Net.Sockets;
-using System.Net;
 
 namespace RestaurantServer
 {
     internal class Server
     {
         private TcpListener? listener;
+        private bool isRunning = false;
 
-        // 🔹 Hàm khởi động server
         public void Start(int port)
         {
             listener = new TcpListener(IPAddress.Any, port);
             listener.Start();
+            isRunning = true;
             Console.WriteLine($"🚀 Server đang lắng nghe tại cổng {port}...");
 
-            // Lắng nghe client trong luồng riêng
-            Thread thread = new Thread(ListenForClients);
-            thread.Start();
+            // ✅ SỬA: Async listener
+            _ = Task.Run(async () => await ListenForClientsAsync());
         }
 
-        // 🔹 Chờ client kết nối
-        private void ListenForClients()
+        public void Stop()
         {
-            while (true)
-            {
-                TcpClient client = listener!.AcceptTcpClient();
-                Console.WriteLine("🟢 Client mới đã kết nối!");
+            isRunning = false;
+            listener?.Stop();
+            Console.WriteLine("⛔ Server đã dừng.");
+        }
 
-                Thread clientThread = new Thread(() => HandleClient(client));
-                clientThread.Start();
+        // ✅ SỬA: Async method
+        private async Task ListenForClientsAsync()
+        {
+            while (isRunning)
+            {
+                try
+                {
+                    TcpClient client = await listener!.AcceptTcpClientAsync();
+                    string endpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
+                    Console.WriteLine($"🟢 Client kết nối: {endpoint}");
+
+                    // ✅ Fire-and-forget async handling
+                    _ = Task.Run(async () => await HandleClientAsync(client, endpoint));
+                }
+                catch (Exception ex) when (isRunning)
+                {
+                    Console.WriteLine($"⚠️ Lỗi accept client: {ex.Message}");
+                }
             }
         }
 
-        // 🔹 Xử lý client gửi dữ liệu
-        private void HandleClient(TcpClient client)
+        // ✅ SỬA: Async + using statements
+        private async Task HandleClientAsync(TcpClient client, string endpoint)
         {
             try
             {
-                NetworkStream stream = client.GetStream();
-                byte[] buffer = new byte[4096];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-
-                string jsonRequest = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                Console.WriteLine("📩 Nhận từ client: " + jsonRequest);
-
-                dynamic request = JsonConvert.DeserializeObject(jsonRequest);
-                string type = request.Type;
-                string response = "";
-
-                if (type == "Login")
+                using (client)
+                using (NetworkStream stream = client.GetStream())
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                 {
-                    string username = request.Username;
-                    string password = request.Password;
-                    bool success = DatabaseAccess.LoginUser(username, password);
+                    // ✅ SỬA: Đọc line thay vì Read()
+                    string? jsonRequest = await reader.ReadLineAsync();
 
-                    response = JsonConvert.SerializeObject(new
+                    if (string.IsNullOrEmpty(jsonRequest))
                     {
-                        Type = "LoginResponse",
-                        Success = success
-                    });
-                }
-                else if (type == "Register")
-                {
-                    string username = request.Username;
-                    string password = request.Password;
-                    string fullName = request.FullName;
-                    string email = request.Email;
-                    string role = request.Role;
+                        Console.WriteLine($"⚠️ {endpoint}: Request rỗng");
+                        return;
+                    }
 
-                    bool success = DatabaseAccess.RegisterUser(username, password, fullName, email, role);
+                    Console.WriteLine($"📩 {endpoint}: {jsonRequest}");
 
-                    response = JsonConvert.SerializeObject(new
+                    // Parse request
+                    JObject rawRequest = JObject.Parse(jsonRequest);
+                    string type = rawRequest["Type"]?.ToString() ?? "";
+
+                    // Process request
+                    string jsonResponse = type switch
                     {
-                        Type = "RegisterResponse",
-                        Success = success
-                    });
+                        "Login" => await HandleLoginRequestAsync(rawRequest),
+                        "Register" => await HandleRegisterRequestAsync(rawRequest),
+                        "UpdatePassword" => await HandleUpdatePasswordRequestAsync(rawRequest),
+                        "CheckEmail" => await HandleCheckEmailRequestAsync(rawRequest),
+                        "GetEmployees" => await HandleGetEmployeesRequestAsync(rawRequest),
+                        "AddEmployee" => await HandleAddEmployeeRequestAsync(rawRequest),
+                        "UpdateEmployee" => await HandleUpdateEmployeeRequestAsync(rawRequest),
+                        "DeleteEmployee" => await HandleDeleteEmployeeRequestAsync(rawRequest),
+                        _ => HandleUnknownRequest()
+                    };
+
+                    // ✅ SỬA: Gửi line thay vì Write()
+                    await writer.WriteLineAsync(jsonResponse);
+                    Console.WriteLine($"📤 {endpoint}: Gửi phản hồi\n");
                 }
-                else if (type == "UpdatePassword")
-                {
-                    string email = request.Email;
-                    string newPass = request.NewPassword;
-                    bool success = DatabaseAccess.UpdatePassword(email, newPass);
-
-                    response = JsonConvert.SerializeObject(new
-                    {
-                        Type = "UpdatePasswordResponse",
-                        Success = success
-                    });
-                }
-                else if (type == "CheckEmail")
-                {
-                    string email = request.Email;
-                    bool exists = DatabaseAccess.CheckEmailExists(email); // trả về true/false
-                    response = JsonConvert.SerializeObject(new
-                    {
-                        Type = "CheckEmailResponse",
-                        Exists = exists
-                    });
-                }
-
-
-                // Gửi phản hồi lại client
-                byte[] data = Encoding.UTF8.GetBytes(response);
-                stream.Write(data, 0, data.Length);
-
-                stream.Close();
-                client.Close();
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"❌ {endpoint}: JSON không hợp lệ - {ex.Message}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("⚠️ Lỗi xử lý client: " + ex.Message);
+                Console.WriteLine($"❌ {endpoint}: Lỗi - {ex.Message}");
             }
+        }
+
+        // ✅ SỬA: Async methods
+        private async Task<string> HandleLoginRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<LoginRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    LoginResult result = DatabaseAccess.LoginUser(request.Username, request.Password);
+
+                    var response = new LoginResponse
+                    {
+                        Success = result.Success,
+                        Role = result.Role,
+                        HoTen = result.HoTen,
+                        Message = result.Message,
+                        MaNguoiDung = result.MaNguoiDung,
+                        Email = result.Email
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi đăng nhập: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleRegisterRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<RegisterRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    RegisterResult result = DatabaseAccess.RegisterUser(
+                        request.Username, request.Password, request.HoTen, request.Email, request.Role);
+
+                    var response = new RegisterResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaNguoiDung = result.MaNguoiDung
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi đăng ký: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleUpdatePasswordRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<UpdatePasswordRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    RegisterResult result = DatabaseAccess.UpdatePassword(request.Email, request.NewPassword);
+
+                    var response = new UpdatePasswordResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi đổi mật khẩu: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleCheckEmailRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<CheckEmailRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    EmailCheckResult result = DatabaseAccess.CheckEmailExists(request.Email);
+
+                    var response = new CheckEmailResponse
+                    {
+                        Success = result.Success,
+                        Exists = result.Exists,
+                        Message = result.Message
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi kiểm tra email: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleGetEmployeesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetEmployeesRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetEmployees(request.Keyword, request.VaiTro);
+
+                    var response = new GetEmployeesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        Employees = result.Employees
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách nhân viên: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleAddEmployeeRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<AddEmployeeRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.AddEmployee(
+                        request.TenDangNhap, request.MatKhau, request.HoTen,
+                        request.Email, request.VaiTro, request.SDT, request.NgayVaoLam);
+
+                    var response = new AddEmployeeResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaNguoiDung = result.MaNguoiDung
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi thêm nhân viên: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleUpdateEmployeeRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<UpdateEmployeeRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.UpdateEmployee(
+                        request.MaNguoiDung, request.HoTen, request.Email,
+                        request.VaiTro, request.SDT, request.TrangThai);
+
+                    var response = new UpdateEmployeeResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi cập nhật nhân viên: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleDeleteEmployeeRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<DeleteEmployeeRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.DeleteEmployee(request.MaNguoiDung);
+
+                    var response = new DeleteEmployeeResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi xóa nhân viên: {ex.Message}");
+                }
+            });
+        }
+
+        private string HandleUnknownRequest()
+        {
+            return CreateErrorResponse("Loại request không hợp lệ");
+        }
+
+        private string CreateErrorResponse(string message)
+        {
+            var errorResponse = new ErrorResponse
+            {
+                Message = message
+            };
+            return JsonConvert.SerializeObject(errorResponse);
         }
     }
 }

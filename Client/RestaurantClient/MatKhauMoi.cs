@@ -1,94 +1,164 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Data.SqlClient;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using Newtonsoft.Json;
+using Models.Request;
+using Models.Response;
 
 namespace RestaurantClient
 {
     public partial class MatKhauMoi : Form
     {
         private string userEmail;
+
         public MatKhauMoi(string email)
         {
             InitializeComponent();
             this.userEmail = email;
+            SetupUI();
         }
-        private string SendRequest(object data)
+
+        private void SetupUI()
         {
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(data);
-            using (var client = new System.Net.Sockets.TcpClient("127.0.0.1", 5000)) // đổi IP nếu server ở xa
+            // Setup password fields
+            tb_newPass.PasswordChar = '●';
+            tb_confirmPass.PasswordChar = '●';
+
+            // Hiển thị email đang được đổi mật khẩu
+            this.Text = $"Đặt lại mật khẩu - {userEmail}";
+        }
+
+        private async void btn_hoanTat_Click(object sender, EventArgs e)
+        {
+            string newPass = tb_newPass.Text.Trim();
+            string confirmPass = tb_confirmPass.Text.Trim();
+
+            // Validation
+            if (string.IsNullOrEmpty(newPass))
             {
-                var stream = client.GetStream();
-                byte[] sendData = Encoding.UTF8.GetBytes(json);
-                stream.Write(sendData, 0, sendData.Length);
-
-                byte[] buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                stream.Close();
-                client.Close();
-                return response;
+                MessageBox.Show("Mật khẩu không được để trống.", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tb_newPass.Focus();
+                return;
             }
-        }
 
-        private void btn_hoanTat_Click(object sender, EventArgs e)
-        {
-            string newPass = tb_newPass.Text;
-            string confirmPass = tb_confirmPass.Text;
+            if (newPass.Length < 6)
+            {
+                MessageBox.Show("Mật khẩu phải có ít nhất 6 ký tự.", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tb_newPass.Focus();
+                return;
+            }
 
             if (newPass != confirmPass)
             {
-                MessageBox.Show("Mật khẩu mới và xác nhận mật khẩu không khớp.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Mật khẩu mới và xác nhận mật khẩu không khớp.", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tb_confirmPass.Focus();
                 return;
             }
 
-            if (string.IsNullOrEmpty(newPass))
-            {
-                MessageBox.Show("Mật khẩu không được để trống.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+            // Disable button during processing
+            btn_hoanTat.Enabled = false;
+            btn_hoanTat.Text = "Đang xử lý...";
 
             try
             {
-                var request = new
+                var request = new UpdatePasswordRequest
                 {
-                    Type = "UpdatePassword",
                     Email = userEmail,
                     NewPassword = newPass
                 };
 
-                string response = SendRequest(request);
-                dynamic res = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+                string response = await SendRequestAsync(request);
+                var updateResponse = JsonConvert.DeserializeObject<UpdatePasswordResponse>(response);
 
-                if (res.Success == true)
+                if (updateResponse?.Success == true)
                 {
-                    MessageBox.Show("Đã đổi mật khẩu thành công", "Chúc mừng!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Đã đổi mật khẩu thành công! Vui lòng đăng nhập lại.", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                     this.Close();
                     DangNhap loginForm = new DangNhap();
                     loginForm.Show();
                 }
                 else
                 {
-                    MessageBox.Show("Đổi mật khẩu thất bại. Kiểm tra email hoặc kết nối.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(updateResponse?.Message ?? "Đổi mật khẩu thất bại", "Lỗi",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi mạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Lỗi kết nối: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Re-enable button
+                btn_hoanTat.Enabled = true;
+                btn_hoanTat.Text = "Hoàn tất";
+            }
+        }
+
+        // ✅ Async method với proper error handling
+        private async Task<string> SendRequestAsync<T>(T data)
+        {
+            string json = JsonConvert.SerializeObject(data) + "\n";
+
+            using (TcpClient client = new TcpClient())
+            {
+                client.ReceiveTimeout = 5000;
+                client.SendTimeout = 5000;
+
+                await client.ConnectAsync("127.0.0.1", 5000);
+
+                using (NetworkStream stream = client.GetStream())
+                using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    // ✅ Gửi request
+                    await writer.WriteLineAsync(json.TrimEnd('\n'));
+
+                    // ✅ Nhận response
+                    string response = await reader.ReadLineAsync();
+                    return response ?? "";
+                }
             }
         }
 
         private void MatKhauMoi_Load(object sender, EventArgs e)
         {
+            // Focus vào ô nhập mật khẩu mới
+            tb_newPass.Focus();
+        }
 
+        // ✅ Thêm event handlers cho Enter key
+        private void tb_newPass_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                tb_confirmPass.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private void tb_confirmPass_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                btn_hoanTat.PerformClick();
+                e.Handled = true;
+            }
+        }
+
+        // ✅ Thêm nút Hủy (nếu muốn)
+        private void btn_huy_Click(object sender, EventArgs e)
+        {
+            this.Close();
+            new DangNhap().Show();
         }
     }
 }
