@@ -118,4 +118,10 @@ namespace Models.Response
         DangSuDung = 1,
         DaDat = 2
     }
+    //=================== TABLE RESPONSES ====================
+    public class AddTableResponse // 
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+    }
 }
