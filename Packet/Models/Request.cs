@@ -107,5 +107,11 @@
         public string Type => "DeleteEmployee";
         public int MaNguoiDung { get; set; }
     }
+    public class AddTableRequest 
+    {
+        public int MaBan { get; set; }
+        public string TenBan { get; set; }
+        public string TrangThai { get; set; }
+    }
 }
 
