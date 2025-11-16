@@ -9,7 +9,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using System.Linq;
+//-----------------------------
 namespace RestaurantClient
 {
     public partial class Admin : Form
@@ -430,6 +431,22 @@ namespace RestaurantClient
         {
             MessageBox.Show(message, "Cảnh báo",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        //====================== TABLE TAB ======================
+
+        private void btn_addTable_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
