@@ -11,10 +11,13 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+<<<<<<< HEAD
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System.Drawing;
 using System.IO;
+
+using System.Linq;
 
 namespace RestaurantClient
 {
@@ -695,7 +698,5 @@ namespace RestaurantClient
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
-       
-       
     }
 }

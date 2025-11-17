@@ -1,4 +1,5 @@
 ﻿using BCrypt.Net;
+using Models;
 using Models.Database;
 using Models.Response;
 using System;
@@ -7,6 +8,7 @@ using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Data.SqlClient;
 using System.Drawing;
 
@@ -22,6 +24,7 @@ namespace RestaurantServer
                "Encrypt=True;" +
                "TrustServerCertificate=False;" +
                "Connection Timeout=30;";
+
         public static LoginResult LoginUser(string username, string password)
         {
             Console.WriteLine($"🔐 Login attempt: {username}"); // DEBUG
@@ -691,3 +694,66 @@ namespace RestaurantServer
     }
 }
 
+        //------------------------------
+        //------------------------------
+        // 4. Gửi yêu cầu "INSERT" cho SQL (ĐÃ SỬA)
+        public static bool AddBanToSQL(BanAn banMoi)
+        {
+            System.Diagnostics.Debug.WriteLine("4. DatabaseAccess: Gửi lệnh 'INSERT' cho SQL...");
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Giả sử tên bảng của bạn là BAN
+                    // Nếu tên bảng khác (ví dụ: BANAN), hãy sửa lại dòng dưới
+                    string insertQuery = @"
+                        INSERT INTO BAN (MaBan, TenBan, TrangThai) 
+                        VALUES (@id, @ten, @trangthai)";
+
+                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", banMoi.MaBan);
+                        cmd.Parameters.AddWithValue("@ten", banMoi.TenBan);
+                        cmd.Parameters.AddWithValue("@trangthai", banMoi.TrangThai);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine("5. SQL: Thêm thành công. Trả về true.");
+                            return true; // Thêm thành công
+                        }
+
+                        // Trường hợp này ít xảy ra nếu không có lỗi
+                        System.Diagnostics.Debug.WriteLine("5. SQL: Thêm thất bại (không có dòng nào bị ảnh hưởng).");
+                        return false;
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                // Bắt lỗi vi phạm Primary Key (trùng ID)
+                // 2627 và 2601 là mã lỗi cho Unique Constraint / Primary Key violation
+                if (ex.Number == 2627 || ex.Number == 2601)
+                {
+                    System.Diagnostics.Debug.WriteLine("5. SQL: Lỗi! ID bàn đã tồn tại. Trả về false.");
+                    return false; // Trả về false nếu trùng ID
+                }
+
+                // Ghi log các lỗi SQL khác
+                System.Diagnostics.Debug.WriteLine($"💥 AddBanToSQL SQL Error: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                // Ghi log các lỗi chung khác
+                System.Diagnostics.Debug.WriteLine($"💥 AddBanToSQL General Error: {ex.Message}");
+                return false;
+            }
+        }
+    } // Đóng '}' của class DatabaseAccess
+} // Đóng '}' của namespace
+    
