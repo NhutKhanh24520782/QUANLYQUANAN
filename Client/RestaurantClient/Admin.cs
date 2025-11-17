@@ -1,14 +1,20 @@
-﻿using Models.Request;
+﻿using Models.Database;
+using Models.Request;
 using Models.Response;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using System.Drawing;
+using System.IO;
 
 namespace RestaurantClient
 {
@@ -16,7 +22,7 @@ namespace RestaurantClient
     {
         // ==================== GRIDVIEW MANAGERS ====================
         private GridViewManager<EmployeeData> _employeeManager;
-        // private GridViewManager<MenuData> _menuManager;
+        private GridViewManager<DoanhThuTheoBan> _doanhThuManager;
         // private GridViewManager<TableData> _tableManager;
 
         // ==================== CONSTANTS ====================
@@ -29,10 +35,16 @@ namespace RestaurantClient
         {
             InitializeComponent();
             InitializeGridViewManagers();
+            InitializeDoanhThuControls(); 
             InitializeControls();
             LoadAllData();
         }
-
+        private void InitializeDoanhThuControls()
+        {
+            dtp_tuNgay.Value = DateTime.Today;
+            dtp_denNgay.Value = DateTime.Today;
+            btn_xuatbaocao.Enabled = false;
+        }
         private void InitializeGridViewManagers()
         {
             // Employee GridView
@@ -51,6 +63,21 @@ namespace RestaurantClient
                 },
                 "MaNguoiDung" // Tên property ID
             );
+            // Doanh Thu GridView - Sử dụng dataGridView_doanhthu trong panel1
+            _doanhThuManager = new GridViewManager<DoanhThuTheoBan>(
+                dataGridView_doanhthu, // DataGridView trong panel1
+                LoadDoanhThuFromServer,
+                dt => new
+                {
+                    TenBan = dt.TenBan,
+                    SoLuongHoaDon = dt.SoLuongHoaDon,
+                    DoanhThu = dt.DoanhThu,
+                    HoaDonLonNhat = dt.HoaDonLonNhat,
+                    HoaDonNhoNhat = dt.HoaDonNhoNhat,
+                    DoanhThuTB = dt.DoanhThuTB
+                },
+                "TenBan"
+            );
 
             // Gắn event handler
             dataGridView_emp.SelectionChanged += (s, e) =>
@@ -60,13 +87,12 @@ namespace RestaurantClient
                     ShowEmployeeDetails(selected);
             };
 
-            // Menu GridView (uncomment khi cần)
-            // _menuManager = new GridViewManager<MenuData>(
-            //     dataGridView_menu,
-            //     LoadMenuFromServer,
-            //     menu => new { ... },
-            //     "MaMon"
-            // );
+            dataGridView_doanhthu.SelectionChanged += (s, e) =>
+            {
+                var selected = _doanhThuManager.GetSelectedItem();
+                if (selected != null)
+                    ShowDoanhThuDetails(selected);
+            };
         }
 
         private void InitializeControls()
@@ -103,7 +129,7 @@ namespace RestaurantClient
         private async void LoadAllData()
         {
             await _employeeManager.LoadDataAsync();
-            // await _menuManager.LoadDataAsync();
+            await _doanhThuManager.LoadDataAsync();
             // await _tableManager.LoadDataAsync();
         }
         // ==================== DATA LOADING ====================
@@ -124,6 +150,102 @@ namespace RestaurantClient
             ShowError("Không thể tải dữ liệu nhân viên");
             return new List<EmployeeData>();
         }
+        private async Task<List<DoanhThuTheoBan>> LoadDoanhThuFromServer()
+        {
+            DateTime tuNgay = dtp_tuNgay.Value.Date;
+            DateTime denNgay = dtp_denNgay.Value.Date.AddDays(1).AddSeconds(-1);
+
+            return await LoadDoanhThuFromServerWithDates(tuNgay, denNgay);
+        }
+
+        // Phương thức phụ trợ có tham số ngày
+        private async Task<List<DoanhThuTheoBan>> LoadDoanhThuFromServerWithDates(DateTime tuNgay, DateTime denNgay)
+        {
+            try
+            {
+                var request = new ThongKeDoanhThuRequest
+                {
+                    TuNgay = tuNgay,
+                    DenNgay = denNgay
+                };
+
+                var response = await SendRequest<ThongKeDoanhThuRequest, ThongKeDoanhThuResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    // Cập nhật tổng doanh thu lên Label
+                    UpdateTongDoanhThu(response.TongDoanhThu.tongDoanhThu);
+                    return response.DoanhThuTheoBan;
+                }
+                else
+                {
+                    ShowError(response?.Message ?? "Không thể tải dữ liệu doanh thu");
+                    return new List<DoanhThuTheoBan>();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi kết nối: {ex.Message}");
+                return new List<DoanhThuTheoBan>();
+            }
+        }
+        private void UpdateTongDoanhThu(decimal tongDoanhThu)
+        {
+            if (tongDoanhThu > 0)
+            {
+                lbl_sumdoanhthu.Text = tongDoanhThu.ToString("N0") + " VNĐ";
+                lbl_sumdoanhthu.ForeColor = Color.Red;
+            }
+            else
+            {
+                lbl_sumdoanhthu.Text = "---";
+                lbl_sumdoanhthu.ForeColor = Color.Gray;
+            }
+        }
+        private void UpdateDoanhThuUI()
+        {
+            var cachedData = _doanhThuManager.GetCachedData();
+            if (cachedData != null && cachedData.Count > 0)
+            {
+                var dataCount = _doanhThuManager.GetRowCount();
+                var tongHoaDon = cachedData.Sum(x => x.SoLuongHoaDon);
+                var soBanCoDoanhThu = cachedData.Count(x => x.DoanhThu > 0);
+                var tongDoanhThu = cachedData.Sum(x => x.DoanhThu);
+                // Cập nhật label tổng doanh thu trong panel1
+                lbl_sumdoanhthu.Text = tongDoanhThu.ToString("N0") + " VNĐ";
+                lbl_sumdoanhthu.ForeColor = Color.Red;
+                // Enable nút xuất báo cáo trong panel2
+                btn_xuatbaocao.Enabled = true;
+                FormatDoanhThuGridView();
+                ShowSuccess($"Đã tải {dataCount} bàn | {soBanCoDoanhThu} bàn có doanh thu | {tongHoaDon} hóa đơn");
+            }
+            else
+            {
+                btn_xuatbaocao.Enabled = false;
+                lbl_sumdoanhthu.Text = "---";
+                lbl_sumdoanhthu.ForeColor = Color.Gray;
+            }
+        }
+        private void FormatDoanhThuGridView()
+        {
+            foreach (DataGridViewRow row in dataGridView_doanhthu.Rows)
+            {
+                if (row.Cells["DoanhThu"].Value != null)
+                {
+                    var doanhThu = Convert.ToDecimal(row.Cells["DoanhThu"].Value);
+                    if (doanhThu > 0)
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightGreen;
+                        row.DefaultCellStyle.ForeColor = Color.Black;
+                    }
+                    else
+                    {
+                        row.DefaultCellStyle.BackColor = Color.White;
+                        row.DefaultCellStyle.ForeColor = Color.Gray;
+                    }
+                }
+            }
+        }
 
         // ==================== DISPLAY METHODS ====================
 
@@ -141,6 +263,21 @@ namespace RestaurantClient
             tb_password.Text = "******";
             tb_password.Enabled = false;
             tb_password.BackColor = Color.LightGray;
+        }
+        private void ShowDoanhThuDetails(DoanhThuTheoBan doanhThu)
+        {
+            if (doanhThu == null) return;
+
+            string message = $"📊 CHI TIẾT DOANH THU BÀN\n\n" +
+                            $"🔸 Tên bàn: {doanhThu.TenBan}\n" +
+                            $"🔸 Số hóa đơn: {doanhThu.SoLuongHoaDon}\n" +
+                            $"🔸 Doanh thu: {doanhThu.DoanhThu:N0} VNĐ\n" +
+                            $"🔸 Hóa đơn lớn nhất: {doanhThu.HoaDonLonNhat:N0} VNĐ\n" +
+                            $"🔸 Hóa đơn nhỏ nhất: {doanhThu.HoaDonNhoNhat:N0} VNĐ\n" +
+                            $"🔸 Doanh thu trung bình: {doanhThu.DoanhThuTB:N0} VNĐ";
+
+            MessageBox.Show(message, "Chi Tiết Doanh Thu",
+                           MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void ClearForm()
@@ -165,6 +302,109 @@ namespace RestaurantClient
                 { "Bep", "Bếp" }
             };
             return mapping.ContainsKey(role) ? mapping[role] : role;
+        }
+
+        private void XuatExcelTrucTiep()
+        {
+            var cachedData = _doanhThuManager.GetCachedData();
+            if (cachedData == null || cachedData.Count == 0)
+            {
+                ShowWarning("Không có dữ liệu để xuất báo cáo!");
+                return;
+            }
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using (var saveDialog = new SaveFileDialog())
+            {
+                saveDialog.Filter = "Excel Files (*.xlsx)|*.xlsx";
+                saveDialog.FileName = $"BaoCaoDoanhThu_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        // 🔥 EPPLUS 7.x: KHÔNG CẦN SET LICENSE CONTEXT!
+                        using (var package = new ExcelPackage())
+                        {
+                            var worksheet = package.Workbook.Worksheets.Add("DoanhThu");
+
+                            // Tiêu đề
+                            worksheet.Cells["A1:F1"].Merge = true;
+                            worksheet.Cells["A1"].Value = "BÁO CÁO DOANH THU";
+                            worksheet.Cells["A1"].Style.Font.Bold = true;
+                            worksheet.Cells["A1"].Style.Font.Size = 14;
+                            worksheet.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                            // Thời gian
+                            worksheet.Cells["A2"].Value = $"Từ: {dtp_tuNgay.Value:dd/MM/yyyy} - Đến: {dtp_denNgay.Value:dd/MM/yyyy}";
+                            worksheet.Cells["A2:F2"].Merge = true;
+                            worksheet.Cells["A2"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                            // Header
+                            string[] headers = { "Tên Bàn", "Số HĐ", "Doanh Thu", "HĐ Lớn Nhất", "HĐ Nhỏ Nhất", "Doanh Thu TB" };
+                            for (int i = 0; i < headers.Length; i++)
+                            {
+                                var cell = worksheet.Cells[3, i + 1];
+                                cell.Value = headers[i];
+                                cell.Style.Font.Bold = true;
+                                cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                                cell.Style.Fill.BackgroundColor.SetColor(Color.LightGray);
+                                cell.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                            }
+
+                            // Data
+                            int row = 4;
+                            foreach (var item in cachedData)
+                            {
+                                worksheet.Cells[row, 1].Value = item.TenBan;
+                                worksheet.Cells[row, 2].Value = item.SoLuongHoaDon;
+                                worksheet.Cells[row, 3].Value = item.DoanhThu;
+                                worksheet.Cells[row, 4].Value = item.HoaDonLonNhat;
+                                worksheet.Cells[row, 5].Value = item.HoaDonNhoNhat;
+                                worksheet.Cells[row, 6].Value = item.DoanhThuTB;
+
+                                // Format số
+                                for (int col = 3; col <= 6; col++)
+                                {
+                                    worksheet.Cells[row, col].Style.Numberformat.Format = "#,##0";
+                                }
+
+                                row++;
+                            }
+
+                            // Tổng cộng
+                            worksheet.Cells[row, 1].Value = "TỔNG CỘNG";
+                            worksheet.Cells[row, 1].Style.Font.Bold = true;
+                            worksheet.Cells[row, 3].Formula = $"SUM(C4:C{row - 1})";
+                            worksheet.Cells[row, 3].Style.Numberformat.Format = "#,##0";
+                            worksheet.Cells[row, 3].Style.Font.Bold = true;
+
+                            // Auto fit
+                            worksheet.Cells[1, 1, row, 6].AutoFitColumns();
+
+                            // Lưu file
+                            package.SaveAs(new FileInfo(saveDialog.FileName));
+                        }
+
+                        ShowSuccess($"Đã xuất Excel thành công!\n{saveDialog.FileName}");
+
+                        // Hỏi mở file
+                        if (MessageBox.Show("Bạn có muốn mở file Excel ngay bây giờ?",
+                            "Xuất thành công", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = saveDialog.FileName,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowError($"Lỗi xuất Excel: {ex.Message}");
+                    }
+                }
+            }
         }
 
         // ==================== CRUD OPERATIONS ====================
@@ -296,7 +536,30 @@ namespace RestaurantClient
 
             await _employeeManager.LoadDataAsync(() => LoadEmployeesFromServer(keyword, role));
         }
+        private async void btn_XemDoanhThu_ClickAsync(object sender, EventArgs e)
+        {
+            if (dtp_tuNgay.Value > dtp_denNgay.Value)
+            {
+                ShowWarning("Từ ngày không được lớn hơn đến ngày!");
+                return;
+            }
+            // Hiển thị panel1 khi có dữ liệu
+            panel1.Visible = true;
 
+            await ExecuteAsync((Button)sender, "Đang tải...", async () =>
+            {
+                // SỬ DỤNG REFRESHASYNC() - GIỐNG HỆT EMPLOYEE
+                await _doanhThuManager.RefreshAsync();
+
+                // Cập nhật UI sau khi load
+                UpdateDoanhThuUI();
+            });
+        }
+
+        private async void btn_xuatbaocao_Click(object sender, EventArgs e)
+        {
+            XuatExcelTrucTiep();
+        }
         // ==================== VALIDATION ====================
 
         private bool ValidateInput(bool isAddMode, out string error)
@@ -431,5 +694,8 @@ namespace RestaurantClient
             MessageBox.Show(message, "Cảnh báo",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
+
+       
+       
     }
 }

@@ -91,6 +91,8 @@ namespace RestaurantServer
                         "AddEmployee" => await HandleAddEmployeeRequestAsync(rawRequest),
                         "UpdateEmployee" => await HandleUpdateEmployeeRequestAsync(rawRequest),
                         "DeleteEmployee" => await HandleDeleteEmployeeRequestAsync(rawRequest),
+                        "ThongKeDoanhThu" => await HandleThongKeDoanhThuRequestAsync(rawRequest),
+                        "XuatBaoCao" => await HandleXuatBaoCaoRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -346,7 +348,80 @@ namespace RestaurantServer
                 }
             });
         }
+        private async Task<string> HandleThongKeDoanhThuRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<ThongKeDoanhThuRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
 
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    // Gọi database
+                    var result = DatabaseAccess.GetDoanhThuFull(request.TuNgay, request.DenNgay);
+
+                    var response = new ThongKeDoanhThuResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        TongDoanhThu = result.TongDoanhThu,
+                        DoanhThuTheoBan = result.DoanhThuTheoBan
+                    };
+
+                    Console.WriteLine($"📊 Thống kê doanh thu: {request.TuNgay:dd/MM/yyyy} - {request.DenNgay:dd/MM/yyyy}");
+                    Console.WriteLine($"   → Tổng doanh thu: {result.TongDoanhThu.tongDoanhThu:N0} VNĐ");
+                    Console.WriteLine($"   → Số bàn: {result.DoanhThuTheoBan.Count}");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi thống kê doanh thu: {ex.Message}");
+                }
+            });
+        }
+        private async Task<string> HandleXuatBaoCaoRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<XuatBaoCaoRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    // Gọi phương thức xuất báo cáo
+                    var exportResult = DatabaseAccess.XuatBaoCaoExcel(
+                        request.TuNgay, request.DenNgay, request.Data, request.TongDoanhThu);
+
+                    // Tạo response
+                    var response = new XuatBaoCaoResponse
+                    {
+                        Success = exportResult.success,
+                        Message = exportResult.message,
+                        FilePath = exportResult.filePath,
+                        FileName = System.IO.Path.GetFileName(exportResult.filePath)
+                    };
+
+                    // Log kết quả
+                    if (exportResult.success)
+                    {
+                        Console.WriteLine($"📄 Xuất báo cáo thành công: {exportResult.filePath}");
+                    }
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi xuất báo cáo: {ex.Message}");
+                }
+            });
+        }
         private string HandleUnknownRequest()
         {
             return CreateErrorResponse("Loại request không hợp lệ");

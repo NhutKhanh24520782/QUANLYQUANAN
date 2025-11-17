@@ -2,17 +2,26 @@
 using Models.Database;
 using Models.Response;
 using System;
-using System.Collections.Generic;  
-
+using System.Collections.Generic;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using System.Drawing;
+using System.IO;
 using System.Data.SqlClient;
+using System.Drawing;
 
 namespace RestaurantServer
 {
     public static class DatabaseAccess
     {
         private static string connectionString =
-            "Data Source=localhost;Initial Catalog=QLQuanAn;Integrated Security=True";
-
+               "Server=tcp:quanlyquanan.database.windows.net,1433;" +
+               "Initial Catalog=restaurant;" +
+               "User ID=lamnhutkhanh;" +
+               "Password=Khanh251106;" +
+               "Encrypt=True;" +
+               "TrustServerCertificate=False;" +
+               "Connection Timeout=30;";
         public static LoginResult LoginUser(string username, string password)
         {
             Console.WriteLine($"🔐 Login attempt: {username}"); // DEBUG
@@ -440,5 +449,245 @@ namespace RestaurantServer
                 };
             }
         }
+        public static decimal GetTongDoanhThu(DateTime tuNgay, DateTime denNgay)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+
+                string query = @"
+                SELECT ISNULL(SUM(TongTien), 0) 
+                FROM HOADON 
+                WHERE Ngay BETWEEN @TuNgay AND @DenNgay 
+                AND TrangThai = N'DaThanhToan'";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
+                    cmd.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                    var result = cmd.ExecuteScalar();
+                    return result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Lấy doanh thu theo bàn
+        /// </summary>
+        public static List<DoanhThuTheoBan> GetDoanhThuTheoBan(DateTime tuNgay, DateTime denNgay)
+        {
+            var result = new List<DoanhThuTheoBan>();
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+
+                string query = @"
+                SELECT 
+                    b.TenBan,
+                    COUNT(hd.MaHD) as SoLuongHoaDon,
+                    ISNULL(SUM(hd.TongTien), 0) as DoanhThu,
+                    ISNULL(MAX(hd.TongTien), 0) as HoaDonLonNhat,
+                    ISNULL(MIN(CASE WHEN hd.TongTien > 0 THEN hd.TongTien END), 0) as HoaDonNhoNhat,
+                    ISNULL(AVG(CASE WHEN hd.TongTien > 0 THEN hd.TongTien END), 0) as DoanhThuTB
+                FROM BAN b
+                LEFT JOIN HOADON hd ON b.MaBanAn = hd.MaBanAn 
+                    AND hd.Ngay BETWEEN @TuNgay AND @DenNgay 
+                    AND hd.TrangThai = N'DaThanhToan'
+                GROUP BY b.MaBanAn, b.TenBan
+                ORDER BY DoanhThu DESC";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
+                    cmd.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            result.Add(new DoanhThuTheoBan
+                            {
+                                TenBan = reader["TenBan"].ToString(),
+                                SoLuongHoaDon = Convert.ToInt32(reader["SoLuongHoaDon"]),
+                                DoanhThu = Convert.ToDecimal(reader["DoanhThu"]),
+                                HoaDonLonNhat = Convert.ToDecimal(reader["HoaDonLonNhat"]),
+                                HoaDonNhoNhat = Convert.ToDecimal(reader["HoaDonNhoNhat"]),
+                                DoanhThuTB = Convert.ToDecimal(reader["DoanhThuTB"])
+                            });
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Lấy toàn bộ thông tin doanh thu
+        /// </summary>
+        public static DoanhThuResult GetDoanhThuFull(DateTime tuNgay, DateTime denNgay)
+        {
+            try
+            {
+                var tongDoanhThu = GetTongDoanhThu(tuNgay, denNgay);
+                var doanhThuTheoBan = GetDoanhThuTheoBan(tuNgay, denNgay);
+
+                return new DoanhThuResult
+                {
+                    Success = true,
+                    Message = "Thống kê thành công",
+                    TongDoanhThu = new TongDoanhThu
+                    {
+                        tongDoanhThu = tongDoanhThu,
+                        TongSoHoaDon = doanhThuTheoBan.Sum(x => x.SoLuongHoaDon),
+                        TongSoBan = doanhThuTheoBan.Count(x => x.SoLuongHoaDon > 0),
+                        TuNgay = tuNgay,
+                        DenNgay = denNgay
+                    },
+                    DoanhThuTheoBan = doanhThuTheoBan
+                };
+            }
+            catch (Exception ex)
+            {
+                return new DoanhThuResult
+                {
+                    Success = false,
+                    Message = $"Lỗi thống kê: {ex.Message}"
+                };
+            }
+        }
+
+        /// Xuất báo cáo doanh thu ra file Excel (EPPlus 5+)
+        /// </summary>
+        public static (bool success, string filePath, string message) XuatBaoCaoExcel(
+            DateTime tuNgay, DateTime denNgay, List<DoanhThuTheoBan> data, decimal tongDoanhThu)
+        {
+            try
+            {
+                // Set license context (BẮT BUỘC cho EPPlus 5+)
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                string fileName = $"BaoCaoDoanhThu_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports", fileName);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+
+                using (var package = new ExcelPackage())
+                {
+                    var worksheet = package.Workbook.Worksheets.Add("DoanhThu");
+
+                    // ==================== TIÊU ĐỀ BÁO CÁO ====================
+                    // Tiêu đề chính
+                    worksheet.Cells["A1:F1"].Merge = true;
+                    worksheet.Cells["A1"].Value = "BÁO CÁO DOANH THU NHÀ HÀNG";
+                    worksheet.Cells["A1"].Style.Font.Bold = true;
+                    worksheet.Cells["A1"].Style.Font.Size = 16;
+                    worksheet.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    worksheet.Cells["A1"].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+
+                    // Thông tin thời gian
+                    worksheet.Cells["A2"].Value = $"Từ ngày: {tuNgay:dd/MM/yyyy}";
+                    worksheet.Cells["D2"].Value = $"Đến ngày: {denNgay:dd/MM/yyyy}";
+
+                    // Tổng doanh thu
+                    worksheet.Cells["A3"].Value = "TỔNG DOANH THU:";
+                    worksheet.Cells["B3"].Value = tongDoanhThu;
+                    worksheet.Cells["B3"].Style.Numberformat.Format = "#,##0";
+                    worksheet.Cells["C3"].Value = "VNĐ";
+                    worksheet.Cells["A3"].Style.Font.Bold = true;
+                    worksheet.Cells["B3"].Style.Font.Bold = true;
+                    worksheet.Cells["B3"].Style.Font.Color.SetColor(Color.Red);
+
+                    // Thống kê
+                    worksheet.Cells["A4"].Value = $"Tổng số bàn: {data.Count}";
+                    worksheet.Cells["C4"].Value = $"Số bàn có doanh thu: {data.Count(x => x.DoanhThu > 0)}";
+                    worksheet.Cells["E4"].Value = $"Tổng hóa đơn: {data.Sum(x => x.SoLuongHoaDon)}";
+
+                    // ==================== HEADER TABLE ====================
+                    string[] headers = { "Tên Bàn", "Số Hóa Đơn", "Doanh Thu (VNĐ)", "Hóa Đơn Lớn Nhất (VNĐ)", "Hóa Đơn Nhỏ Nhất (VNĐ)", "Doanh Thu TB (VNĐ)" };
+
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        var cell = worksheet.Cells[6, i + 1];
+                        cell.Value = headers[i];
+                        cell.Style.Font.Bold = true;
+                        cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        cell.Style.Fill.BackgroundColor.SetColor(Color.LightBlue);
+                        cell.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                        cell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    }
+
+                    // ==================== DỮ LIỆU ====================
+                    int row = 7;
+                    foreach (var item in data)
+                    {
+                        worksheet.Cells[row, 1].Value = item.TenBan;
+                        worksheet.Cells[row, 2].Value = item.SoLuongHoaDon;
+                        worksheet.Cells[row, 3].Value = item.DoanhThu;
+                        worksheet.Cells[row, 4].Value = item.HoaDonLonNhat;
+                        worksheet.Cells[row, 5].Value = item.HoaDonNhoNhat;
+                        worksheet.Cells[row, 6].Value = item.DoanhThuTB;
+
+                        // Định dạng số cho các cột tiền
+                        for (int col = 3; col <= 6; col++)
+                        {
+                            worksheet.Cells[row, col].Style.Numberformat.Format = "#,##0";
+                        }
+
+                        // Tô màu cho dòng có doanh thu
+                        if (item.DoanhThu > 0)
+                        {
+                            for (int col = 1; col <= 6; col++)
+                            {
+                                worksheet.Cells[row, col].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                                worksheet.Cells[row, col].Style.Fill.BackgroundColor.SetColor(Color.LightGreen);
+                            }
+                        }
+
+                        row++;
+                    }
+
+                    // ==================== TỔNG KẾT ====================
+                    worksheet.Cells[row + 1, 1].Value = "TỔNG CỘNG:";
+                    worksheet.Cells[row + 1, 1].Style.Font.Bold = true;
+
+                    // Tổng số hóa đơn
+                    worksheet.Cells[row + 1, 2].Formula = $"SUM(B7:B{row})";
+                    worksheet.Cells[row + 1, 2].Style.Font.Bold = true;
+
+                    // Tổng doanh thu
+                    worksheet.Cells[row + 1, 3].Formula = $"SUM(C7:C{row})";
+                    worksheet.Cells[row + 1, 3].Style.Numberformat.Format = "#,##0";
+                    worksheet.Cells[row + 1, 3].Style.Font.Bold = true;
+                    worksheet.Cells[row + 1, 3].Style.Font.Color.SetColor(Color.Red);
+
+                    // ==================== ĐỊNH DẠNG BORDER ====================
+                    var dataRange = worksheet.Cells[6, 1, row + 1, 6];
+                    dataRange.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                    dataRange.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                    dataRange.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                    dataRange.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+
+                    // ==================== AUTO FIT COLUMNS ====================
+                    worksheet.Cells[1, 1, row + 1, 6].AutoFitColumns();
+
+                    // ==================== FOOTER ====================
+                    worksheet.Cells[row + 3, 1].Value = $"Ngày xuất báo cáo: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+                    worksheet.Cells[row + 4, 1].Value = "Hệ thống Quản lý Nhà hàng - Restaurant Management System";
+
+                    // Lưu file
+                    package.SaveAs(new FileInfo(filePath));
+                }
+
+                return (true, filePath, "Xuất báo cáo Excel thành công");
+            }
+            catch (Exception ex)
+            {
+                return (false, "", $"Lỗi xuất báo cáo Excel: {ex.Message}");
+            }
+        }
     }
 }
+

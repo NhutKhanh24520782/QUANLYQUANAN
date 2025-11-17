@@ -1,4 +1,6 @@
-﻿namespace Models.Request
+﻿using Models.Database;
+
+namespace Models.Request
 {
 
     // ==================== AUTHENTICATION REQUESTS ====================
@@ -106,6 +108,32 @@
     {
         public string Type => "DeleteEmployee";
         public int MaNguoiDung { get; set; }
+    }
+    public class ThongKeDoanhThuRequest
+    {
+        public string Type => "ThongKeDoanhThu";
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (TuNgay > DenNgay)
+                return (false, "Từ ngày không được lớn hơn đến ngày");
+
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Request xuất báo cáo
+    /// </summary>
+    public class XuatBaoCaoRequest
+    {
+        public string Type => "XuatBaoCao";
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+        public List<DoanhThuTheoBan> Data { get; set; } = new List<DoanhThuTheoBan>();
+        public decimal TongDoanhThu { get; set; }
     }
 }
 

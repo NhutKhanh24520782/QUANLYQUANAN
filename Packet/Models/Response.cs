@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Models.Database;
+using System;
 using System.Collections.Generic;
 
 namespace Models.Response
@@ -93,7 +94,23 @@ namespace Models.Response
         public List<EmployeeData> Employees { get; set; } = new List<EmployeeData>();
         public int MaNguoiDung { get; set; }
     }
+    public class ThongKeDoanhThuResponse : BaseResponse
+    {
+        public ThongKeDoanhThuResponse() => Type = "ThongKeDoanhThuResponse";
 
+        public TongDoanhThu TongDoanhThu { get; set; } = new TongDoanhThu();
+        public List<DoanhThuTheoBan> DoanhThuTheoBan { get; set; } = new List<DoanhThuTheoBan>();
+    }
+
+    /// <summary>
+    /// Response xuất báo cáo
+    /// </summary>
+    public class XuatBaoCaoResponse : BaseResponse
+    {
+        public XuatBaoCaoResponse() => Type = "XuatBaoCaoResponse";
+        public string FilePath { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+    }
     // ==================== ENUMS ====================
 
     public enum UserRole

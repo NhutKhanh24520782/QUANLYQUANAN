@@ -31,13 +31,16 @@
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
             panel2 = new Panel();
-            btn_stat = new Button();
-            dateTimePicker2 = new DateTimePicker();
+            btn_xuatbaocao = new Button();
+            btn_XemDoanhThu = new Button();
+            dtp_denNgay = new DateTimePicker();
             label2 = new Label();
             label1 = new Label();
-            dateTimePicker1 = new DateTimePicker();
+            dtp_tuNgay = new DateTimePicker();
             panel1 = new Panel();
-            dataGridView1 = new DataGridView();
+            lbl_sumdoanhthu = new Label();
+            label15 = new Label();
+            dataGridView_doanhthu = new DataGridView();
             tabPage2 = new TabPage();
             panel6 = new Panel();
             nm_priceFood = new NumericUpDown();
@@ -125,7 +128,7 @@
             tabPage1.SuspendLayout();
             panel2.SuspendLayout();
             panel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_doanhthu).BeginInit();
             tabPage2.SuspendLayout();
             panel6.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nm_priceFood).BeginInit();
@@ -184,36 +187,49 @@
             // 
             // panel2
             // 
-            panel2.Controls.Add(btn_stat);
-            panel2.Controls.Add(dateTimePicker2);
+            panel2.Controls.Add(btn_xuatbaocao);
+            panel2.Controls.Add(btn_XemDoanhThu);
+            panel2.Controls.Add(dtp_denNgay);
             panel2.Controls.Add(label2);
             panel2.Controls.Add(label1);
-            panel2.Controls.Add(dateTimePicker1);
+            panel2.Controls.Add(dtp_tuNgay);
             panel2.Location = new Point(5, 6);
             panel2.Name = "panel2";
             panel2.Size = new Size(961, 69);
             panel2.TabIndex = 1;
             // 
-            // btn_stat
+            // btn_xuatbaocao
             // 
-            btn_stat.Location = new Point(693, 17);
-            btn_stat.Name = "btn_stat";
-            btn_stat.Size = new Size(157, 44);
-            btn_stat.TabIndex = 4;
-            btn_stat.Text = "Xem doanh thu";
-            btn_stat.UseVisualStyleBackColor = true;
+            btn_xuatbaocao.Location = new Point(816, 17);
+            btn_xuatbaocao.Name = "btn_xuatbaocao";
+            btn_xuatbaocao.Size = new Size(132, 44);
+            btn_xuatbaocao.TabIndex = 5;
+            btn_xuatbaocao.Text = "Xuất báo cáo";
+            btn_xuatbaocao.UseVisualStyleBackColor = true;
+            btn_xuatbaocao.Click += btn_xuatbaocao_Click;
             // 
-            // dateTimePicker2
+            // btn_XemDoanhThu
             // 
-            dateTimePicker2.Location = new Point(370, 24);
-            dateTimePicker2.Name = "dateTimePicker2";
-            dateTimePicker2.Size = new Size(247, 27);
-            dateTimePicker2.TabIndex = 3;
+            btn_XemDoanhThu.Location = new Point(659, 17);
+            btn_XemDoanhThu.Name = "btn_XemDoanhThu";
+            btn_XemDoanhThu.Size = new Size(132, 44);
+            btn_XemDoanhThu.TabIndex = 4;
+            btn_XemDoanhThu.Text = "Xem doanh thu";
+            btn_XemDoanhThu.UseVisualStyleBackColor = true;
+            btn_XemDoanhThu.Click += btn_XemDoanhThu_ClickAsync;
+            // 
+            // dtp_denNgay
+            // 
+            dtp_denNgay.Location = new Point(374, 24);
+            dtp_denNgay.Name = "dtp_denNgay";
+            dtp_denNgay.Size = new Size(247, 27);
+            dtp_denNgay.TabIndex = 3;
+            dtp_denNgay.Value = new DateTime(2025, 11, 17, 0, 0, 0, 0);
             // 
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(328, 29);
+            label2.Location = new Point(323, 29);
             label2.Name = "label2";
             label2.Size = new Size(36, 20);
             label2.TabIndex = 2;
@@ -228,29 +244,59 @@
             label1.TabIndex = 1;
             label1.Text = "Từ";
             // 
-            // dateTimePicker1
+            // dtp_tuNgay
             // 
-            dateTimePicker1.Location = new Point(40, 24);
-            dateTimePicker1.Name = "dateTimePicker1";
-            dateTimePicker1.Size = new Size(247, 27);
-            dateTimePicker1.TabIndex = 0;
+            dtp_tuNgay.Location = new Point(40, 24);
+            dtp_tuNgay.Name = "dtp_tuNgay";
+            dtp_tuNgay.Size = new Size(247, 27);
+            dtp_tuNgay.TabIndex = 0;
+            dtp_tuNgay.Value = new DateTime(2025, 11, 17, 0, 0, 0, 0);
             // 
             // panel1
             // 
-            panel1.Controls.Add(dataGridView1);
+            panel1.Controls.Add(lbl_sumdoanhthu);
+            panel1.Controls.Add(label15);
+            panel1.Controls.Add(dataGridView_doanhthu);
             panel1.Location = new Point(0, 81);
             panel1.Name = "panel1";
             panel1.Size = new Size(969, 389);
             panel1.TabIndex = 0;
             // 
-            // dataGridView1
+            // lbl_sumdoanhthu
             // 
-            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView1.Location = new Point(3, 3);
-            dataGridView1.Name = "dataGridView1";
-            dataGridView1.RowHeadersWidth = 51;
-            dataGridView1.Size = new Size(963, 383);
-            dataGridView1.TabIndex = 0;
+            lbl_sumdoanhthu.AutoSize = true;
+            lbl_sumdoanhthu.Location = new Point(164, 351);
+            lbl_sumdoanhthu.Name = "lbl_sumdoanhthu";
+            lbl_sumdoanhthu.Size = new Size(39, 20);
+            lbl_sumdoanhthu.TabIndex = 2;
+            lbl_sumdoanhthu.Text = "-----";
+            // 
+            // label15
+            // 
+            label15.AutoSize = true;
+            label15.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label15.Location = new Point(3, 343);
+            label15.Name = "label15";
+            label15.Size = new Size(168, 28);
+            label15.TabIndex = 1;
+            label15.Text = "Tổng doanh thu:";
+            // 
+            // dataGridView_doanhthu
+            // 
+            dataGridView_doanhthu.AllowUserToAddRows = false;
+            dataGridView_doanhthu.AllowUserToDeleteRows = false;
+            dataGridView_doanhthu.AllowUserToResizeRows = false;
+            dataGridView_doanhthu.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridView_doanhthu.BorderStyle = BorderStyle.Fixed3D;
+            dataGridView_doanhthu.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView_doanhthu.Location = new Point(3, 3);
+            dataGridView_doanhthu.Name = "dataGridView_doanhthu";
+            dataGridView_doanhthu.ReadOnly = true;
+            dataGridView_doanhthu.RowHeadersVisible = false;
+            dataGridView_doanhthu.RowHeadersWidth = 51;
+            dataGridView_doanhthu.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView_doanhthu.Size = new Size(963, 337);
+            dataGridView_doanhthu.TabIndex = 0;
             // 
             // tabPage2
             // 
@@ -1052,7 +1098,8 @@
             panel2.ResumeLayout(false);
             panel2.PerformLayout();
             panel1.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
+            panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_doanhthu).EndInit();
             tabPage2.ResumeLayout(false);
             panel6.ResumeLayout(false);
             panel6.PerformLayout();
@@ -1100,13 +1147,13 @@
         private TabPage tabPage2;
         private TabPage tabPage3;
         private Panel panel2;
-        private Button btn_stat;
-        private DateTimePicker dateTimePicker2;
+        private Button btn_XemDoanhThu;
+        private DateTimePicker dtp_denNgay;
         private Label label2;
         private Label label1;
-        private DateTimePicker dateTimePicker1;
+        private DateTimePicker dtp_tuNgay;
         private Panel panel1;
-        private DataGridView dataGridView1;
+        private DataGridView dataGridView_doanhthu;
         private Panel panel4;
         private Panel panel3;
         private Panel panel6;
@@ -1188,5 +1235,8 @@
         private TextBox tb_idCustomer;
         private Label label16;
         private TextBox tb_idHuman;
+        private Label lbl_sumdoanhthu;
+        private Label label15;
+        private Button btn_xuatbaocao;
     }
 }

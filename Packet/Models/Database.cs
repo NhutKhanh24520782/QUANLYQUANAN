@@ -65,7 +65,38 @@ namespace Models.Database
             public bool TrangThai { get; set; } = true;
             public DateTime NgayTao { get; set; } = DateTime.Now;
         }
+    public class DoanhThuTheoBan
+    {
+        public string TenBan { get; set; } = string.Empty;
+        public int SoLuongHoaDon { get; set; }
+        public decimal DoanhThu { get; set; }
+        public decimal HoaDonLonNhat { get; set; }
+        public decimal HoaDonNhoNhat { get; set; }
+        public decimal DoanhThuTB { get; set; }
+    }
 
-      
+    /// <summary>
+    /// Tổng doanh thu - hiển thị trên Label
+    /// </summary>
+    public class TongDoanhThu
+    {
+        public decimal tongDoanhThu { get; set; }
+        public int TongSoHoaDon { get; set; }
+        public int TongSoBan { get; set; }
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+    }
+
+    /// <summary>
+    /// Kết quả thống kê doanh thu
+    /// </summary>
+    public class DoanhThuResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public TongDoanhThu TongDoanhThu { get; set; } = new TongDoanhThu();
+        public List<DoanhThuTheoBan> DoanhThuTheoBan { get; set; } = new List<DoanhThuTheoBan>();
+    }
+
 }
 
