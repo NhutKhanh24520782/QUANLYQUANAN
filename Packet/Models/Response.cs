@@ -97,8 +97,6 @@ namespace Models.Response
     public class ThongKeDoanhThuResponse : BaseResponse
     {
         public ThongKeDoanhThuResponse() => Type = "ThongKeDoanhThuResponse";
-
-<<<<<<< HEAD
         public TongDoanhThu TongDoanhThu { get; set; } = new TongDoanhThu();
         public List<DoanhThuTheoBan> DoanhThuTheoBan { get; set; } = new List<DoanhThuTheoBan>();
     }

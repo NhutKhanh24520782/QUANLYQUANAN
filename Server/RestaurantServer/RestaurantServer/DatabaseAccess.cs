@@ -10,7 +10,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Data.SqlClient;
-using System.Drawing;
 
 namespace RestaurantServer
 {
@@ -508,9 +507,6 @@ namespace RestaurantServer
                 };
             }
         }
-        /// <summary>
-        /// Lấy doanh thu theo bàn
-        /// </summary>
         public static List<DoanhThuTheoBan> GetDoanhThuTheoBan(DateTime tuNgay, DateTime denNgay)
         {
             var result = new List<DoanhThuTheoBan>();
@@ -520,19 +516,19 @@ namespace RestaurantServer
                 conn.Open();
 
                 string query = @"
-                SELECT 
-                    b.TenBan,
-                    COUNT(hd.MaHD) as SoLuongHoaDon,
-                    ISNULL(SUM(hd.TongTien), 0) as DoanhThu,
-                    ISNULL(MAX(hd.TongTien), 0) as HoaDonLonNhat,
-                    ISNULL(MIN(CASE WHEN hd.TongTien > 0 THEN hd.TongTien END), 0) as HoaDonNhoNhat,
-                    ISNULL(AVG(CASE WHEN hd.TongTien > 0 THEN hd.TongTien END), 0) as DoanhThuTB
-                FROM BAN b
-                LEFT JOIN HOADON hd ON b.MaBanAn = hd.MaBanAn 
-                    AND hd.Ngay BETWEEN @TuNgay AND @DenNgay 
-                    AND hd.TrangThai = N'DaThanhToan'
-                GROUP BY b.MaBanAn, b.TenBan
-                ORDER BY DoanhThu DESC";
+            SELECT 
+                b.TenBan,
+                COUNT(hd.MaHD) as SoLuongHoaDon,
+                ISNULL(SUM(hd.TongTien), 0) as DoanhThu,
+                ISNULL(MAX(hd.TongTien), 0) as HoaDonLonNhat,
+                ISNULL(MIN(CASE WHEN hd.TongTien > 0 THEN hd.TongTien END), 0) as HoaDonNhoNhat,
+                ISNULL(AVG(CASE WHEN hd.TongTien > 0 THEN hd.TongTien END), 0) as DoanhThuTB
+            FROM BAN b
+            LEFT JOIN HOADON hd ON b.MaBanAn = hd.MaBanAn 
+                AND hd.Ngay BETWEEN @TuNgay AND @DenNgay 
+                AND hd.TrangThai = N'DaThanhToan'  -- ✅ THÊM ĐIỀU KIỆN NÀY
+            GROUP BY b.MaBanAn, b.TenBan
+            ORDER BY DoanhThu DESC";
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
@@ -559,10 +555,37 @@ namespace RestaurantServer
 
             return result;
         }
+        public static decimal GetTongDoanhThu(DateTime tuNgay, DateTime denNgay)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
 
-        /// <summary>
-        /// Lấy toàn bộ thông tin doanh thu
-        /// </summary>
+                    string query = @"
+                SELECT ISNULL(SUM(TongTien), 0) as TongDoanhThu
+                FROM HOADON 
+                WHERE Ngay BETWEEN @TuNgay AND @DenNgay 
+                    AND TrangThai = N'DaThanhToan'";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                        object result = cmd.ExecuteScalar();
+                        return result != DBNull.Value ? Convert.ToDecimal(result) : 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi GetTongDoanhThu: {ex.Message}");
+                return 0;
+            }
+        }
+
         public static DoanhThuResult GetDoanhThuFull(DateTime tuNgay, DateTime denNgay)
         {
             try

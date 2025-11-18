@@ -28,7 +28,7 @@ namespace RestaurantClient
         private GridViewManager<DoanhThuTheoBan> _doanhThuManager;
 
         private GridViewManager<BillData> _billManager;
-   
+
         // ==================== CONSTANTS ====================
         private const string SERVER_IP = "127.0.0.1";
         private const int SERVER_PORT = 5000;
@@ -634,7 +634,7 @@ namespace RestaurantClient
             });
         }
 
-        private async void btn_xuatbaocao_Click(object sender, EventArgs e)
+        private void btn_xuatbaocao_Click(object sender, EventArgs e)
         {
             XuatExcelTrucTiep();
         }
@@ -783,11 +783,6 @@ namespace RestaurantClient
         {
             MessageBox.Show(message, "Cảnh báo",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        }
-
-        private void btn_viewBill_Click(object sender, EventArgs e)
-        {
-
         }
     }
 }
