@@ -91,6 +91,7 @@ namespace RestaurantServer
                         "AddEmployee" => await HandleAddEmployeeRequestAsync(rawRequest),
                         "UpdateEmployee" => await HandleUpdateEmployeeRequestAsync(rawRequest),
                         "DeleteEmployee" => await HandleDeleteEmployeeRequestAsync(rawRequest),
+                        "GetBill" => await HandleGetBillsRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 

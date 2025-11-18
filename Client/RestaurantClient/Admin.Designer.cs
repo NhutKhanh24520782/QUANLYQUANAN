@@ -721,6 +721,7 @@
             btn_searchBill.TabIndex = 4;
             btn_searchBill.Text = "Tìm";
             btn_searchBill.UseVisualStyleBackColor = true;
+            btn_searchBill.Click += btn_searchBill_Click;
             // 
             // btn_viewBill
             // 
@@ -740,6 +741,7 @@
             btn_resetBill.TabIndex = 2;
             btn_resetBill.Text = "Reset";
             btn_resetBill.UseVisualStyleBackColor = true;
+            btn_resetBill.Click += btn_resetBill_Click;
             // 
             // tb_searchBill
             // 

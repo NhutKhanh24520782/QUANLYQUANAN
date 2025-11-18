@@ -117,10 +117,14 @@
     public class GetBillRequest
     {
         public string Type => "GetBill";
+        //public string Keyword { get; set; } = "";
         public int MaHoaDon { get; set; }
         public int MaBanAn { get; set; }
         public int MaNhanVien { get; set; }
         public DateTime NgayXuatHoaDon { get; set; }
+        public string TrangThai { get; set; } = string.Empty;
+        public string PhuongThucThanhToan { get; set; } = string.Empty;
+        public int TongTien { get; set; }
     }
     
 }

@@ -97,10 +97,10 @@ namespace Models.Response
     public class BillResult
     {
         public bool Success { get; set; }
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
         public List<BillData> Bills { get; set; } = new List<BillData>();
 
-        public int MaBan { get; set;  }
+        public int MaHoaDon { get; set; }
     }
 
     // ==================== ENUMS ====================
@@ -141,6 +141,9 @@ namespace Models.Response
         public int MaBanAn { get; set; }
         public int MaNhanVien { get; set; }
         public DateTime NgayXuatHoaDon { get; set; }
+        public string TrangThai { get; set; } = string.Empty;
+        public string PhuongThucThanhToan { get; set; } = string.Empty;
+        public int TongTien { get; set; }
     }
 
     public class GetBillResponse : BaseResponse

@@ -461,7 +461,7 @@ namespace RestaurantServer
 
                     // Câu truy vấn chỉ lấy 4 cột yêu cầu, sắp xếp ngày mới nhất lên đầu
                     string query = @"
-                SELECT MaHD, MaBanAn, MaNV, Ngay 
+                SELECT MaHD, MaBanAn, MaNV, Ngay, TrangThai, PhuongThuc, TongTien 
                 FROM HOADON 
                 ORDER BY Ngay DESC";
 
