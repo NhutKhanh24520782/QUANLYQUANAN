@@ -37,7 +37,7 @@ namespace RestaurantClient
         {
             InitializeComponent();
             InitializeGridViewManagers();
-            InitializeDoanhThuControls(); 
+            InitializeDoanhThuControls();
             InitializeControls();
             LoadAllData();
         }
@@ -697,5 +697,9 @@ namespace RestaurantClient
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
+        private void btn_viewBill_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

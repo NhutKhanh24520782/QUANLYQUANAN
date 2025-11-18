@@ -794,6 +794,7 @@
             btn_viewBill.TabIndex = 3;
             btn_viewBill.Text = "Xem";
             btn_viewBill.UseVisualStyleBackColor = true;
+            btn_viewBill.Click += btn_viewBill_Click;
             // 
             // btn_resetBill
             // 
