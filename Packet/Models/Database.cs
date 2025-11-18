@@ -66,6 +66,18 @@ namespace Models.Database
             public DateTime NgayTao { get; set; } = DateTime.Now;
         }
 
+        public class HoaDon
+        {
+            public int MaHoaDon { get; set; }
+            public int MaBanAn { get; set; } 
+            public int MaNhanVien { get; set; }
+            public DateTime NgayXuatHoaDon { get; set; }
+            public string TrangThai { get; set; } = string.Empty;
+            public string PhuongThucThanhToan { get; set; } = string.Empty;
+            public int TongTien { get; set; }
+            public string GhiChu { get; set; } = string.Empty;
+        }
+
       
 }
 

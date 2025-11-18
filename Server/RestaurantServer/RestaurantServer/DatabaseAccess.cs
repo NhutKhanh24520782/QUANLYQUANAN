@@ -12,7 +12,14 @@ namespace RestaurantServer
     public static class DatabaseAccess
     {
         private static string connectionString =
-            "Data Source=DESKTOP-3UDAR72\\MSSQLSERVER01;Initial Catalog=QLQuanAn;Integrated Security=True";
+        //"Data Source=localhost\\SQLEXPRESS01;Initial Catalog=QLQuanAn;Integrated Security=True";
+        "Server=tcp:quanlyquanan.database.windows.net,1433;" +
+        "Initial Catalog=restaurant;" +
+        "User ID=lamnhutkhanh;" +
+        "Password=Khanh251106;" +
+        "Encrypt=True;" +
+        "TrustServerCertificate=False;" +
+        "Connection Timeout=30;";
 
         public static LoginResult LoginUser(string username, string password)
         {
@@ -441,6 +448,66 @@ namespace RestaurantServer
                 };
             }
         }
+
+        //nhóm lệnh của Bill
+
+        public static BillResult GetBills()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Câu truy vấn chỉ lấy 4 cột yêu cầu, sắp xếp ngày mới nhất lên đầu
+                    string query = @"
+                SELECT MaHD, MaBanAn, MaNV, Ngay 
+                FROM HOADON 
+                ORDER BY Ngay DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        var bills = new List<BillData>();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                bills.Add(new BillData
+                                {
+                                    MaHoaDon = (int)reader["MaHD"],
+
+                                    // Kiểm tra NULL cho MaBanAn (nếu trong DB cột này cho phép NULL)
+                                    MaBanAn = (int)reader["MaBanAn"],
+
+                                    // Kiểm tra NULL cho MaNV
+                                    MaNhanVien = (int)reader["MaNV"],
+
+                                    NgayXuatHoaDon = (DateTime)reader["Ngay"]
+                                });
+                            }
+                        }
+
+                        return new BillResult
+                        {
+                            Success = true,
+                            Message = $"Tìm thấy {bills.Count} hóa đơn",
+                            Bills = bills
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BillResult
+                {
+                    Success = false,
+                    Message = $"Lỗi truy xuất hóa đơn: {ex.Message}",
+                    Bills = new List<BillData>() // Trả về list rỗng để tránh lỗi null reference ở phía giao diện
+                };
+            }
+        }
+
         //------------------------------
         //------------------------------
         // 4. Gửi yêu cầu "INSERT" cho SQL (ĐÃ SỬA)

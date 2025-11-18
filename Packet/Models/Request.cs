@@ -113,5 +113,15 @@
         public string TenBan { get; set; }
         public string TrangThai { get; set; }
     }
+
+    public class GetBillRequest
+    {
+        public string Type => "GetBill";
+        public int MaHoaDon { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public DateTime NgayXuatHoaDon { get; set; }
+    }
+    
 }
 

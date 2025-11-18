@@ -80,14 +80,12 @@
             label18 = new Label();
             tb_idTable = new TextBox();
             label17 = new Label();
-            tb_idCustomer = new TextBox();
-            label16 = new Label();
             tb_idHuman = new TextBox();
             label9 = new Label();
             tb_idBill = new TextBox();
             label8 = new Label();
             panel12 = new Panel();
-            dataGridView4 = new DataGridView();
+            dataGridView_bill = new DataGridView();
             panel10 = new Panel();
             btn_searchBill = new Button();
             btn_viewBill = new Button();
@@ -142,7 +140,7 @@
             tabPage4.SuspendLayout();
             panel13.SuspendLayout();
             panel12.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dataGridView4).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_bill).BeginInit();
             panel10.SuspendLayout();
             tabPage5.SuspendLayout();
             panel17.SuspendLayout();
@@ -610,8 +608,6 @@
             panel13.Controls.Add(label18);
             panel13.Controls.Add(tb_idTable);
             panel13.Controls.Add(label17);
-            panel13.Controls.Add(tb_idCustomer);
-            panel13.Controls.Add(label16);
             panel13.Controls.Add(tb_idHuman);
             panel13.Controls.Add(label9);
             panel13.Controls.Add(tb_idBill);
@@ -623,7 +619,7 @@
             // 
             // tb_dateBill
             // 
-            tb_dateBill.Location = new Point(14, 339);
+            tb_dateBill.Location = new Point(14, 305);
             tb_dateBill.Name = "tb_dateBill";
             tb_dateBill.Size = new Size(339, 27);
             tb_dateBill.TabIndex = 9;
@@ -632,7 +628,7 @@
             // 
             label18.AutoSize = true;
             label18.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label18.Location = new Point(14, 308);
+            label18.Location = new Point(14, 274);
             label18.Name = "label18";
             label18.Size = new Size(195, 28);
             label18.TabIndex = 8;
@@ -640,7 +636,7 @@
             // 
             // tb_idTable
             // 
-            tb_idTable.Location = new Point(14, 268);
+            tb_idTable.Location = new Point(14, 212);
             tb_idTable.Name = "tb_idTable";
             tb_idTable.Size = new Size(339, 27);
             tb_idTable.TabIndex = 7;
@@ -649,32 +645,15 @@
             // 
             label17.AutoSize = true;
             label17.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label17.Location = new Point(14, 237);
+            label17.Location = new Point(14, 181);
             label17.Name = "label17";
             label17.Size = new Size(112, 28);
             label17.TabIndex = 6;
             label17.Text = "Mã bàn ăn";
             // 
-            // tb_idCustomer
-            // 
-            tb_idCustomer.Location = new Point(14, 189);
-            tb_idCustomer.Name = "tb_idCustomer";
-            tb_idCustomer.Size = new Size(339, 27);
-            tb_idCustomer.TabIndex = 5;
-            // 
-            // label16
-            // 
-            label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(14, 158);
-            label16.Name = "label16";
-            label16.Size = new Size(157, 28);
-            label16.TabIndex = 4;
-            label16.Text = "Mã khách hàng";
-            // 
             // tb_idHuman
             // 
-            tb_idHuman.Location = new Point(14, 111);
+            tb_idHuman.Location = new Point(14, 126);
             tb_idHuman.Name = "tb_idHuman";
             tb_idHuman.Size = new Size(339, 27);
             tb_idHuman.TabIndex = 3;
@@ -683,7 +662,7 @@
             // 
             label9.AutoSize = true;
             label9.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label9.Location = new Point(14, 80);
+            label9.Location = new Point(14, 95);
             label9.Name = "label9";
             label9.Size = new Size(141, 28);
             label9.TabIndex = 2;
@@ -691,7 +670,7 @@
             // 
             // tb_idBill
             // 
-            tb_idBill.Location = new Point(14, 34);
+            tb_idBill.Location = new Point(14, 50);
             tb_idBill.Name = "tb_idBill";
             tb_idBill.Size = new Size(339, 27);
             tb_idBill.TabIndex = 1;
@@ -700,7 +679,7 @@
             // 
             label8.AutoSize = true;
             label8.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label8.Location = new Point(14, 3);
+            label8.Location = new Point(14, 19);
             label8.Name = "label8";
             label8.Size = new Size(127, 28);
             label8.TabIndex = 0;
@@ -708,20 +687,20 @@
             // 
             // panel12
             // 
-            panel12.Controls.Add(dataGridView4);
+            panel12.Controls.Add(dataGridView_bill);
             panel12.Location = new Point(6, 87);
             panel12.Name = "panel12";
             panel12.Size = new Size(552, 377);
             panel12.TabIndex = 2;
             // 
-            // dataGridView4
+            // dataGridView_bill
             // 
-            dataGridView4.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView4.Location = new Point(3, 3);
-            dataGridView4.Name = "dataGridView4";
-            dataGridView4.RowHeadersWidth = 51;
-            dataGridView4.Size = new Size(546, 371);
-            dataGridView4.TabIndex = 0;
+            dataGridView_bill.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView_bill.Location = new Point(3, 3);
+            dataGridView_bill.Name = "dataGridView_bill";
+            dataGridView_bill.RowHeadersWidth = 51;
+            dataGridView_bill.Size = new Size(546, 371);
+            dataGridView_bill.TabIndex = 0;
             // 
             // panel10
             // 
@@ -751,6 +730,7 @@
             btn_viewBill.TabIndex = 3;
             btn_viewBill.Text = "Xem";
             btn_viewBill.UseVisualStyleBackColor = true;
+            btn_viewBill.Click += btn_viewBill_Click;
             // 
             // btn_resetBill
             // 
@@ -1077,7 +1057,7 @@
             panel13.ResumeLayout(false);
             panel13.PerformLayout();
             panel12.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dataGridView4).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_bill).EndInit();
             panel10.ResumeLayout(false);
             panel10.PerformLayout();
             tabPage5.ResumeLayout(false);
@@ -1155,7 +1135,7 @@
         private Label label9;
         private TextBox tb_idBill;
         private Label label8;
-        private DataGridView dataGridView4;
+        private DataGridView dataGridView_bill;
         private TabPage tabPage5;
         private Panel panel14;
         private Button btn_viewHuman;
@@ -1188,8 +1168,6 @@
         private Label label18;
         private TextBox tb_idTable;
         private Label label17;
-        private TextBox tb_idCustomer;
-        private Label label16;
         private TextBox tb_idHuman;
     }
 }
