@@ -144,7 +144,7 @@ namespace Models.Request
 
     public class GetBillRequest
     {
-        public string Type => "GetBill";
+        public string Type => "GetBills";
         public int MaHoaDon { get; set; }
         public int MaBanAn { get; set; }
         public int MaNhanVien { get; set; }

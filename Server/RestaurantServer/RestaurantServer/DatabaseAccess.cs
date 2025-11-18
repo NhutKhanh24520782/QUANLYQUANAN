@@ -459,9 +459,9 @@ namespace RestaurantServer
                 {
                     conn.Open();
 
-                    // Câu truy vấn chỉ lấy 4 cột yêu cầu, sắp xếp ngày mới nhất lên đầu
+                    // ✅ SỬA: Thêm TongTien vào SELECT
                     string query = @"
-                SELECT MaHD, MaBanAn, MaNV, Ngay 
+                SELECT MaHD, MaBanAn, MaNV, Ngay, TongTien, TrangThai
                 FROM HOADON 
                 ORDER BY Ngay DESC";
 
@@ -476,14 +476,11 @@ namespace RestaurantServer
                                 bills.Add(new BillData
                                 {
                                     MaHoaDon = (int)reader["MaHD"],
-
-                                    // Kiểm tra NULL cho MaBanAn (nếu trong DB cột này cho phép NULL)
                                     MaBanAn = (int)reader["MaBanAn"],
-
-                                    // Kiểm tra NULL cho MaNV
                                     MaNhanVien = (int)reader["MaNV"],
-
-                                    NgayXuatHoaDon = (DateTime)reader["Ngay"]
+                                    NgayXuatHoaDon = (DateTime)reader["Ngay"],
+                                    TongTien = reader["TongTien"] != DBNull.Value ? Convert.ToDecimal(reader["TongTien"]) : 0,
+                                    TrangThai = reader["TrangThai"]?.ToString() ?? ""
                                 });
                             }
                         }
@@ -503,7 +500,7 @@ namespace RestaurantServer
                 {
                     Success = false,
                     Message = $"Lỗi truy xuất hóa đơn: {ex.Message}",
-                    Bills = new List<BillData>() // Trả về list rỗng để tránh lỗi null reference ở phía giao diện
+                    Bills = new List<BillData>()
                 };
             }
         }
@@ -617,9 +614,6 @@ namespace RestaurantServer
                 };
             }
         }
-
-        /// Xuất báo cáo doanh thu ra file Excel (EPPlus 5+)
-        /// </summary>
         public static (bool success, string filePath, string message) XuatBaoCaoExcel(
             DateTime tuNgay, DateTime denNgay, List<DoanhThuTheoBan> data, decimal tongDoanhThu)
         {

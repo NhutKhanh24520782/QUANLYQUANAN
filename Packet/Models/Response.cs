@@ -110,14 +110,7 @@ namespace Models.Response
         public string FilePath { get; set; } = string.Empty;
         public string FileName { get; set; } = string.Empty;
     }
-    public class BillResult
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-        public List<BillData> Bills { get; set; } = new List<BillData>();
-
-        public int MaBan { get; set;  }
-    }
+   
 
     // ==================== ENUMS ====================
 
@@ -151,14 +144,7 @@ namespace Models.Response
     }
 
     // ==================== BILL RESPONSES ====================
-    public class BillData
-    {
-        public int MaHoaDon { get; set; }
-        public int MaBanAn { get; set; }
-        public int MaNhanVien { get; set; }
-        public DateTime NgayXuatHoaDon { get; set; }
-    }
-
+ 
     public class GetBillResponse : BaseResponse
     {
         public GetBillResponse() => Type = "GetBillResponse";

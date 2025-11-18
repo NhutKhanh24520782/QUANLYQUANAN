@@ -109,7 +109,23 @@ namespace Models.Database
             public int TongTien { get; set; }
             public string GhiChu { get; set; } = string.Empty;
         }
+    public class BillData
+    {
+        public int MaHoaDon { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public DateTime NgayXuatHoaDon { get; set; }
+        public decimal TongTien { get; set; }
+        public string TrangThai { get; set; } = string.Empty;
+    }
 
-      
+    public class BillResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<BillData> Bills { get; set; } = new List<BillData>();
+    }
+
+
 }
 

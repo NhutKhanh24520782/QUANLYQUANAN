@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -15,7 +14,6 @@ using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using Microsoft.VisualBasic.Devices;
 using System.Data;
 
@@ -26,7 +24,6 @@ namespace RestaurantClient
         // ==================== GRIDVIEW MANAGERS ====================
         private GridViewManager<EmployeeData> _employeeManager;
         private GridViewManager<DoanhThuTheoBan> _doanhThuManager;
-
         private GridViewManager<BillData> _billManager;
 
         // ==================== CONSTANTS ====================
@@ -44,6 +41,17 @@ namespace RestaurantClient
             InitializeBillTab();
             InitializeControls();
             LoadAllData();
+        }
+        private void InitializeBillTab()
+        {
+            // Setup events cho tab hóa đơn
+            dataGridView_bill.SelectionChanged += DataGridView_Bill_SelectionChanged;
+
+            var searchBox = this.Controls.Find("tb_searchBill", true).FirstOrDefault() as TextBox;
+            if (searchBox != null)
+            {
+                SetupSearchBox(searchBox, SEARCH_BILL);
+            }
         }
         private void InitializeDoanhThuControls()
         {
@@ -69,7 +77,6 @@ namespace RestaurantClient
                 },
                 "MaNguoiDung" // Tên property ID
             );
-            // Doanh Thu GridView - Sử dụng dataGridView_doanhthu trong panel1
             _doanhThuManager = new GridViewManager<DoanhThuTheoBan>(
                 dataGridView_doanhthu, // DataGridView trong panel1
                 LoadDoanhThuFromServer,
@@ -84,7 +91,20 @@ namespace RestaurantClient
                 },
                 "TenBan"
             );
-
+                    _billManager = new GridViewManager<BillData>(
+                dataGridView_bill,
+                LoadBillsAsListAsync,
+                x => new
+                {
+                    MaHoaDon = x.MaHoaDon,
+                    MaBanAn = x.MaBanAn,
+                    MaNhanVien = x.MaNhanVien,
+                    Ngay = x.NgayXuatHoaDon,
+                    TongTien = x.TongTien, // ✅ THÊM NẾU CÓ
+                    TrangThai = x.TrangThai // ✅ THÊM NẾU CÓ
+                },
+                "MaHoaDon"
+            );
             // Gắn event handler
             dataGridView_emp.SelectionChanged += (s, e) =>
             {
@@ -98,6 +118,13 @@ namespace RestaurantClient
                 var selected = _doanhThuManager.GetSelectedItem();
                 if (selected != null)
                     ShowDoanhThuDetails(selected);
+            };
+
+            dataGridView_bill.SelectionChanged += (s, e) =>
+            {
+                var selected = _billManager.GetSelectedItem();
+                if (selected != null)
+                    ShowBillDetails(selected);
             };
         }
 
@@ -136,29 +163,8 @@ namespace RestaurantClient
         {
             await _employeeManager.LoadDataAsync();
             await _doanhThuManager.LoadDataAsync();
-            // await _tableManager.LoadDataAsync();
+            await _billManager.LoadDataAsync(); // ✅ THÊM: Tự động load bills
         }
-        private void InitializeBillTab()
-        {
-            // 1. Khởi tạo GridViewManager
-            _billManager = new GridViewManager<BillData>(
-                dataGridView_bill,      // GridView trên giao diện
-                LoadBillsAsListAsync,   // Hàm tải dữ liệu (được định nghĩa ở dưới)
-                x => new
-                {              // Map dữ liệu sang hiển thị (đặt tên cột tiếng Việt)
-                    MaHoaDon = x.MaHoaDon,
-                    MaBanAn = x.MaBanAn, // Nếu null thì hiện 0
-                    MaNhanVien = x.MaNhanVien,
-                    Ngay = x.NgayXuatHoaDon
-                },
-                "MaHD" // Tên property dùng làm ID
-            );
-
-            // 2. Đăng ký sự kiện khi chọn dòng để đổ dữ liệu ra TextBox
-            dataGridView_bill.SelectionChanged += DataGridView_Bill_SelectionChanged;
-        }
-
-        // Hàm Wrapper: Chuyển đổi từ BillResult (của DatabaseAccess) sang List<BillData> cho Manager
 
         // ==================== DATA LOADING ====================
 
@@ -323,6 +329,33 @@ namespace RestaurantClient
             MessageBox.Show(message, "Chi Tiết Doanh Thu",
                            MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
+        private void ShowBillDetails(BillData bill)
+        {
+            if (bill == null) return;
+
+            try
+            {
+                Console.WriteLine($"🔍 Đang hiển thị bill: {bill.MaHoaDon}");
+
+                // ✅ HIỂN THỊ LÊN TEXTBOX
+                tb_idBill.Text = bill.MaHoaDon.ToString();
+                tb_idHuman.Text = bill.MaNhanVien.ToString();
+                tb_idTable.Text = bill.MaBanAn.ToString();
+                tb_dateBill.Text = bill.NgayXuatHoaDon.ToString("HH:mm dd/MM/yyyy");
+
+                // ✅ THÊM: Hiển thị thông tin khác nếu có
+                if (this.Controls.Find("tb_tongTien", true).FirstOrDefault() is TextBox tbTongTien)
+                {
+                    tbTongTien.Text = bill.TongTien.ToString("N0") + " VNĐ";
+                }
+
+                Console.WriteLine($"✅ Đã hiển thị bill {bill.MaHoaDon} lên form");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi hiển thị bill: {ex.Message}");
+            }
+        }
 
         private void ClearForm()
         {
@@ -461,13 +494,13 @@ namespace RestaurantClient
                 // Đổ dữ liệu vào các TextBox
                 tb_idBill.Text = selectedBill.MaHoaDon.ToString();
 
-                // Lưu ý: Database hiện tại chỉ trả về Mã NV, chưa có Tên. 
-                // Tạm thời hiển thị Mã NV vào ô tb_nameHuman.
-                tb_nameHuman.Text = selectedBill.MaNhanVien.ToString();
+                tb_idHuman.Text = selectedBill.MaNhanVien.ToString(); // Nếu có field riêng
+                                                                       // Hoặc nếu không có field riêng, tạm dùng:
+                                                                       // tb_nameHuman.Text = selectedBill.MaNhanVien.ToString();
 
                 tb_idTable.Text = selectedBill.MaBanAn.ToString();
 
-                // Format ngày tháng hiển thị đẹp (Giờ:Phút Ngày/Tháng/Năm)
+                // Format ngày tháng
                 tb_dateBill.Text = selectedBill.NgayXuatHoaDon.ToString("HH:mm dd/MM/yyyy");
             }
             else
@@ -475,12 +508,10 @@ namespace RestaurantClient
                 ClearBillTextBoxes();
             }
         }
-
-        // Hàm phụ để xóa trắng các ô nhập liệu
         private void ClearBillTextBoxes()
         {
             tb_idBill.Text = "";
-            tb_nameHuman.Text = "";
+            tb_idHuman.Text = ""; // Hoặc tb_nameHuman.Text nếu dùng chung
             tb_idTable.Text = "";
             tb_dateBill.Text = "";
         }
@@ -601,8 +632,15 @@ namespace RestaurantClient
 
         private async void btn_viewHuman_Click(object sender, EventArgs e)
         {
-            await _employeeManager.RefreshAsync();
-            ClearForm();
+
+            await ExecuteAsync(btn_viewHuman, "Đang tải...", async () =>
+            {
+                await _employeeManager.LoadDataAsync(); 
+                ClearForm();
+
+                var cachedData = _employeeManager.GetCachedData();
+                ShowSuccess($"Đã tải {cachedData?.Count ?? 0} nhân viên");
+            });
         }
 
         private async void btn_searchHuman_Click(object sender, EventArgs e)
@@ -639,13 +677,16 @@ namespace RestaurantClient
             XuatExcelTrucTiep();
         }
 
-        // Sự kiện click nút "Xem/Tải lại danh sách hóa đơn"
         private async void btn_viewBill_Click(object sender, EventArgs e)
         {
-            await _billManager.LoadDataAsync();
+            await ExecuteAsync(btn_viewBill, "Đang tải mới...", async () =>
+            {
+                await _billManager.LoadDataAsync();
+                ClearBillTextBoxes();
 
-            // Reset các text box sau khi load mới
-            ClearBillTextBoxes();
+                var cachedData = _billManager.GetCachedData();
+                ShowSuccess($"Đã tải mới {cachedData?.Count ?? 0} hóa đơn");
+            });
         }
 
 
