@@ -98,6 +98,7 @@ namespace Models.Response
     {
         public ThongKeDoanhThuResponse() => Type = "ThongKeDoanhThuResponse";
 
+<<<<<<< HEAD
         public TongDoanhThu TongDoanhThu { get; set; } = new TongDoanhThu();
         public List<DoanhThuTheoBan> DoanhThuTheoBan { get; set; } = new List<DoanhThuTheoBan>();
     }
@@ -111,6 +112,15 @@ namespace Models.Response
         public string FilePath { get; set; } = string.Empty;
         public string FileName { get; set; } = string.Empty;
     }
+    public class BillResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public List<BillData> Bills { get; set; } = new List<BillData>();
+
+        public int MaBan { get; set;  }
+    }
+
     // ==================== ENUMS ====================
 
     public enum UserRole
@@ -140,5 +150,20 @@ namespace Models.Response
     {
         public bool Success { get; set; }
         public string Message { get; set; }
+    }
+
+    // ==================== BILL RESPONSES ====================
+    public class BillData
+    {
+        public int MaHoaDon { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public DateTime NgayXuatHoaDon { get; set; }
+    }
+
+    public class GetBillResponse : BaseResponse
+    {
+        public GetBillResponse() => Type = "GetBillResponse";
+        public List<BillData> Bills { get; set; } = new List<BillData>();
     }
 }

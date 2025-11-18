@@ -15,8 +15,9 @@ using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System.Drawing;
 using System.IO;
-
 using System.Linq;
+using Microsoft.VisualBasic.Devices;
+using System.Data;
 
 namespace RestaurantClient
 {
@@ -25,12 +26,14 @@ namespace RestaurantClient
         // ==================== GRIDVIEW MANAGERS ====================
         private GridViewManager<EmployeeData> _employeeManager;
         private GridViewManager<DoanhThuTheoBan> _doanhThuManager;
-        // private GridViewManager<TableData> _tableManager;
 
+        private GridViewManager<BillData> _billManager;
+   
         // ==================== CONSTANTS ====================
         private const string SERVER_IP = "127.0.0.1";
         private const int SERVER_PORT = 5000;
         private const string SEARCH_PLACEHOLDER = "Tìm theo tên hoặc email...";
+        private const string SEARCH_BILL = "Tìm theo mã bàn hoặc nhân viên...";
 
         // ==================== INITIALIZATION ====================
         public Admin()
@@ -38,6 +41,7 @@ namespace RestaurantClient
             InitializeComponent();
             InitializeGridViewManagers();
             InitializeDoanhThuControls();
+            InitializeBillTab();
             InitializeControls();
             LoadAllData();
         }
@@ -134,6 +138,28 @@ namespace RestaurantClient
             await _doanhThuManager.LoadDataAsync();
             // await _tableManager.LoadDataAsync();
         }
+        private void InitializeBillTab()
+        {
+            // 1. Khởi tạo GridViewManager
+            _billManager = new GridViewManager<BillData>(
+                dataGridView_bill,      // GridView trên giao diện
+                LoadBillsAsListAsync,   // Hàm tải dữ liệu (được định nghĩa ở dưới)
+                x => new
+                {              // Map dữ liệu sang hiển thị (đặt tên cột tiếng Việt)
+                    MaHoaDon = x.MaHoaDon,
+                    MaBanAn = x.MaBanAn, // Nếu null thì hiện 0
+                    MaNhanVien = x.MaNhanVien,
+                    Ngay = x.NgayXuatHoaDon
+                },
+                "MaHD" // Tên property dùng làm ID
+            );
+
+            // 2. Đăng ký sự kiện khi chọn dòng để đổ dữ liệu ra TextBox
+            dataGridView_bill.SelectionChanged += DataGridView_Bill_SelectionChanged;
+        }
+
+        // Hàm Wrapper: Chuyển đổi từ BillResult (của DatabaseAccess) sang List<BillData> cho Manager
+
         // ==================== DATA LOADING ====================
 
         private Task<List<EmployeeData>> LoadEmployeesFromServer()
@@ -246,6 +272,22 @@ namespace RestaurantClient
                         row.DefaultCellStyle.ForeColor = Color.Gray;
                     }
                 }
+            }
+        }
+
+        private async Task<List<BillData>> LoadBillsAsListAsync()
+        {
+            var request = new GetBillRequest { };
+            var response = await SendRequest<GetBillRequest, GetBillResponse>(request);
+
+            if (response.Success)
+            {
+                return response.Bills;
+            }
+            else
+            {
+                // Có thể log lỗi hoặc thông báo nhẹ nếu cần
+                return new List<BillData>();
             }
         }
 
@@ -409,6 +451,40 @@ namespace RestaurantClient
             }
         }
 
+        private void DataGridView_Bill_SelectionChanged(object sender, EventArgs e)
+        {
+            // Lấy item đang chọn từ cache của Manager
+            BillData selectedBill = _billManager.GetSelectedItem();
+
+            if (selectedBill != null)
+            {
+                // Đổ dữ liệu vào các TextBox
+                tb_idBill.Text = selectedBill.MaHoaDon.ToString();
+
+                // Lưu ý: Database hiện tại chỉ trả về Mã NV, chưa có Tên. 
+                // Tạm thời hiển thị Mã NV vào ô tb_nameHuman.
+                tb_nameHuman.Text = selectedBill.MaNhanVien.ToString();
+
+                tb_idTable.Text = selectedBill.MaBanAn.ToString();
+
+                // Format ngày tháng hiển thị đẹp (Giờ:Phút Ngày/Tháng/Năm)
+                tb_dateBill.Text = selectedBill.NgayXuatHoaDon.ToString("HH:mm dd/MM/yyyy");
+            }
+            else
+            {
+                ClearBillTextBoxes();
+            }
+        }
+
+        // Hàm phụ để xóa trắng các ô nhập liệu
+        private void ClearBillTextBoxes()
+        {
+            tb_idBill.Text = "";
+            tb_nameHuman.Text = "";
+            tb_idTable.Text = "";
+            tb_dateBill.Text = "";
+        }
+
         // ==================== CRUD OPERATIONS ====================
 
         private async void btn_addHuman_Click(object sender, EventArgs e)
@@ -562,6 +638,18 @@ namespace RestaurantClient
         {
             XuatExcelTrucTiep();
         }
+
+        // Sự kiện click nút "Xem/Tải lại danh sách hóa đơn"
+        private async void btn_viewBill_Click(object sender, EventArgs e)
+        {
+            await _billManager.LoadDataAsync();
+
+            // Reset các text box sau khi load mới
+            ClearBillTextBoxes();
+        }
+
+
+
         // ==================== VALIDATION ====================
 
         private bool ValidateInput(bool isAddMode, out string error)

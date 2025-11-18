@@ -93,6 +93,7 @@ namespace RestaurantServer
                         "DeleteEmployee" => await HandleDeleteEmployeeRequestAsync(rawRequest),
                         "ThongKeDoanhThu" => await HandleThongKeDoanhThuRequestAsync(rawRequest),
                         "XuatBaoCao" => await HandleXuatBaoCaoRequestAsync(rawRequest),
+                        "GetBills" => awaitHandleGetBillsRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -385,7 +386,7 @@ namespace RestaurantServer
                 }
             });
         }
-        private async Task<string> HandleXuatBaoCaoRequestAsync(JObject rawRequest)
+          private async Task<string> HandleGetBillsRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
             {
@@ -413,6 +414,18 @@ namespace RestaurantServer
                     {
                         Console.WriteLine($"📄 Xuất báo cáo thành công: {exportResult.filePath}");
                     }
+                    var request = rawRequest.ToObject<GetBillRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetBills();
+
+                    var response = new GetBillResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        Bills = result.Bills,
+                    };
 
                     return JsonConvert.SerializeObject(response);
                 }
@@ -422,6 +435,11 @@ namespace RestaurantServer
                 }
             });
         }
+                    return CreateErrorResponse($"Lỗi lấy danh sách hóa đơn: {ex.Message}");
+                }
+            });
+        }
+
         private string HandleUnknownRequest()
         {
             return CreateErrorResponse("Loại request không hợp lệ");

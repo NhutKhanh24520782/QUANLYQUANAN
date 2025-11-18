@@ -452,29 +452,62 @@ namespace RestaurantServer
                 };
             }
         }
-        public static decimal GetTongDoanhThu(DateTime tuNgay, DateTime denNgay)
+        public static BillResult GetBills()
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            try
             {
-                conn.Open();
-
-                string query = @"
-                SELECT ISNULL(SUM(TongTien), 0) 
-                FROM HOADON 
-                WHERE Ngay BETWEEN @TuNgay AND @DenNgay 
-                AND TrangThai = N'DaThanhToan'";
-
-                using (SqlCommand cmd = new SqlCommand(query, conn))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
-                    cmd.Parameters.AddWithValue("@DenNgay", denNgay);
+                    conn.Open();
 
-                    var result = cmd.ExecuteScalar();
-                    return result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+                    // Câu truy vấn chỉ lấy 4 cột yêu cầu, sắp xếp ngày mới nhất lên đầu
+                    string query = @"
+                SELECT MaHD, MaBanAn, MaNV, Ngay 
+                FROM HOADON 
+                ORDER BY Ngay DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        var bills = new List<BillData>();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                bills.Add(new BillData
+                                {
+                                    MaHoaDon = (int)reader["MaHD"],
+
+                                    // Kiểm tra NULL cho MaBanAn (nếu trong DB cột này cho phép NULL)
+                                    MaBanAn = (int)reader["MaBanAn"],
+
+                                    // Kiểm tra NULL cho MaNV
+                                    MaNhanVien = (int)reader["MaNV"],
+
+                                    NgayXuatHoaDon = (DateTime)reader["Ngay"]
+                                });
+                            }
+                        }
+
+                        return new BillResult
+                        {
+                            Success = true,
+                            Message = $"Tìm thấy {bills.Count} hóa đơn",
+                            Bills = bills
+                        };
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                return new BillResult
+                {
+                    Success = false,
+                    Message = $"Lỗi truy xuất hóa đơn: {ex.Message}",
+                    Bills = new List<BillData>() // Trả về list rỗng để tránh lỗi null reference ở phía giao diện
+                };
+            }
         }
-
         /// <summary>
         /// Lấy doanh thu theo bàn
         /// </summary>
