@@ -612,9 +612,9 @@
             panel13.Controls.Add(label9);
             panel13.Controls.Add(tb_idBill);
             panel13.Controls.Add(label8);
-            panel13.Location = new Point(564, 87);
+            panel13.Location = new Point(602, 87);
             panel13.Name = "panel13";
-            panel13.Size = new Size(402, 377);
+            panel13.Size = new Size(364, 377);
             panel13.TabIndex = 3;
             // 
             // tb_dateBill
@@ -690,16 +690,22 @@
             panel12.Controls.Add(dataGridView_bill);
             panel12.Location = new Point(6, 87);
             panel12.Name = "panel12";
-            panel12.Size = new Size(552, 377);
+            panel12.Size = new Size(590, 377);
             panel12.TabIndex = 2;
             // 
             // dataGridView_bill
             // 
+            dataGridView_bill.AllowUserToAddRows = false;
+            dataGridView_bill.AllowUserToDeleteRows = false;
+            dataGridView_bill.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dataGridView_bill.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridView_bill.Location = new Point(3, 3);
+            dataGridView_bill.MultiSelect = false;
             dataGridView_bill.Name = "dataGridView_bill";
+            dataGridView_bill.ReadOnly = true;
             dataGridView_bill.RowHeadersWidth = 51;
-            dataGridView_bill.Size = new Size(546, 371);
+            dataGridView_bill.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView_bill.Size = new Size(584, 371);
             dataGridView_bill.TabIndex = 0;
             // 
             // panel10

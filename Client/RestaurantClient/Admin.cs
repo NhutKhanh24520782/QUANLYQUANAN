@@ -82,21 +82,14 @@ namespace RestaurantClient
                 if (selected != null)
                     ShowEmployeeDetails(selected);
             };
-
-            // Menu GridView (uncomment khi cần)
-            // _menuManager = new GridViewManager<MenuData>(
-            //     dataGridView_menu,
-            //     LoadMenuFromServer,
-            //     menu => new { ... },
-            //     "MaMon"
-            // );
             dataGridView_bill.SelectionChanged += (s, e) =>
             {
                 var selected = _billManager.GetSelectedItem();
                 if (selected != null)
-                    ShowBillDetails(selected);
+                    ShowBillDetails(selected); // ✅ Gọi hàm đã sửa
+                else
+                    ClearBillTextBoxes();
             };
-            //dataGridView_bill.SelectionChanged += DataGridView_Bill_SelectionChanged;
         }
 
         private void InitializeControls()
@@ -179,16 +172,27 @@ namespace RestaurantClient
 
         private async Task<List<BillData>> LoadBillsAsListAsync()
         {
-            var request = new GetBillRequest {};
-            var response = await SendRequest<GetBillRequest, GetBillResponse>(request);
+            try
+            {
+                var request = new GetBillRequest { };
+                var response = await SendRequest<GetBillRequest, GetBillResponse>(request);
 
-            if (response.Success)
-            {
-                return response.Bills;
+                // 🔥 DEBUG: In ra số lượng hóa đơn nhận được
+                Console.WriteLine($"Số hóa đơn nhận được: {response?.Bills?.Count ?? 0}");
+
+                if (response?.Success == true && response.Bills != null)
+                {
+                    return response.Bills;
+                }
+                else
+                {
+                    ShowError(response?.Message ?? "Không thể tải danh sách hóa đơn");
+                    return new List<BillData>();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Có thể log lỗi hoặc thông báo nhẹ nếu cần
+                ShowError($"Lỗi kết nối khi tải hóa đơn: {ex.Message}");
                 return new List<BillData>();
             }
         }
@@ -264,7 +268,7 @@ namespace RestaurantClient
         private void ShowBillDetails(BillData bill)
         {
             tb_idBill.Text = bill.MaHoaDon.ToString();
-            tb_idTable.Text = bill.MaHoaDon.ToString();
+            tb_idTable.Text = bill.MaBanAn.ToString();
             tb_idHuman.Text = bill.MaNhanVien.ToString();
             tb_dateBill.Text = bill.NgayXuatHoaDon.ToString();
         }
@@ -273,8 +277,8 @@ namespace RestaurantClient
         private void ClearBillTextBoxes()
         {
             tb_idBill.Text = "";
-            tb_nameHuman.Text = "";
             tb_idTable.Text = "";
+            tb_idHuman.Text = "";
             tb_dateBill.Text = "";
         }
 
