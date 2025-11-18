@@ -133,8 +133,8 @@ namespace Models.Request
         public DateTime TuNgay { get; set; }
         public DateTime DenNgay { get; set; }
         public List<DoanhThuTheoBan> Data { get; set; } = new List<DoanhThuTheoBan>();
-        public decimal TongDoanhThu { get; set; 
-     }
+        public decimal TongDoanhThu { get; set; }
+    }
     public class AddTableRequest 
     {
         public int MaBan { get; set; }

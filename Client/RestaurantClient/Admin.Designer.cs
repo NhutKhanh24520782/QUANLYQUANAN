@@ -500,7 +500,6 @@
             comboBox1.Name = "comboBox1";
             comboBox1.Size = new Size(208, 28);
             comboBox1.TabIndex = 5;
-            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
             // 
             // label7
             // 
@@ -535,7 +534,6 @@
             textBox1.Name = "textBox1";
             textBox1.Size = new Size(266, 27);
             textBox1.TabIndex = 1;
-            textBox1.TextChanged += textBox1_TextChanged;
             // 
             // label5
             // 
@@ -635,7 +633,6 @@
             btn_addTable.TabIndex = 0;
             btn_addTable.Text = "Thêm";
             btn_addTable.UseVisualStyleBackColor = true;
-            btn_addTable.Click += btn_addTable_Click;
             // 
             // tabPage4
             // 
