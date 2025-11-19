@@ -169,7 +169,7 @@ public class GridViewManager<T>
             { "MaNguoiDung", "MaNV" },
             { "MaMon", "MaMon" },
             { "MaBan", "MaBan" },
-            { "MaHoaDon", "MaHD" }
+            { "MaHoaDon", "MaHoaDon" }
         };
 
         return mapping.ContainsKey(_idPropertyName)

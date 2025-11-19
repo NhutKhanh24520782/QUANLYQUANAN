@@ -45,7 +45,10 @@ namespace RestaurantClient
         private void InitializeBillTab()
         {
             // Setup events cho tab hóa đơn
-            dataGridView_bill.SelectionChanged += DataGridView_Bill_SelectionChanged;
+            //dataGridView_bill.SelectionChanged += DataGridView_Bill_SelectionChanged;
+            dataGridView_bill.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView_bill.MultiSelect = false;
+            dataGridView_bill.ReadOnly = true;
 
             var searchBox = this.Controls.Find("tb_searchBill", true).FirstOrDefault() as TextBox;
             if (searchBox != null)
@@ -91,20 +94,20 @@ namespace RestaurantClient
                 },
                 "TenBan"
             );
-                    _billManager = new GridViewManager<BillData>(
-                dataGridView_bill,
-                LoadBillsAsListAsync,
-                x => new
-                {
-                    MaHoaDon = x.MaHoaDon,
-                    MaBanAn = x.MaBanAn,
-                    MaNhanVien = x.MaNhanVien,
-                    Ngay = x.NgayXuatHoaDon,
-                    TongTien = x.TongTien, // ✅ THÊM NẾU CÓ
-                    TrangThai = x.TrangThai // ✅ THÊM NẾU CÓ
-                },
-                "MaHoaDon"
-            );
+            _billManager = new GridViewManager<BillData>(
+        dataGridView_bill,
+        LoadBillsAsListAsync,
+        x => new
+        {
+            MaHoaDon = x.MaHoaDon,
+            MaBanAn = x.MaBanAn,
+            MaNhanVien = x.MaNhanVien,
+            Ngay = x.NgayXuatHoaDon,
+            TongTien = x.TongTien, // ✅ THÊM NẾU CÓ
+            TrangThai = x.TrangThai // ✅ THÊM NẾU CÓ
+        },
+        "MaHoaDon"
+    );
             // Gắn event handler
             dataGridView_emp.SelectionChanged += (s, e) =>
             {
@@ -483,37 +486,13 @@ namespace RestaurantClient
                 }
             }
         }
-
-        private void DataGridView_Bill_SelectionChanged(object sender, EventArgs e)
-        {
-            // Lấy item đang chọn từ cache của Manager
-            BillData selectedBill = _billManager.GetSelectedItem();
-
-            if (selectedBill != null)
-            {
-                // Đổ dữ liệu vào các TextBox
-                tb_idBill.Text = selectedBill.MaHoaDon.ToString();
-
-                tb_idHuman.Text = selectedBill.MaNhanVien.ToString(); // Nếu có field riêng
-                                                                       // Hoặc nếu không có field riêng, tạm dùng:
-                                                                       // tb_nameHuman.Text = selectedBill.MaNhanVien.ToString();
-
-                tb_idTable.Text = selectedBill.MaBanAn.ToString();
-
-                // Format ngày tháng
-                tb_dateBill.Text = selectedBill.NgayXuatHoaDon.ToString("HH:mm dd/MM/yyyy");
-            }
-            else
-            {
-                ClearBillTextBoxes();
-            }
-        }
         private void ClearBillTextBoxes()
         {
             tb_idBill.Text = "";
-            tb_idHuman.Text = ""; // Hoặc tb_nameHuman.Text nếu dùng chung
+            tb_idHuman.Text = "";
             tb_idTable.Text = "";
             tb_dateBill.Text = "";
+            tb_searchBill.Text = "";
         }
 
         // ==================== CRUD OPERATIONS ====================
@@ -635,7 +614,7 @@ namespace RestaurantClient
 
             await ExecuteAsync(btn_viewHuman, "Đang tải...", async () =>
             {
-                await _employeeManager.LoadDataAsync(); 
+                await _employeeManager.LoadDataAsync();
                 ClearForm();
 
                 var cachedData = _employeeManager.GetCachedData();
@@ -689,6 +668,43 @@ namespace RestaurantClient
             });
         }
 
+        private async void btn_resetBill_Click(object sender, EventArgs e)
+        {
+
+            await _billManager.LoadDataAsync();
+            ClearBillTextBoxes();
+        }
+        private void btn_searchBill_Click(object sender, EventArgs e)
+        {
+
+            string keyword = tb_searchBill.Text == SEARCH_BILL ? "" : tb_searchBill.Text.Trim();
+            _billManager.FilterLocal(bill =>
+            {
+                if (string.IsNullOrEmpty(keyword)) return true;
+                bool matchMaHD = bill.MaHoaDon.ToString().Contains(keyword);
+                bool matchMaNV = bill.MaNhanVien.ToString().Contains(keyword);
+                return matchMaHD || matchMaNV;
+            });
+            if (dataGridView_bill.Rows.Count > 0)
+            {
+                dataGridView_bill.Rows[0].Selected = true;
+
+                var selectedBill = _billManager.GetSelectedItem();
+
+                if (selectedBill != null)
+                {
+                    tb_idBill.Text = selectedBill.MaHoaDon.ToString();
+                    tb_idHuman.Text = selectedBill.MaNhanVien.ToString();
+                    tb_idTable.Text = selectedBill.MaBanAn.ToString();
+                    tb_dateBill.Text = selectedBill.NgayXuatHoaDon.ToString("HH:mm dd/MM/yyyy");
+                }
+            }
+            else
+            {
+                ClearBillTextBoxes();
+                MessageBox.Show("Không tìm thấy hóa đơn nào khớp mã HĐ hoặc mã NV này!");
+            }
+        }
 
 
         // ==================== VALIDATION ====================

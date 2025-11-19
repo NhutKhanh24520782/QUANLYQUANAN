@@ -554,7 +554,7 @@
             // dataGridView3
             // 
             dataGridView3.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView3.Location = new Point(3, 3);
+            dataGridView3.Location = new Point(3, 6);
             dataGridView3.Name = "dataGridView3";
             dataGridView3.RowHeadersWidth = 51;
             dataGridView3.Size = new Size(560, 374);
@@ -662,6 +662,7 @@
             // 
             // tb_dateBill
             // 
+            tb_dateBill.BackColor = SystemColors.Window;
             tb_dateBill.Location = new Point(14, 305);
             tb_dateBill.Name = "tb_dateBill";
             tb_dateBill.ReadOnly = true;
@@ -680,6 +681,7 @@
             // 
             // tb_idTable
             // 
+            tb_idTable.BackColor = SystemColors.Window;
             tb_idTable.Location = new Point(14, 212);
             tb_idTable.Name = "tb_idTable";
             tb_idTable.ReadOnly = true;
@@ -698,6 +700,7 @@
             // 
             // tb_idHuman
             // 
+            tb_idHuman.BackColor = SystemColors.Window;
             tb_idHuman.Location = new Point(14, 126);
             tb_idHuman.Name = "tb_idHuman";
             tb_idHuman.ReadOnly = true;
@@ -716,6 +719,7 @@
             // 
             // tb_idBill
             // 
+            tb_idBill.BackColor = SystemColors.Window;
             tb_idBill.Location = new Point(14, 50);
             tb_idBill.Name = "tb_idBill";
             tb_idBill.ReadOnly = true;
@@ -776,6 +780,7 @@
             btn_searchBill.TabIndex = 4;
             btn_searchBill.Text = "Tìm";
             btn_searchBill.UseVisualStyleBackColor = true;
+            btn_searchBill.Click += btn_searchBill_Click;
             // 
             // btn_viewBill
             // 
@@ -795,6 +800,7 @@
             btn_resetBill.TabIndex = 2;
             btn_resetBill.Text = "Reset";
             btn_resetBill.UseVisualStyleBackColor = true;
+            btn_resetBill.Click += btn_resetBill_Click;
             // 
             // tb_searchBill
             // 

@@ -149,6 +149,8 @@ namespace Models.Request
         public int MaBanAn { get; set; }
         public int MaNhanVien { get; set; }
         public DateTime NgayXuatHoaDon { get; set; }
+        public decimal TongTien { get; set; }
+        public string TrangThai { get; set; }
     }
     
 }
