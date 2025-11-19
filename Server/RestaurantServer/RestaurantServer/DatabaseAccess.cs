@@ -514,7 +514,7 @@ namespace RestaurantServer
 
                 string query = @"
             SELECT 
-                b.TenBan,
+                b.TenBan,b.MaBanAn,
                 COUNT(hd.MaHD) as SoLuongHoaDon,
                 ISNULL(SUM(hd.TongTien), 0) as DoanhThu,
                 ISNULL(MAX(hd.TongTien), 0) as HoaDonLonNhat,
@@ -539,6 +539,7 @@ namespace RestaurantServer
                             result.Add(new DoanhThuTheoBan
                             {
                                 TenBan = reader["TenBan"].ToString(),
+                                MaBanAn = Convert.ToInt32(reader["MaBanAn"]),
                                 SoLuongHoaDon = Convert.ToInt32(reader["SoLuongHoaDon"]),
                                 DoanhThu = Convert.ToDecimal(reader["DoanhThu"]),
                                 HoaDonLonNhat = Convert.ToDecimal(reader["HoaDonLonNhat"]),
