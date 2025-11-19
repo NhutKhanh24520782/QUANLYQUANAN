@@ -152,6 +152,53 @@ namespace Models.Request
         public decimal TongTien { get; set; }
         public string TrangThai { get; set; }
     }
-    
+    // ===== MENU REQUESTS =====
+    public class GetMenuRequest
+    {
+        public string Type => "GetMenu";
+
+    }
+
+    public class SearchMenuRequest
+    {
+        public string Type => "SearchMenu";
+        public string Keyword { get; set; } = "";
+    }
+
+    public class AddMenuRequest
+    {
+        public string Type => "AddMenu";
+        public string TenMon { get; set; } = "";
+        public decimal Gia { get; set; } = 0m;
+        public string MoTa { get; set; } = "";
+        public int? MaLoaiMon { get; set; } = null;
+        public string TrangThai { get; set; } = "ConMon"; // ✅ THÊM
+
+    }
+
+    public class UpdateMenuRequest
+    {
+        public string Type => "UpdateMenu";
+        public int MaMon { get; set; }
+        public string TenMon { get; set; } = "";
+        public decimal Gia { get; set; } = 0m;
+        public string MoTa { get; set; } = "";
+        public int? MaLoaiMon { get; set; } = null;
+        public string TrangThai { get; set; } = "ConMon"; // ✅ THÊM
+
+    }
+
+    public class DeleteMenuRequest
+    {
+        public string Type => "DeleteMenu";
+        public int MaMon { get; set; }
+    }
+
+    public class UpdateMenuStatusRequest
+    {
+        public string Type => "UpdateMenuStatus";
+        public int MaMon { get; set; }
+        public string TrangThai { get; set; } = "ConMon"; // "ConMon" hoặc "HetMon"
+    }
 }
 

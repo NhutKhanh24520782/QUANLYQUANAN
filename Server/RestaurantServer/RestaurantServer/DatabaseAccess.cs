@@ -1,6 +1,6 @@
 ﻿using BCrypt.Net;
-using Models;
 using Models.Database;
+using Models;
 using Models.Response;
 using System;
 using System.Collections.Generic;
@@ -16,27 +16,26 @@ namespace RestaurantServer
     public static class DatabaseAccess
     {
         private static string connectionString =
-               "Server=tcp:quanlyquanan.database.windows.net,1433;" +
-               "Initial Catalog=restaurant;" +
-               "User ID=lamnhutkhanh;" +
-               "Password=Khanh251106;" +
-               "Encrypt=True;" +
-               "TrustServerCertificate=False;" +
-               "Connection Timeout=30;";
+            "Server=tcp:quanlyquanan.database.windows.net,1433;" +
+        "Initial Catalog=restaurant;" +
+        "User ID=lamnhutkhanh;" +
+        "Password=Khanh251106;" +
+        "Encrypt=True;" +
+        "TrustServerCertificate=False;" +
+        "Connection Timeout=30;";
 
+
+        // ========================= LOGIN =========================
         public static LoginResult LoginUser(string username, string password)
         {
-            Console.WriteLine($"🔐 Login attempt: {username}"); // DEBUG
-
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
 
-                // ✅ ĐÚNG: Thêm TrangThai vào SELECT
                 string query = @"
-            SELECT MaNguoiDung, TenDangNhap, MatKhau, VaiTro, HoTen, Email, TrangThai
-            FROM NGUOIDUNG 
-            WHERE TenDangNhap = @user AND TrangThai = 1";
+                    SELECT MaNguoiDung, TenDangNhap, MatKhau, VaiTro, HoTen, Email, TrangThai
+                    FROM NGUOIDUNG
+                    WHERE TenDangNhap = @user AND TrangThai = 1";
 
                 SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@user", username);
@@ -45,14 +44,10 @@ namespace RestaurantServer
                 {
                     if (reader.Read())
                     {
-                        string hashedPassword = reader["MatKhau"].ToString();
-                        bool trangThai = (bool)reader["TrangThai"];
+                        string hashed = reader["MatKhau"].ToString();
 
-                        Console.WriteLine($"📊 User found - Status: {trangThai}, Password hash: {hashedPassword.Substring(0, 20)}...");
-
-                        if (BCrypt.Net.BCrypt.Verify(password, hashedPassword))
+                        if (BCrypt.Net.BCrypt.Verify(password, hashed))
                         {
-                            Console.WriteLine($"✅ Password correct!");
                             return new LoginResult
                             {
                                 Success = true,
@@ -63,14 +58,6 @@ namespace RestaurantServer
                                 Message = "Đăng nhập thành công"
                             };
                         }
-                        else
-                        {
-                            Console.WriteLine($"❌ Password incorrect!");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"❌ User not found or inactive: {username}");
                     }
                 }
 
@@ -81,6 +68,8 @@ namespace RestaurantServer
                 };
             }
         }
+
+        // ====================== REGISTER ======================
         public static RegisterResult RegisterUser(string username, string password, string fullName, string email, string role)
         {
             try
@@ -89,30 +78,23 @@ namespace RestaurantServer
                 {
                     conn.Open();
 
-                    string checkQuery = "SELECT COUNT(*) FROM NGUOIDUNG WHERE TenDangNhap=@u OR Email=@e";
-                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                    string check = "SELECT COUNT(*) FROM NGUOIDUNG WHERE TenDangNhap=@u OR Email=@e";
+                    using (SqlCommand c = new SqlCommand(check, conn))
                     {
-                        checkCmd.Parameters.AddWithValue("@u", username);
-                        checkCmd.Parameters.AddWithValue("@e", email);
-                        int count = (int)checkCmd.ExecuteScalar();
-                        if (count > 0)
-                        {
-                            return new RegisterResult
-                            {
-                                Success = false,
-                                Message = "Tài khoản hoặc email đã tồn tại"
-                            };
-                        }
+                        c.Parameters.AddWithValue("@u", username);
+                        c.Parameters.AddWithValue("@e", email);
+                        if ((int)c.ExecuteScalar() > 0)
+                            return new RegisterResult { Success = false, Message = "Tài khoản hoặc email đã tồn tại" };
                     }
 
                     string hashed = BCrypt.Net.BCrypt.HashPassword(password);
 
-                    // ✅ ĐÚNG: Thêm TrangThai và NgayTao
-                    string insertQuery = @"INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen, Email, VaiTro, TrangThai, NgayTao)
-                           VALUES (@u, @p, @n, @e, @r, 1, GETDATE());
-                           SELECT SCOPE_IDENTITY();";
+                    string insert = @"
+                        INSERT INTO NGUOIDUNG(TenDangNhap, MatKhau, HoTen, Email, VaiTro, TrangThai, NgayTao)
+                        VALUES(@u,@p,@n,@e,@r,1,GETDATE());
+                        SELECT SCOPE_IDENTITY();";
 
-                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
+                    using (SqlCommand cmd = new SqlCommand(insert, conn))
                     {
                         cmd.Parameters.AddWithValue("@u", username);
                         cmd.Parameters.AddWithValue("@p", hashed);
@@ -121,6 +103,7 @@ namespace RestaurantServer
                         cmd.Parameters.AddWithValue("@r", role);
 
                         int newId = Convert.ToInt32(cmd.ExecuteScalar());
+
                         return new RegisterResult
                         {
                             Success = true,
@@ -132,11 +115,420 @@ namespace RestaurantServer
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"💥 Register error: {ex.Message}");
-                return new RegisterResult
+                return new RegisterResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        // ====================== CHECK EMAIL ======================
+        public static EmailCheckResult CheckEmailExists(string email)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = "SELECT COUNT(*) FROM NGUOIDUNG WHERE Email=@e AND TrangThai=1";
+
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@e", email);
+                    int count = (int)cmd.ExecuteScalar();
+
+                    return new EmailCheckResult
+                    {
+                        Success = true,
+                        Exists = count > 0,
+                        Message = count > 0 ? "Email tồn tại" : "Email chưa đăng ký"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new EmailCheckResult { Success = false, Exists = false, Message = ex.Message };
+            }
+        }
+
+        // ====================== GET EMPLOYEES ======================
+        public static EmployeeResult GetEmployees(string keyword = "", string vaiTro = "")
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+                        SELECT MaNguoiDung, TenDangNhap, HoTen, Email, VaiTro, SDT, NgayTao, TrangThai
+                        FROM NGUOIDUNG
+                        WHERE VaiTro IN ('Admin','PhucVu','Bep')
+                        AND (@Keyword='' OR HoTen LIKE '%' + @Keyword + '%' OR Email LIKE '%' + @Keyword + '%')
+                        AND (@VaiTro='' OR VaiTro=@VaiTro)
+                        ORDER BY MaNguoiDung DESC";
+
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@Keyword", keyword);
+                    cmd.Parameters.AddWithValue("@VaiTro", vaiTro);
+
+                    List<EmployeeData> list = new List<EmployeeData>();
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            list.Add(new EmployeeData
+                            {
+                                MaNguoiDung = (int)r["MaNguoiDung"],
+                                TenDangNhap = r["TenDangNhap"].ToString(),
+                                HoTen = r["HoTen"].ToString(),
+                                Email = r["Email"].ToString(),
+                                VaiTro = r["VaiTro"].ToString(),
+                                SDT = r["SDT"].ToString(),
+                                NgayTao = (DateTime)r["NgayTao"],
+                                TrangThai = (bool)r["TrangThai"]
+                            });
+                        }
+                    }
+
+                    return new EmployeeResult { Success = true, Employees = list };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new EmployeeResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        // ====================== ADD EMPLOYEE ======================
+        public static EmployeeResult AddEmployee(string tenDangNhap, string matKhau, string hoTen,
+            string email, string vaiTro, string sdt, DateTime ngayVaoLam)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string check = "SELECT COUNT(*) FROM NGUOIDUNG WHERE TenDangNhap=@u OR Email=@e";
+                    SqlCommand chk = new SqlCommand(check, conn);
+                    chk.Parameters.AddWithValue("@u", tenDangNhap);
+                    chk.Parameters.AddWithValue("@e", email);
+
+                    if ((int)chk.ExecuteScalar() > 0)
+                        return new EmployeeResult { Success = false, Message = "Trùng tài khoản hoặc email" };
+
+                    string hashed = BCrypt.Net.BCrypt.HashPassword(matKhau);
+
+                    string insert = @"
+                        INSERT INTO NGUOIDUNG(TenDangNhap,MatKhau,HoTen,Email,VaiTro,SDT,NgayTao,TrangThai)
+                        OUTPUT INSERTED.MaNguoiDung
+                        VALUES(@u,@p,@n,@e,@r,@sdt,@ngay,1)";
+
+                    SqlCommand cmd = new SqlCommand(insert, conn);
+                    cmd.Parameters.AddWithValue("@u", tenDangNhap);
+                    cmd.Parameters.AddWithValue("@p", hashed);
+                    cmd.Parameters.AddWithValue("@n", hoTen);
+                    cmd.Parameters.AddWithValue("@e", email);
+                    cmd.Parameters.AddWithValue("@r", vaiTro);
+                    cmd.Parameters.AddWithValue("@sdt", sdt ?? "");
+                    cmd.Parameters.AddWithValue("@ngay", ngayVaoLam);
+
+                    int newId = (int)cmd.ExecuteScalar();
+
+                    return new EmployeeResult { Success = true, MaNguoiDung = newId };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new EmployeeResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        // ====================== UPDATE EMPLOYEE ======================
+        public static EmployeeResult UpdateEmployee(int maNguoiDung, string hoTen, string email, string vaiTro, string sdt, bool trangThai)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string update = @"
+                        UPDATE NGUOIDUNG
+                        SET HoTen=@n, Email=@e, VaiTro=@r, SDT=@sdt, TrangThai=@st
+                        WHERE MaNguoiDung=@id";
+
+                    SqlCommand cmd = new SqlCommand(update, conn);
+                    cmd.Parameters.AddWithValue("@id", maNguoiDung);
+                    cmd.Parameters.AddWithValue("@n", hoTen);
+                    cmd.Parameters.AddWithValue("@e", email);
+                    cmd.Parameters.AddWithValue("@r", vaiTro);
+                    cmd.Parameters.AddWithValue("@sdt", sdt ?? "");
+                    cmd.Parameters.AddWithValue("@st", trangThai);
+
+                    int row = cmd.ExecuteNonQuery();
+
+                    return new EmployeeResult { Success = row > 0 };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new EmployeeResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        // ====================== DELETE EMPLOYEE ======================
+        public static EmployeeResult DeleteEmployee(int ma)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string soft = "UPDATE NGUOIDUNG SET TrangThai=0 WHERE MaNguoiDung=@id";
+                    SqlCommand cmd = new SqlCommand(soft, conn);
+                    cmd.Parameters.AddWithValue("@id", ma);
+
+                    int rows = cmd.ExecuteNonQuery();
+                    return new EmployeeResult { Success = rows > 0 };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new EmployeeResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        // ====================== GET MENU ======================
+        public static MenuResult GetMenu()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string q = "SELECT * FROM MENUITEMS ORDER BY MaMon DESC";
+
+                    SqlCommand cmd = new SqlCommand(q, conn);
+                    var list = new List<MenuItemData>();
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            list.Add(new MenuItemData
+                            {
+                                MaMon = (int)r["MaMon"],
+                                TenMon = r["TenMon"].ToString(),
+                                Gia = Convert.ToDecimal(r["Gia"]),
+                                MoTa = r["MoTa"].ToString(),
+                                TrangThai = r["TrangThai"].ToString(),
+                                MaLoaiMon = r["MaLoaiMon"] as int?
+                            });
+                        }
+                    }
+
+                    return new MenuResult { Success = true, Items = list };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MenuResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        // ====================== SEARCH MENU ======================
+        public static MenuResult SearchMenu(string keyword)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string q = @"
+                        SELECT * FROM MENUITEMS
+                        WHERE @kw='' OR TenMon LIKE '%' + @kw + '%'
+                        ORDER BY MaMon DESC";
+
+                    SqlCommand cmd = new SqlCommand(q, conn);
+                    cmd.Parameters.AddWithValue("@kw", keyword);
+
+                    var list = new List<MenuItemData>();
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            list.Add(new MenuItemData
+                            {
+                                MaMon = (int)r["MaMon"],
+                                TenMon = r["TenMon"].ToString(),
+                                Gia = Convert.ToDecimal(r["Gia"]),
+                                MoTa = r["MoTa"].ToString(),
+                                TrangThai = r["TrangThai"].ToString(),
+                                MaLoaiMon = r["MaLoaiMon"] as int?
+                            });
+                        }
+                    }
+
+                    return new MenuResult { Success = true, Items = list };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MenuResult { Success = false, Message = ex.Message };
+            }
+        }
+
+        public static MenuResult AddMenu(string tenMon, decimal gia, string moTa, int? maLoaiMon, string trangThai)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // ✅ THÊM TRANGTHAI VÀO INSERT
+                    string query = @"
+                INSERT INTO MENUITEMS (TenMon, Gia, MoTa, MaLoaiMon, TrangThai)
+                OUTPUT INSERTED.MaMon
+                VALUES (@TenMon, @Gia, @MoTa, @MaLoaiMon, @TrangThai)";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TenMon", tenMon);
+                        cmd.Parameters.AddWithValue("@Gia", gia);
+                        cmd.Parameters.AddWithValue("@MoTa", moTa ?? "");
+                        cmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@TrangThai", trangThai); // ✅ THÊM
+
+                        int newId = (int)cmd.ExecuteScalar();
+
+                        return new MenuResult
+                        {
+                            Success = true,
+                            Message = "Thêm món thành công",
+                            MaMon = newId
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MenuResult
                 {
                     Success = false,
-                    Message = $"Lỗi hệ thống: {ex.Message}"
+                    Message = $"Lỗi thêm món: {ex.Message}"
+                };
+            }
+        }
+
+        // ====================== UPDATE MENU ======================
+        public static MenuResult UpdateMenu(int maMon, string tenMon, decimal gia, string moTa, int? maLoaiMon, string trangThai)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // ✅ THÊM TRANGTHAI VÀO QUERY
+                    string query = @"
+                UPDATE MENUITEMS 
+                SET TenMon = @TenMon, 
+                    Gia = @Gia, 
+                    MoTa = @MoTa,
+                    MaLoaiMon = @MaLoaiMon,
+                    TrangThai = @TrangThai  -- ✅ THÊM DÒNG NÀY
+                WHERE MaMon = @MaMon";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaMon", maMon);
+                        cmd.Parameters.AddWithValue("@TenMon", tenMon);
+                        cmd.Parameters.AddWithValue("@Gia", gia);
+                        cmd.Parameters.AddWithValue("@MoTa", moTa ?? "");
+                        cmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@TrangThai", trangThai); // ✅ THÊM PARAMETER
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        return new MenuResult
+                        {
+                            Success = rowsAffected > 0,
+                            Message = rowsAffected > 0 ? "Cập nhật món thành công" : "Món không tồn tại"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MenuResult
+                {
+                    Success = false,
+                    Message = $"Lỗi cập nhật: {ex.Message}"
+                };
+            }
+        }
+        // ====================== DELETE MENU ======================
+        public static MenuResult DeleteMenu(int maMon)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string q = "UPDATE MENUITEMS SET TrangThai='HetMon' WHERE MaMon=@id";
+
+                    SqlCommand cmd = new SqlCommand(q, conn);
+                    cmd.Parameters.AddWithValue("@id", maMon);
+
+                    int rows = cmd.ExecuteNonQuery();
+                    return new MenuResult { Success = rows > 0 };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MenuResult { Success = false, Message = ex.Message };
+            }
+        }
+        public static MenuResult UpdateMenuStatus(int maMon, string trangThai)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // ✅ CẬP NHẬT TRẠNG THÁI THAY VÌ XÓA
+                    string query = @"
+                UPDATE MENUITEMS 
+                SET TrangThai = @TrangThai
+                WHERE MaMon = @MaMon";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaMon", maMon);
+                        cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        return new MenuResult
+                        {
+                            Success = rowsAffected > 0,
+                            Message = rowsAffected > 0 ?
+                                $"Đã cập nhật trạng thái thành '{trangThai}'" :
+                                "Món không tồn tại"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MenuResult
+                {
+                    Success = false,
+                    Message = $"Lỗi cập nhật: {ex.Message}"
                 };
             }
         }
@@ -148,306 +540,48 @@ namespace RestaurantServer
                 {
                     conn.Open();
 
-                    // ✅ THÊM: Kiểm tra cả TrangThai = 1
-                    string checkQuery = "SELECT COUNT(*) FROM NGUOIDUNG WHERE Email = @e AND TrangThai = 1";
-                    SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
-                    checkCmd.Parameters.AddWithValue("@e", email);
-                    int count = (int)checkCmd.ExecuteScalar();
-
-                    if (count == 0)
+                    // kiểm tra email tồn tại và tài khoản đang hoạt động
+                    string check = "SELECT COUNT(*) FROM NGUOIDUNG WHERE Email = @e AND TrangThai = 1";
+                    using (SqlCommand cmdCheck = new SqlCommand(check, conn))
                     {
-                        return new RegisterResult
+                        cmdCheck.Parameters.AddWithValue("@e", email);
+                        int cnt = Convert.ToInt32(cmdCheck.ExecuteScalar());
+                        if (cnt == 0)
                         {
-                            Success = false,
-                            Message = "Email chưa đăng ký tài khoản hoặc tài khoản đã bị khóa"
-                        };
+                            return new RegisterResult
+                            {
+                                Success = false,
+                                Message = "Email chưa đăng ký hoặc tài khoản đã bị khóa"
+                            };
+                        }
                     }
 
+                    // hash mật khẩu mới
                     string hashed = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
-                    string query = "UPDATE NGUOIDUNG SET MatKhau = @p WHERE Email = @e AND TrangThai = 1";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@p", hashed);
-                    cmd.Parameters.AddWithValue("@e", email);
-
-                    int rowsAffected = cmd.ExecuteNonQuery();
-
-                    Console.WriteLine($"🔑 Update password: {email}, Rows affected: {rowsAffected}"); // DEBUG
-
-                    return new RegisterResult
+                    // cập nhật mật khẩu
+                    string update = "UPDATE NGUOIDUNG SET MatKhau = @p WHERE Email = @e AND TrangThai = 1";
+                    using (SqlCommand cmdUpdate = new SqlCommand(update, conn))
                     {
-                        Success = rowsAffected > 0,
-                        Message = rowsAffected > 0 ? "Đổi mật khẩu thành công" : "Đổi mật khẩu thất bại"
-                    };
+                        cmdUpdate.Parameters.AddWithValue("@p", hashed);
+                        cmdUpdate.Parameters.AddWithValue("@e", email);
+
+                        int rows = cmdUpdate.ExecuteNonQuery();
+
+                        return new RegisterResult
+                        {
+                            Success = rows > 0,
+                            Message = rows > 0 ? "Đổi mật khẩu thành công" : "Đổi mật khẩu thất bại"
+                        };
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ UpdatePassword error: {ex.Message}"); // DEBUG
                 return new RegisterResult
                 {
                     Success = false,
                     Message = $"Lỗi hệ thống: {ex.Message}"
-                };
-            }
-        }
-        public static EmailCheckResult CheckEmailExists(string email)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-
-                    // ✅ THÊM: Kiểm tra cả TrangThai = 1 (tài khoản hoạt động)
-                    string query = "SELECT COUNT(*) FROM NGUOIDUNG WHERE Email = @Email AND TrangThai = 1";
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@Email", email);
-                        int count = (int)cmd.ExecuteScalar();
-                        bool exists = count > 0;
-
-                        Console.WriteLine($"🔍 Check email: {email}, Exists: {exists}, Count: {count}"); // DEBUG
-
-                        return new EmailCheckResult
-                        {
-                            Success = true,
-                            Exists = exists,
-                            Message = exists ? "Email tồn tại" : "Email chưa đăng ký tài khoản"
-                        };
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ CheckEmail error: {ex.Message}"); // DEBUG
-                return new EmailCheckResult
-                {
-                    Success = false,
-                    Exists = false,
-                    Message = $"Lỗi hệ thống: {ex.Message}"
-                };
-            }
-        }
-        public static EmployeeResult GetEmployees(string keyword = "", string vaiTro = "")
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-
-                    string query = @"
-                        SELECT MaNguoiDung, TenDangNhap, HoTen, Email, VaiTro, SDT, NgayTao, TrangThai
-                        FROM NGUOIDUNG 
-                        WHERE VaiTro IN ('Admin', 'PhucVu', 'Bep') 
-                            AND (@Keyword = '' OR HoTen LIKE '%' + @Keyword + '%' OR Email LIKE '%' + @Keyword + '%')
-                            AND (@VaiTro = '' OR VaiTro = @VaiTro)
-                        ORDER BY MaNguoiDung DESC";
-
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@Keyword", keyword ?? "");
-                        cmd.Parameters.AddWithValue("@VaiTro", vaiTro ?? "");
-
-                        var employees = new List<EmployeeData>();
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                employees.Add(new EmployeeData
-                                {
-                                    MaNguoiDung = (int)reader["MaNguoiDung"],
-                                    TenDangNhap = reader["TenDangNhap"].ToString(),
-                                    HoTen = reader["HoTen"].ToString(),
-                                    Email = reader["Email"].ToString(),
-                                    VaiTro = reader["VaiTro"].ToString(),
-                                    SDT = reader["SDT"].ToString(),
-                                    NgayTao = (DateTime)reader["NgayTao"],
-                                    TrangThai = (bool)reader["TrangThai"]
-                                });
-                            }
-                        }
-
-                        return new EmployeeResult
-                        {
-                            Success = true,
-                            Message = $"Tìm thấy {employees.Count} nhân viên",
-                            Employees = employees
-                        };
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return new EmployeeResult
-                {
-                    Success = false,
-                    Message = $"Lỗi: {ex.Message}"
-                };
-            }
-        }
-
-        public static EmployeeResult AddEmployee(string tenDangNhap, string matKhau, string hoTen,
-            string email, string vaiTro, string sdt, DateTime ngayVaoLam)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-
-                    // Kiểm tra trùng
-                    string checkQuery = "SELECT COUNT(*) FROM NGUOIDUNG WHERE TenDangNhap=@user OR Email=@email";
-                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
-                    {
-                        checkCmd.Parameters.AddWithValue("@user", tenDangNhap);
-                        checkCmd.Parameters.AddWithValue("@email", email);
-                        int count = (int)checkCmd.ExecuteScalar();
-
-                        if (count > 0)
-                            return new EmployeeResult { Success = false, Message = "Tên đăng nhập hoặc email đã tồn tại" };
-                    }
-
-                    // Thêm mới nhân viên
-                    string hashedPassword = BCrypt.Net.BCrypt.HashPassword(matKhau);
-
-                    string insertQuery = @"
-                        INSERT INTO NGUOIDUNG (TenDangNhap, MatKhau, HoTen, Email, VaiTro, SDT, NgayTao, TrangThai)
-                        OUTPUT INSERTED.MaNguoiDung
-                        VALUES (@user, @pass, @name, @email, @role, @sdt, @ngayTao, 1)";
-
-                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@user", tenDangNhap);
-                        cmd.Parameters.AddWithValue("@pass", hashedPassword);
-                        cmd.Parameters.AddWithValue("@name", hoTen);
-                        cmd.Parameters.AddWithValue("@email", email);
-                        cmd.Parameters.AddWithValue("@role", vaiTro);
-                        cmd.Parameters.AddWithValue("@sdt", sdt ?? "");
-                        cmd.Parameters.AddWithValue("@ngayTao", ngayVaoLam);
-
-                        int newId = (int)cmd.ExecuteScalar();
-
-                        return new EmployeeResult
-                        {
-                            Success = true,
-                            Message = "Thêm nhân viên thành công",
-                            MaNguoiDung = newId
-                        };
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return new EmployeeResult
-                {
-                    Success = false,
-                    Message = $"Lỗi thêm nhân viên: {ex.Message}"
-                };
-            }
-        }
-
-        public static EmployeeResult UpdateEmployee(int maNguoiDung, string hoTen, string email,
-            string vaiTro, string sdt, bool trangThai)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-
-                    // Kiểm tra tồn tại
-                    string checkQuery = "SELECT COUNT(*) FROM NGUOIDUNG WHERE MaNguoiDung = @id";
-                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
-                    {
-                        checkCmd.Parameters.AddWithValue("@id", maNguoiDung);
-                        int count = (int)checkCmd.ExecuteScalar();
-
-                        if (count == 0)
-                            return new EmployeeResult { Success = false, Message = "Nhân viên không tồn tại" };
-                    }
-
-                    // Cập nhật thông tin
-                    string updateQuery = @"
-                        UPDATE NGUOIDUNG 
-                        SET HoTen = @name, Email = @email, VaiTro = @role, 
-                            SDT = @sdt, TrangThai = @status
-                        WHERE MaNguoiDung = @id";
-
-                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@id", maNguoiDung);
-                        cmd.Parameters.AddWithValue("@name", hoTen);
-                        cmd.Parameters.AddWithValue("@email", email);
-                        cmd.Parameters.AddWithValue("@role", vaiTro);
-                        cmd.Parameters.AddWithValue("@sdt", sdt ?? "");
-                        cmd.Parameters.AddWithValue("@status", trangThai);
-
-                        int rowsAffected = cmd.ExecuteNonQuery();
-
-                        return new EmployeeResult
-                        {
-                            Success = rowsAffected > 0,
-                            Message = rowsAffected > 0 ? "Cập nhật thành công" : "Cập nhật thất bại"
-                        };
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return new EmployeeResult
-                {
-                    Success = false,
-                    Message = $"Lỗi cập nhật: {ex.Message}"
-                };
-            }
-        }
-
-        public static EmployeeResult DeleteEmployee(int maNguoiDung)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-
-                    string checkAdminQuery = @"
-                        SELECT COUNT(*) FROM NGUOIDUNG 
-                        WHERE VaiTro = 'Admin' AND TrangThai = 1 AND MaNguoiDung != @id";
-
-                    using (SqlCommand checkCmd = new SqlCommand(checkAdminQuery, conn))
-                    {
-                        checkCmd.Parameters.AddWithValue("@id", maNguoiDung);
-                        int adminCount = (int)checkCmd.ExecuteScalar();
-
-                        if (adminCount == 0)
-                            return new EmployeeResult { Success = false, Message = "Không thể xóa admin cuối cùng" };
-                    }
-                    string deleteQuery = @"
-                        UPDATE NGUOIDUNG 
-                        SET TrangThai = 0 
-                        WHERE MaNguoiDung = @id";
-
-                    using (SqlCommand cmd = new SqlCommand(deleteQuery, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@id", maNguoiDung);
-                        int rowsAffected = cmd.ExecuteNonQuery();
-
-                        return new EmployeeResult
-                        {
-                            Success = rowsAffected > 0,
-                            Message = rowsAffected > 0 ? "Xóa nhân viên thành công" : "Nhân viên không tồn tại"
-                        };
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return new EmployeeResult
-                {
-                    Success = false,
-                    Message = $"Lỗi xóa nhân viên: {ex.Message}"
                 };
             }
         }
@@ -745,4 +879,4 @@ namespace RestaurantServer
     }
 }
 
-   
+

@@ -94,6 +94,14 @@ namespace RestaurantServer
                         "ThongKeDoanhThu" => await HandleThongKeDoanhThuRequestAsync(rawRequest),
                         "XuatBaoCao" => await HandleXuatBaoCaoRequestAsync(rawRequest),
                         "GetBills" => await HandleGetBillsRequestAsync(rawRequest),
+                        "GetMenu" => await HandleGetMenuAsync(rawRequest),
+                        "SearchMenu" => await HandleSearchMenuAsync(rawRequest),
+                        "AddMenu" => await HandleAddMenuAsync(rawRequest),
+                        "UpdateMenu" => await HandleUpdateMenuAsync(rawRequest),
+                        "DeleteMenu" => await HandleDeleteMenuAsync(rawRequest),
+                        "UpdateMenuStatus" => await HandleUpdateMenuStatusRequestAsync(rawRequest), // ✅ THÊM DÒNG NÀY
+
+
                         _ => HandleUnknownRequest()
                     };
 
@@ -451,7 +459,155 @@ namespace RestaurantServer
                 }
             });
         }
+        private async Task<string> HandleGetMenuAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var result = DatabaseAccess.GetMenu();
+                    var response = new GetMenuResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        Items = result.Items
+                    };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy menu: {ex.Message}");
+                }
+            });
+        }
 
+        private async Task<string> HandleSearchMenuAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<SearchMenuRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+                    var result = DatabaseAccess.SearchMenu(request.Keyword);
+                    var response = new GetMenuResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        Items = result.Items
+                    };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi tìm menu: {ex.Message}");
+                }
+            });
+        }
+        private async Task<string> HandleAddMenuAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<AddMenuRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // ✅ THÊM TRANGTHAI
+                    var result = DatabaseAccess.AddMenu(request.TenMon, request.Gia, request.MoTa, request.MaLoaiMon, request.TrangThai);
+                    var response = new AddMenuResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaMon = result.MaMon
+                    };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi thêm món: {ex.Message}");
+                }
+            });
+        }
+        private async Task<string> HandleUpdateMenuAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<UpdateMenuRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // ✅ THÊM TRANGTHAI VÀO LỆNH GỌI
+                    var result = DatabaseAccess.UpdateMenu(
+                        request.MaMon, request.TenMon, request.Gia, request.MoTa, request.MaLoaiMon, request.TrangThai);
+
+                    var response = new UpdateMenuResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message
+                    };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi cập nhật món: {ex.Message}");
+                }
+            });
+        }
+        private async Task<string> HandleDeleteMenuAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<DeleteMenuRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.DeleteMenu(request.MaMon);
+                    var response = new DeleteMenuResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message
+                    };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi xóa món: {ex.Message}");
+                }
+            });
+        }
+        // ✅ THÊM HANDLER MỚI
+        private async Task<string> HandleUpdateMenuStatusRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<UpdateMenuStatusRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request không hợp lệ");
+
+                    // Gọi database cập nhật status
+                    var result = DatabaseAccess.UpdateMenuStatus(request.MaMon, request.TrangThai);
+
+                    var response = new UpdateMenuResponse // Dùng chung response
+                    {
+                        Success = result.Success,
+                        Message = result.Message
+                    };
+
+                    Console.WriteLine($"🔄 Cập nhật trạng thái món: {request.MaMon} -> {request.TrangThai}");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi cập nhật trạng thái món: {ex.Message}");
+                }
+            });
+        }
         private string HandleUnknownRequest()
         {
             return CreateErrorResponse("Loại request không hợp lệ");

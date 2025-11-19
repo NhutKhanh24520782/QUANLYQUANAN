@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Models.Response;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -125,6 +126,13 @@ namespace Models.Database
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
         public List<BillData> Bills { get; set; } = new List<BillData>();
+    }
+    public class MenuResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public int MaMon { get; set; }
+        public List<MenuItemData> Items { get; set; } = new();
     }
 
 

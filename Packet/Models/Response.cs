@@ -109,7 +109,41 @@ namespace Models.Response
         public string FilePath { get; set; } = string.Empty;
         public string FileName { get; set; } = string.Empty;
     }
-   
+    public class MenuItemData
+    {
+        public int MaMon { get; set; }
+        public string TenMon { get; set; } = "";
+        public decimal Gia { get; set; }
+        public string MoTa { get; set; } = "";
+        public int? MaLoaiMon { get; set; }
+        public string TrangThai { get; set; } = "ConMon";
+    }
+    public class UpdateMenuStatusResponse : BaseResponse
+    {
+        public UpdateMenuStatusResponse() => Type = "UpdateMenuStatusResponse";
+    }
+    public class GetMenuResponse : BaseResponse
+    {
+        public GetMenuResponse() => Type = "GetMenuResponse";
+        public List<MenuItemData> Items { get; set; } = new();
+    }
+
+    public class AddMenuResponse : BaseResponse
+    {
+        public AddMenuResponse() => Type = "AddMenuResponse";
+        public int MaMon { get; set; }
+    }
+
+    public class UpdateMenuResponse : BaseResponse
+    {
+        public UpdateMenuResponse() => Type = "UpdateMenuResponse";
+    }
+
+    public class DeleteMenuResponse : BaseResponse
+    {
+        public DeleteMenuResponse() => Type = "DeleteMenuResponse";
+    }
+
 
     // ==================== ENUMS ====================
 
@@ -135,12 +169,7 @@ namespace Models.Response
         DangSuDung = 1,
         DaDat = 2
     }
-    //=================== TABLE RESPONSES ====================
-    public class AddTableResponse // 
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-    }
+
 
     // ==================== BILL RESPONSES ====================
  

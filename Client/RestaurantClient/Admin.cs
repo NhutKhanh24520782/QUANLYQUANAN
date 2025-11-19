@@ -25,6 +25,8 @@ namespace RestaurantClient
         private GridViewManager<EmployeeData> _employeeManager;
         private GridViewManager<DoanhThuTheoBan> _doanhThuManager;
         private GridViewManager<BillData> _billManager;
+        private GridViewManager<MenuItemData> _menuManager;
+
 
         // ==================== CONSTANTS ====================
         private const string SERVER_IP = "127.0.0.1";
@@ -109,6 +111,18 @@ namespace RestaurantClient
         },
         "MaHoaDon"
     );
+            _menuManager = new GridViewManager<MenuItemData>(
+              dataGridView_menu,
+              LoadMenuFromServer,
+              food => new
+              {
+                  food.MaMon,
+                  food.TenMon,
+                  food.Gia,
+                  TrangThai = food.TrangThai == "ConMon" ? "Còn món" : "Hết món"
+              },
+              "MaMon"
+          );
             // Gắn event handler
             dataGridView_emp.SelectionChanged += (s, e) =>
             {
@@ -132,11 +146,26 @@ namespace RestaurantClient
                 if (selected != null)
                     ShowBillDetails(selected);
             };
+            dataGridView_menu.SelectionChanged += (s, e) =>
+            {
+                var item = _menuManager.GetSelectedItem();
+                if (item != null)
+                {
+                    tb_nameFood.Text = item.TenMon;
+                    nm_priceFood.Value = item.Gia;
+
+                    // ✅ SET TRẠNG THÁI CHO COMBOBOX
+                    cb_statusFood.SelectedItem = item.TrangThai == "ConMon" ? "Còn món" : "Hết món";
+                }
+            };
+            dataGridView_menu.CellFormatting += DataGridView_Menu_CellFormatting;
+
         }
 
         private void InitializeControls()
         {
             cb_position.Items.AddRange(new[] { "Admin", "PhucVu", "Bep" });
+            cb_statusFood.Items.AddRange(new[] { "Còn món", "Hết món" }); // ✅ THÊM
             tb_password.PasswordChar = '●';
             SetupSearchBox(tb_searchHuman, SEARCH_PLACEHOLDER);
         }
@@ -168,8 +197,9 @@ namespace RestaurantClient
         private async void LoadAllData()
         {
             await _employeeManager.LoadDataAsync();
-            await _doanhThuManager.LoadDataAsync();
+            //await _doanhThuManager.LoadDataAsync();
             await _billManager.LoadDataAsync(); // ✅ THÊM: Tự động load bills
+            await _menuManager.LoadDataAsync();
         }
 
         // ==================== DATA LOADING ====================
@@ -303,6 +333,16 @@ namespace RestaurantClient
             }
         }
 
+        private Task<List<MenuItemData>> LoadMenuFromServer()
+            => LoadMenuFromServer("");
+
+        private async Task<List<MenuItemData>> LoadMenuFromServer(string keyword = "")
+        {
+            var req = new SearchMenuRequest { Keyword = keyword };
+            var res = await SendRequest<SearchMenuRequest, GetMenuResponse>(req);
+
+            return res?.Success == true ? res.Items : new List<MenuItemData>();
+        }
         // ==================== DISPLAY METHODS ====================
 
         private void ShowEmployeeDetails(EmployeeData employee)
@@ -362,7 +402,7 @@ namespace RestaurantClient
         {
             if (e.RowIndex >= 0)
             {
- 
+
                 DataGridViewRow row = dataGridView_emp.Rows[e.RowIndex];
                 if (row.Cells["TrangThai"].Value != null)
                 {
@@ -377,6 +417,23 @@ namespace RestaurantClient
                         row.DefaultCellStyle.BackColor = Color.LightSalmon;
                         row.DefaultCellStyle.SelectionBackColor = Color.Red; // Màu khi được chọn
                     }
+                }
+            }
+        }
+        private void DataGridView_Menu_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex >= 0 && dataGridView_menu.Columns["TrangThai"] != null)
+            {
+                DataGridViewRow row = dataGridView_menu.Rows[e.RowIndex];
+                if (row.Cells["TrangThai"].Value?.ToString() == "Hết món")
+                {
+                    row.DefaultCellStyle.BackColor = Color.LightSalmon;
+                    row.DefaultCellStyle.SelectionBackColor = Color.Red; // Màu khi được chọn
+                }
+                else
+                {
+                    row.DefaultCellStyle.BackColor = Color.LightGreen;
+                    row.DefaultCellStyle.SelectionBackColor = Color.Green; // Màu khi được chọn
                 }
             }
         }
@@ -542,7 +599,15 @@ namespace RestaurantClient
             tb_dateBill.Text = "";
             tb_searchBill.Text = "";
         }
+        private void ClearFoodForm()
+        {
+            tb_nameFood.Clear();
+            nm_priceFood.Value = 0;
+            tb_searchFood.Clear();
+            cb_statusFood.SelectedIndex = 0; // ✅ Mặc định "Còn món"
 
+            _menuManager.ClearSelection();
+        }
         // ==================== CRUD OPERATIONS ====================
 
         private async void btn_addHuman_Click(object sender, EventArgs e)
@@ -753,8 +818,161 @@ namespace RestaurantClient
                 MessageBox.Show("Không tìm thấy hóa đơn nào khớp mã HĐ hoặc mã NV này!");
             }
         }
+        private async void btn_viewFood_Click(object sender, EventArgs e)
+        {
+            await ExecuteAsync(btn_viewFood, "Đang tải...", async () =>
+            {
+                await _menuManager.RefreshAsync();
+                ClearFoodForm();
 
+                var cachedData = _menuManager.GetCachedData();
+                ShowSuccess($"Đã tải {cachedData?.Count ?? 0} món ăn");
+            });
+        }
 
+        private async void btn_searchFood_Click(object sender, EventArgs e)
+        {
+            string keyword = tb_searchFood.Text.Trim();
+
+            // ✅ SỬ DỤNG GRIDVIEWMANAGER ĐỂ FILTER
+            await _menuManager.LoadDataAsync(() => LoadMenuFromServer(keyword));
+
+            var filteredCount = _menuManager.GetRowCount();
+            ShowSuccess($"Tìm thấy {filteredCount} món phù hợp");
+        }
+        private async void btn_addFood_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(tb_nameFood.Text))
+            {
+                ShowWarning("Tên món không được trống!");
+                return;
+            }
+
+            if (cb_statusFood.SelectedItem == null)
+            {
+                ShowWarning("Chọn trạng thái món!");
+                return;
+            }
+
+            // ✅ CHUYỂN ĐỔI TRẠNG THÁI
+            string trangThai = cb_statusFood.SelectedItem.ToString() == "Còn món" ? "ConMon" : "HetMon";
+
+            var req = new AddMenuRequest
+            {
+                TenMon = tb_nameFood.Text.Trim(),
+                Gia = nm_priceFood.Value,
+                TrangThai = trangThai // ✅ THÊM TRẠNG THÁI
+            };
+
+            var res = await SendRequest<AddMenuRequest, AddMenuResponse>(req);
+
+            if (res?.Success == true)
+            {
+                ShowSuccess("Thêm món thành công!");
+                await _menuManager.RefreshAsync();
+                ClearFoodForm(); // ✅ XÓA FORM SAU KHI THÊM
+            }
+            else ShowError(res?.Message);
+        }
+        private async void btn_editFood_Click(object sender, EventArgs e)
+        {
+            var selectedFood = _menuManager.GetSelectedItem();
+            if (selectedFood == null)
+            {
+                ShowWarning("Vui lòng chọn món cần sửa!");
+                return;
+            }
+
+            // VALIDATE DỮ LIỆU
+            if (string.IsNullOrWhiteSpace(tb_nameFood.Text))
+            {
+                ShowWarning("Nhập tên món!");
+                tb_nameFood.Focus();
+                return;
+            }
+
+            if (nm_priceFood.Value <= 0)
+            {
+                ShowWarning("Giá món phải lớn hơn 0!");
+                nm_priceFood.Focus();
+                return;
+            }
+
+            if (cb_statusFood.SelectedItem == null)
+            {
+                ShowWarning("Chọn trạng thái món!");
+                return;
+            }
+
+            // XÁC NHẬN CẬP NHẬT
+            if (!Confirm($"Cập nhật món: {selectedFood.TenMon}?"))
+                return;
+
+            await ExecuteAsync(btn_editFood, "Đang cập nhật...", async () =>
+            {
+                // ✅ CHUYỂN ĐỔI TRẠNG THÁI TỪ COMBOBOX
+                string trangThai = cb_statusFood.SelectedItem.ToString() == "Còn món" ? "ConMon" : "HetMon";
+
+                var req = new UpdateMenuRequest
+                {
+                    MaMon = selectedFood.MaMon,
+                    TenMon = tb_nameFood.Text.Trim(),
+                    Gia = nm_priceFood.Value,
+                    TrangThai = trangThai // ✅ ĐẢM BẢO CÓ TRƯỜNG NÀY
+                };
+
+                Console.WriteLine($"🔄 Gửi update: MaMon={req.MaMon}, TrangThai={req.TrangThai}"); // DEBUG
+
+                var res = await SendRequest<UpdateMenuRequest, UpdateMenuResponse>(req);
+
+                if (res?.Success == true)
+                {
+                    ShowSuccess($"✅ Đã cập nhật món: {req.TenMon} -> {trangThai}");
+                    await _menuManager.RefreshAsync(); // ✅ QUAN TRỌNG: Refresh để thấy thay đổi
+                    ClearFoodForm();
+                }
+                else
+                {
+                    ShowError(res?.Message ?? "Cập nhật thất bại");
+                }
+            });
+        }
+        private async void btn_deleteFood_Click(object sender, EventArgs e)
+        {
+            var selectedFood = _menuManager.GetSelectedItem();
+            if (selectedFood == null)
+            {
+                ShowWarning("Vui lòng chọn món cần ẩn!");
+                return;
+            }
+
+            // XÁC NHẬN ẨN MÓN
+            if (!Confirm($"ẨN MÓN: {selectedFood.TenMon}?\n\nMón sẽ chuyển sang 'Hết món'."))
+                return;
+
+            await ExecuteAsync(btn_deleteFood, "Đang ẩn món...", async () =>
+            {
+                // ✅ GỬI REQUEST CẬP NHẬT STATUS THAY VÌ XÓA
+                var req = new UpdateMenuStatusRequest
+                {
+                    MaMon = selectedFood.MaMon,
+                    TrangThai = "HetMon"
+                };
+
+                var res = await SendRequest<UpdateMenuStatusRequest, UpdateMenuResponse>(req);
+
+                if (res?.Success == true)
+                {
+                    ShowSuccess($"✅ Đã ẩn món: {selectedFood.TenMon}");
+                    await _menuManager.RefreshAsync(); // Refresh để hiển thị status mới
+                    ClearFoodForm();
+                }
+                else
+                {
+                    ShowError(res?.Message ?? "Ẩn món thất bại");
+                }
+            });
+        }
         // ==================== VALIDATION ====================
 
         private bool ValidateInput(bool isAddMode, out string error)

@@ -46,9 +46,7 @@
             nm_priceFood = new NumericUpDown();
             label4 = new Label();
             tb_nameFood = new TextBox();
-            tb_idFood = new TextBox();
             label3 = new Label();
-            ID = new Label();
             panel5 = new Panel();
             tb_searchFood = new TextBox();
             btn_searchFood = new Button();
@@ -58,7 +56,7 @@
             btn_deleteFood = new Button();
             btn_addFood = new Button();
             panel3 = new Panel();
-            dataGridView2 = new DataGridView();
+            dataGridView_menu = new DataGridView();
             tabPage3 = new TabPage();
             cb_statusTable = new Panel();
             comboBox1 = new ComboBox();
@@ -122,6 +120,8 @@
             panel18 = new Panel();
             btn_send = new Button();
             textBox2 = new TextBox();
+            label16 = new Label();
+            cb_statusFood = new ComboBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             panel2.SuspendLayout();
@@ -133,7 +133,7 @@
             panel5.SuspendLayout();
             panel4.SuspendLayout();
             panel3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dataGridView2).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_menu).BeginInit();
             tabPage3.SuspendLayout();
             cb_statusTable.SuspendLayout();
             panel9.SuspendLayout();
@@ -312,12 +312,12 @@
             // 
             // panel6
             // 
+            panel6.Controls.Add(cb_statusFood);
+            panel6.Controls.Add(label16);
             panel6.Controls.Add(nm_priceFood);
             panel6.Controls.Add(label4);
             panel6.Controls.Add(tb_nameFood);
-            panel6.Controls.Add(tb_idFood);
             panel6.Controls.Add(label3);
-            panel6.Controls.Add(ID);
             panel6.Location = new Point(577, 77);
             panel6.Name = "panel6";
             panel6.Size = new Size(389, 390);
@@ -325,7 +325,7 @@
             // 
             // nm_priceFood
             // 
-            nm_priceFood.Location = new Point(113, 137);
+            nm_priceFood.Location = new Point(132, 88);
             nm_priceFood.Maximum = new decimal(new int[] { 1000000000, 0, 0, 0 });
             nm_priceFood.Name = "nm_priceFood";
             nm_priceFood.Size = new Size(163, 27);
@@ -335,7 +335,7 @@
             // 
             label4.AutoSize = true;
             label4.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label4.Location = new Point(18, 132);
+            label4.Location = new Point(9, 88);
             label4.Name = "label4";
             label4.Size = new Size(84, 28);
             label4.TabIndex = 8;
@@ -343,37 +343,20 @@
             // 
             // tb_nameFood
             // 
-            tb_nameFood.Location = new Point(113, 84);
+            tb_nameFood.Location = new Point(132, 31);
             tb_nameFood.Name = "tb_nameFood";
-            tb_nameFood.Size = new Size(273, 27);
+            tb_nameFood.Size = new Size(254, 27);
             tb_nameFood.TabIndex = 7;
-            // 
-            // tb_idFood
-            // 
-            tb_idFood.Location = new Point(113, 38);
-            tb_idFood.Name = "tb_idFood";
-            tb_idFood.Size = new Size(273, 27);
-            tb_idFood.TabIndex = 6;
             // 
             // label3
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label3.Location = new Point(18, 83);
+            label3.Location = new Point(9, 30);
             label3.Name = "label3";
             label3.Size = new Size(93, 28);
             label3.TabIndex = 1;
             label3.Text = "Tên món";
-            // 
-            // ID
-            // 
-            ID.AutoSize = true;
-            ID.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            ID.Location = new Point(18, 37);
-            ID.Name = "ID";
-            ID.Size = new Size(33, 28);
-            ID.TabIndex = 0;
-            ID.Text = "ID";
             // 
             // panel5
             // 
@@ -399,6 +382,7 @@
             btn_searchFood.TabIndex = 4;
             btn_searchFood.Text = "Tìm";
             btn_searchFood.UseVisualStyleBackColor = true;
+            btn_searchFood.Click += btn_searchFood_Click;
             // 
             // panel4
             // 
@@ -419,6 +403,7 @@
             btn_viewFood.TabIndex = 3;
             btn_viewFood.Text = "Xem";
             btn_viewFood.UseVisualStyleBackColor = true;
+            btn_viewFood.Click += btn_viewFood_Click;
             // 
             // btn_editFood
             // 
@@ -428,6 +413,7 @@
             btn_editFood.TabIndex = 2;
             btn_editFood.Text = "Sửa";
             btn_editFood.UseVisualStyleBackColor = true;
+            btn_editFood.Click += btn_editFood_Click;
             // 
             // btn_deleteFood
             // 
@@ -437,6 +423,7 @@
             btn_deleteFood.TabIndex = 1;
             btn_deleteFood.Text = "Xóa";
             btn_deleteFood.UseVisualStyleBackColor = true;
+            btn_deleteFood.Click += btn_deleteFood_Click;
             // 
             // btn_addFood
             // 
@@ -446,23 +433,24 @@
             btn_addFood.TabIndex = 0;
             btn_addFood.Text = "Thêm";
             btn_addFood.UseVisualStyleBackColor = true;
+            btn_addFood.Click += btn_addFood_Click;
             // 
             // panel3
             // 
-            panel3.Controls.Add(dataGridView2);
+            panel3.Controls.Add(dataGridView_menu);
             panel3.Location = new Point(6, 72);
             panel3.Name = "panel3";
             panel3.Size = new Size(565, 395);
             panel3.TabIndex = 0;
             // 
-            // dataGridView2
+            // dataGridView_menu
             // 
-            dataGridView2.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView2.Location = new Point(3, 5);
-            dataGridView2.Name = "dataGridView2";
-            dataGridView2.RowHeadersWidth = 51;
-            dataGridView2.Size = new Size(559, 390);
-            dataGridView2.TabIndex = 0;
+            dataGridView_menu.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView_menu.Location = new Point(3, 5);
+            dataGridView_menu.Name = "dataGridView_menu";
+            dataGridView_menu.RowHeadersWidth = 51;
+            dataGridView_menu.Size = new Size(559, 390);
+            dataGridView_menu.TabIndex = 0;
             // 
             // tabPage3
             // 
@@ -1083,6 +1071,24 @@
             textBox2.Size = new Size(802, 59);
             textBox2.TabIndex = 0;
             // 
+            // label16
+            // 
+            label16.AutoSize = true;
+            label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label16.Location = new Point(9, 144);
+            label16.Name = "label16";
+            label16.Size = new Size(108, 28);
+            label16.TabIndex = 10;
+            label16.Text = "Trạng thái";
+            // 
+            // cb_statusFood
+            // 
+            cb_statusFood.FormattingEnabled = true;
+            cb_statusFood.Location = new Point(132, 148);
+            cb_statusFood.Name = "cb_statusFood";
+            cb_statusFood.Size = new Size(163, 28);
+            cb_statusFood.TabIndex = 11;
+            // 
             // Admin
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
@@ -1106,7 +1112,7 @@
             panel5.PerformLayout();
             panel4.ResumeLayout(false);
             panel3.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dataGridView2).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_menu).EndInit();
             tabPage3.ResumeLayout(false);
             cb_statusTable.ResumeLayout(false);
             cb_statusTable.PerformLayout();
@@ -1157,16 +1163,14 @@
         private Panel panel6;
         private Panel panel5;
         private Button btn_addFood;
-        private DataGridView dataGridView2;
+        private DataGridView dataGridView_menu;
         private TextBox tb_searchFood;
         private Button btn_searchFood;
         private Button btn_viewFood;
         private Button btn_editFood;
         private Button btn_deleteFood;
-        private Label ID;
         private Label label4;
         private TextBox tb_nameFood;
-        private TextBox tb_idFood;
         private Label label3;
         private NumericUpDown nm_priceFood;
         private Panel cb_statusTable;
@@ -1234,5 +1238,7 @@
         private Label lbl_sumdoanhthu;
         private Label label15;
         private Button btn_xuatbaocao;
+        private ComboBox cb_statusFood;
+        private Label label16;
     }
 }
