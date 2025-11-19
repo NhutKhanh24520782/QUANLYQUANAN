@@ -45,7 +45,7 @@ namespace RestaurantClient
         private void InitializeBillTab()
         {
             // Setup events cho tab hóa đơn
-            //dataGridView_bill.SelectionChanged += DataGridView_Bill_SelectionChanged;
+            dataGridView_bill.CellFormatting += DataGridView_Bill_CellFormatting;
             dataGridView_bill.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView_bill.MultiSelect = false;
             dataGridView_bill.ReadOnly = true;
@@ -115,6 +115,8 @@ namespace RestaurantClient
                 if (selected != null)
                     ShowEmployeeDetails(selected);
             };
+
+            dataGridView_emp.CellFormatting += DataGridView_Employee_CellFormatting;
 
             dataGridView_doanhthu.SelectionChanged += (s, e) =>
             {
@@ -331,6 +333,51 @@ namespace RestaurantClient
 
             MessageBox.Show(message, "Chi Tiết Doanh Thu",
                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void DataGridView_Bill_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                DataGridViewRow row = dataGridView_bill.Rows[e.RowIndex];
+                if (row.Cells["TrangThai"].Value != null)
+                {
+                    string status = row.Cells["TrangThai"].Value.ToString();
+                    if (status == "DaThanhToan")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightGreen;
+                        row.DefaultCellStyle.SelectionBackColor = Color.Green; // Màu khi được chọn
+                    }
+                    else if (status == "ChuaThanhToan" || status == "Huy")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightSalmon;
+                        row.DefaultCellStyle.SelectionBackColor = Color.Red; // Màu khi được chọn
+                    }
+                }
+            }
+        }
+
+        private void DataGridView_Employee_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+ 
+                DataGridViewRow row = dataGridView_emp.Rows[e.RowIndex];
+                if (row.Cells["TrangThai"].Value != null)
+                {
+                    string status = row.Cells["TrangThai"].Value.ToString();
+                    if (status == "✓")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightGreen;
+                        row.DefaultCellStyle.SelectionBackColor = Color.Green; // Màu khi được chọn
+                    }
+                    else if (status == "✗")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightSalmon;
+                        row.DefaultCellStyle.SelectionBackColor = Color.Red; // Màu khi được chọn
+                    }
+                }
+            }
         }
         private void ShowBillDetails(BillData bill)
         {
