@@ -68,6 +68,7 @@ namespace Models.Database
     public class DoanhThuTheoBan
     {
         public string TenBan { get; set; } = string.Empty;
+        public int MaBanAn {  get; set; } 
         public int SoLuongHoaDon { get; set; }
         public decimal DoanhThu { get; set; }
         public decimal HoaDonLonNhat { get; set; }

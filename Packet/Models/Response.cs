@@ -77,7 +77,6 @@ namespace Models.Response
         public DeleteEmployeeResponse() => Type = "DeleteEmployeeResponse";
     }
 
-    // ==================== ERROR RESPONSE ====================
 
     public class ErrorResponse : BaseResponse
     {

@@ -86,6 +86,7 @@ namespace RestaurantClient
                 dt => new
                 {
                     TenBan = dt.TenBan,
+                    MaBanAn = dt.MaBanAn,
                     SoLuongHoaDon = dt.SoLuongHoaDon,
                     DoanhThu = dt.DoanhThu,
                     HoaDonLonNhat = dt.HoaDonLonNhat,

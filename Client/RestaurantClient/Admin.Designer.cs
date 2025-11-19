@@ -955,9 +955,9 @@
             // panel15
             // 
             panel15.Controls.Add(dataGridView_emp);
-            panel15.Location = new Point(6, 84);
+            panel15.Location = new Point(-4, 84);
             panel15.Name = "panel15";
-            panel15.Size = new Size(566, 383);
+            panel15.Size = new Size(576, 383);
             panel15.TabIndex = 1;
             // 
             // dataGridView_emp
@@ -967,7 +967,7 @@
             dataGridView_emp.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dataGridView_emp.BackgroundColor = Color.White;
             dataGridView_emp.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView_emp.Location = new Point(-2, 3);
+            dataGridView_emp.Location = new Point(5, 0);
             dataGridView_emp.MultiSelect = false;
             dataGridView_emp.Name = "dataGridView_emp";
             dataGridView_emp.ReadOnly = true;
