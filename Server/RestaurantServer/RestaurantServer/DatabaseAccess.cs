@@ -12,7 +12,13 @@ namespace RestaurantServer
     public static class DatabaseAccess
     {
         private static string connectionString =
-            "Data Source=DESKTOP-3UDAR72\\MSSQLSERVER01;Initial Catalog=QLQuanAn;Integrated Security=True";
+         "Server=tcp:quanlyquanan.database.windows.net,1433;" +
+         "Initial Catalog=restaurant;" +
+         "User ID=lamnhutkhanh;" +
+         "Password=Khanh251106;" +
+         "Encrypt=True;" +
+         "TrustServerCertificate=False;" +
+         "Connection Timeout=30;";
 
         public static LoginResult LoginUser(string username, string password)
         {
@@ -444,7 +450,7 @@ namespace RestaurantServer
         //------------------------------
         //------------------------------
         // 4. Gửi yêu cầu "INSERT" cho SQL (ĐÃ SỬA)
-        public static bool AddBanToSQL(BanAn banMoi)
+        public static bool AddBanToSQL(Models.Database.BanAn banMoi)
         {
             System.Diagnostics.Debug.WriteLine("4. DatabaseAccess: Gửi lệnh 'INSERT' cho SQL...");
 
@@ -491,7 +497,7 @@ namespace RestaurantServer
                 }
 
                 // Ghi log các lỗi SQL khác
-                System.Diagnostics.Debug.WriteLine($"💥 AddBanToSQL SQL Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($" AddBanToSQL SQL Error: {ex.Message}");
                 return false;
             }
             catch (Exception ex)
