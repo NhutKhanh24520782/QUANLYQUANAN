@@ -360,5 +360,47 @@ namespace RestaurantServer
             };
             return JsonConvert.SerializeObject(errorResponse);
         }
+        //===========TABLES===========
+        private async Task<string> HandleAddTableRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // 1. Giải mã JSON từ request nhận được
+                    var request = rawRequest.ToObject<AddTableRequest>();
+                    if (request == null)
+                        return CreateErrorResponse("Request 'AddTable' không hợp lệ");
+
+                    // 2. Tạo đối tượng BanAn (Class lồng trong class Database)
+                    // Cấu trúc: Namespace.OuterClass.InnerClass
+                    Models.Database.BanAn banMoi = new Models.Database.BanAn
+                    {
+                        MaBan = request.MaBan,
+                        TenBan = request.TenBan,
+                        TrangThai = request.TrangThai
+                    };
+
+                    // 3. Gọi DatabaseAccess để thêm vào SQL
+                    // (Hàm AddBanToSQL bên kia cũng phải nhận tham số là Models.Database.BanAn)
+                    bool result = DatabaseAccess.AddBanToSQL(banMoi);
+
+                    // 4. Tạo response trả về cho Client
+                    var response = new AddTableResponse
+                    {
+                        Success = result,
+                        Message = result ? "Thêm bàn thành công" : "Lỗi: ID bàn có thể đã tồn tại"
+                    };
+
+                    // 5. Đóng gói thành JSON gửi đi
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    // Bắt lỗi nếu có sự cố bất ngờ
+                    return CreateErrorResponse($"Lỗi hệ thống khi thêm bàn: {ex.Message}");
+                }
+            });
+        }
     }
 }
