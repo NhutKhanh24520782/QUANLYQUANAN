@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Models.Response;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -50,26 +51,90 @@ namespace Models.Database
 
     // ==================== ENTITIES (MAP VỚI DATABASE TABLES) ====================
 
+        /// <summary>
+        /// Entity người dùng - map với table NGUOIDUNG
+        /// </summary>
+        public class NguoiDung
+        {
+            public int MaNguoiDung { get; set; }
+            public string TenDangNhap { get; set; } = string.Empty;
+            public string MatKhau { get; set; } = string.Empty;
+            public string VaiTro { get; set; } = string.Empty;
+            public string HoTen { get; set; } = string.Empty;
+            public string SDT { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public bool TrangThai { get; set; } = true;
+            public DateTime NgayTao { get; set; } = DateTime.Now;
+        }
+    public class DoanhThuTheoBan
+    {
+        public string TenBan { get; set; } = string.Empty;
+        public int MaBanAn {  get; set; } 
+        public int SoLuongHoaDon { get; set; }
+        public decimal DoanhThu { get; set; }
+        public decimal HoaDonLonNhat { get; set; }
+        public decimal HoaDonNhoNhat { get; set; }
+        public decimal DoanhThuTB { get; set; }
+    }
+
     /// <summary>
-    /// Entity người dùng - map với table NGUOIDUNG
+    /// Tổng doanh thu - hiển thị trên Label
     /// </summary>
-    public class NguoiDung
+    public class TongDoanhThu
     {
-        public int MaNguoiDung { get; set; }
-        public string TenDangNhap { get; set; } = string.Empty;
-        public string MatKhau { get; set; } = string.Empty;
-        public string VaiTro { get; set; } = string.Empty;
-        public string HoTen { get; set; } = string.Empty;
-        public string SDT { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public bool TrangThai { get; set; } = true;
-        public DateTime NgayTao { get; set; } = DateTime.Now;
+        public decimal tongDoanhThu { get; set; }
+        public int TongSoHoaDon { get; set; }
+        public int TongSoBan { get; set; }
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
     }
-    public class BanAn
+
+    /// <summary>
+    /// Kết quả thống kê doanh thu
+    /// </summary>
+    public class DoanhThuResult
     {
-        public int MaBan { get; set; }
-        public string TenBan { get; set; } // nvarchar
-        public string TrangThai { get; set; } // "Trống", "Có người",...
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public TongDoanhThu TongDoanhThu { get; set; } = new TongDoanhThu();
+        public List<DoanhThuTheoBan> DoanhThuTheoBan { get; set; } = new List<DoanhThuTheoBan>();
     }
+
+        public class HoaDon
+        {
+            public int MaHoaDon { get; set; }
+            public int MaBanAn { get; set; } 
+            public int MaNhanVien { get; set; }
+            public DateTime NgayXuatHoaDon { get; set; }
+            public string TrangThai { get; set; } = string.Empty;
+            public string PhuongThucThanhToan { get; set; } = string.Empty;
+            public int TongTien { get; set; }
+            public string GhiChu { get; set; } = string.Empty;
+        }
+    public class BillData
+    {
+        public int MaHoaDon { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public DateTime NgayXuatHoaDon { get; set; }
+        public decimal TongTien { get; set; }
+        public string TrangThai { get; set; } = string.Empty;
+    }
+
+    public class BillResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<BillData> Bills { get; set; } = new List<BillData>();
+    }
+    public class MenuResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public int MaMon { get; set; }
+        public List<MenuItemData> Items { get; set; } = new();
+    }
+
+
 }
 

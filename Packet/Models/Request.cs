@@ -1,4 +1,6 @@
-﻿namespace Models.Request
+﻿using Models.Database;
+
+namespace Models.Request
 {
 
     // ==================== AUTHENTICATION REQUESTS ====================
@@ -107,11 +109,96 @@
         public string Type => "DeleteEmployee";
         public int MaNguoiDung { get; set; }
     }
+    public class ThongKeDoanhThuRequest
+    {
+        public string Type => "ThongKeDoanhThu";
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (TuNgay > DenNgay)
+                return (false, "Từ ngày không được lớn hơn đến ngày");
+
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Request xuất báo cáo
+    /// </summary>
+    public class XuatBaoCaoRequest
+    {
+        public string Type => "XuatBaoCao";
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+        public List<DoanhThuTheoBan> Data { get; set; } = new List<DoanhThuTheoBan>();
+        public decimal TongDoanhThu { get; set; }
+    }
     public class AddTableRequest 
     {
         public int MaBan { get; set; }
         public string TenBan { get; set; }
         public string TrangThai { get; set; }
+    }
+
+    public class GetBillRequest
+    {
+        public string Type => "GetBills";
+        public int MaHoaDon { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public DateTime NgayXuatHoaDon { get; set; }
+        public decimal TongTien { get; set; }
+        public string TrangThai { get; set; }
+    }
+    // ===== MENU REQUESTS =====
+    public class GetMenuRequest
+    {
+        public string Type => "GetMenu";
+
+    }
+
+    public class SearchMenuRequest
+    {
+        public string Type => "SearchMenu";
+        public string Keyword { get; set; } = "";
+    }
+
+    public class AddMenuRequest
+    {
+        public string Type => "AddMenu";
+        public string TenMon { get; set; } = "";
+        public decimal Gia { get; set; } = 0m;
+        public string MoTa { get; set; } = "";
+        public int? MaLoaiMon { get; set; } = null;
+        public string TrangThai { get; set; } = "ConMon"; // ✅ THÊM
+
+    }
+
+    public class UpdateMenuRequest
+    {
+        public string Type => "UpdateMenu";
+        public int MaMon { get; set; }
+        public string TenMon { get; set; } = "";
+        public decimal Gia { get; set; } = 0m;
+        public string MoTa { get; set; } = "";
+        public int? MaLoaiMon { get; set; } = null;
+        public string TrangThai { get; set; } = "ConMon"; // ✅ THÊM
+
+    }
+
+    public class DeleteMenuRequest
+    {
+        public string Type => "DeleteMenu";
+        public int MaMon { get; set; }
+    }
+
+    public class UpdateMenuStatusRequest
+    {
+        public string Type => "UpdateMenuStatus";
+        public int MaMon { get; set; }
+        public string TrangThai { get; set; } = "ConMon"; // "ConMon" hoặc "HetMon"
     }
 }
 

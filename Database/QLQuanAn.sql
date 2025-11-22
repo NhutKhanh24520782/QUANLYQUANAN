@@ -102,3 +102,13 @@ CREATE TABLE BAOCAO (
     MaNguoiTao INT,
     FOREIGN KEY (MaNguoiTao) REFERENCES NGUOIDUNG(MaNguoiDung)
 );
+
+insert into HOADON (MaNV, MaBanAn)
+values ('2','2')
+insert into BAN (TenBan)
+values ('Ban 2')
+
+select * from HOADON
+
+delete from HOADON
+where MaHD = '4'

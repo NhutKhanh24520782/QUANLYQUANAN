@@ -72,7 +72,6 @@ namespace RestaurantClient
                     MessageBox.Show("Đăng ký thành công!", "Thành công",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                    // ✅ SỬA: Set DialogResult để form cha biết
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
@@ -89,13 +88,11 @@ namespace RestaurantClient
             }
             finally
             {
-                // ✅ Re-enable button
                 btn_dangky.Enabled = true;
                 btn_dangky.Text = "Đăng ký";
             }
         }
 
-        // ✅ SỬA: Async method thay vì sync
         private async Task<string> SendRequestAsync<T>(T data)
         {
             string json = JsonConvert.SerializeObject(data) + "\n";
