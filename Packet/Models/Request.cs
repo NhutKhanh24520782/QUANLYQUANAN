@@ -200,5 +200,17 @@ namespace Models.Request
         public int MaMon { get; set; }
         public string TrangThai { get; set; } = "ConMon"; // "ConMon" hoặc "HetMon"
     }
+    public class AddTableRequest
+    {
+        public int MaBan { get; set; }
+        public string TenBan { get; set; }
+        public string TrangThai { get; set; }
+    }
+    public class UpdateTableRequest
+    {
+        public int MaBan { get; set; }
+        public string TenBan { get; set; }
+        public string TrangThai { get; set; }
+    }
 }
 

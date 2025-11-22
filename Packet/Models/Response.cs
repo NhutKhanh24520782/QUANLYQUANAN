@@ -178,4 +178,15 @@ namespace Models.Response
         public GetBillResponse() => Type = "GetBillResponse";
         public List<BillData> Bills { get; set; } = new List<BillData>();
     }
+    //=================================
+    public class AddTableResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+    }
+    public class UpdateTableResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+    }
 }

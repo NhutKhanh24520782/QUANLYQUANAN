@@ -134,7 +134,16 @@ namespace Models.Database
         public int MaMon { get; set; }
         public List<MenuItemData> Items { get; set; } = new();
     }
-
+    public class Database
+    {
+        // Class BanAn nằm TRONG class Database
+        public class BanAn
+        {
+            public int MaBan { get; set; }
+            public string TenBan { get; set; }
+            public string TrangThai { get; set; }
+        }
+    }
 
 }
 
