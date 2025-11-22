@@ -499,17 +499,16 @@ namespace RestaurantServer
             catch (Exception ex) { Console.WriteLine("Error: " + ex.Message); }
             return result;
         }
+        // ====================== BAN AN ======================
 
-        // ✅ SỬA 3: Thêm lại hàm AddBanToSQL đúng chuẩn
-        public static bool AddBanToSQL(Models.Database.BanAn banMoi)
+        // 1. Hàm Thêm Bàn
+        public static bool AddBanToSQL(Models.Database.Database.BanAn banMoi)
         {
             try
             {
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    // Giả sử bảng của bạn là BAN, cột là MaBanAn (hoặc MaBan), TenBan, TrangThai
-                    // Bạn cần chỉnh lại tên bảng/cột cho khớp DB của bạn nếu khác
                     string insertQuery = @"INSERT INTO BAN (MaBanAn, TenBan, TrangThai) VALUES (@id, @ten, @trangthai)";
 
                     using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
@@ -523,18 +522,41 @@ namespace RestaurantServer
                     }
                 }
             }
-            catch (SqlException ex)
+                catch (Exception ex) // Đã rút gọn catch để code ngắn gọn hơn
+                {
+                    Console.WriteLine($"SQL Error: {ex.Message}");
+                    return false;
+                }
+            }   
+
+        // 2. Hàm Sửa Bàn
+       public static bool UpdateBanInSQL(Models.Database.Database.BanAn banCapNhat)
+        {
+            try
             {
-                System.Diagnostics.Debug.WriteLine($"SQL Error: {ex.Message}");
-                return false;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = @"UPDATE BAN SET TenBan = @ten, TrangThai = @tt WHERE MaBanAn = @id";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", banCapNhat.MaBan);
+                        cmd.Parameters.AddWithValue("@ten", banCapNhat.TenBan);
+                        cmd.Parameters.AddWithValue("@tt", banCapNhat.TrangThai);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        return rowsAffected > 0;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"General Error: {ex.Message}");
+                Console.WriteLine("Lỗi Update SQL: " + ex.Message);
                 return false;
             }
         }
-
+        //===================== DOANH THU ======================
         public static decimal GetTongDoanhThu(DateTime tuNgay, DateTime denNgay)
         {
             try
