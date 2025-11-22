@@ -135,12 +135,7 @@ namespace Models.Request
         public List<DoanhThuTheoBan> Data { get; set; } = new List<DoanhThuTheoBan>();
         public decimal TongDoanhThu { get; set; }
     }
-    public class AddTableRequest 
-    {
-        public int MaBan { get; set; }
-        public string TenBan { get; set; }
-        public string TrangThai { get; set; }
-    }
+
 
     public class GetBillRequest
     {
