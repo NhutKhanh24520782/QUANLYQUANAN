@@ -207,5 +207,10 @@ namespace Models.Request
         public string TenBan { get; set; }
         public string TrangThai { get; set; }
     }
+    // Gói tin gửi đi khi XÓA
+    public class DeleteTableRequest
+    {
+        public int MaBan { get; set; }
+    }
 }
 

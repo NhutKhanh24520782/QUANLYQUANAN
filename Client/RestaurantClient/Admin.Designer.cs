@@ -43,6 +43,8 @@
             dataGridView_doanhthu = new DataGridView();
             tabPage2 = new TabPage();
             panel6 = new Panel();
+            cb_statusFood = new ComboBox();
+            label16 = new Label();
             nm_priceFood = new NumericUpDown();
             label4 = new Label();
             tb_nameFood = new TextBox();
@@ -120,8 +122,6 @@
             panel18 = new Panel();
             btn_send = new Button();
             textBox2 = new TextBox();
-            label16 = new Label();
-            cb_statusFood = new ComboBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             panel2.SuspendLayout();
@@ -214,7 +214,7 @@
             btn_XemDoanhThu.TabIndex = 4;
             btn_XemDoanhThu.Text = "Xem doanh thu";
             btn_XemDoanhThu.UseVisualStyleBackColor = true;
-            btn_XemDoanhThu.Click += btn_XemDoanhThu_ClickAsync;
+            this.btn_XemDoanhThu.Click += new System.EventHandler(this.btn_XemDoanhThu_Click);
             // 
             // dtp_denNgay
             // 
@@ -322,6 +322,24 @@
             panel6.Name = "panel6";
             panel6.Size = new Size(389, 390);
             panel6.TabIndex = 3;
+            // 
+            // cb_statusFood
+            // 
+            cb_statusFood.FormattingEnabled = true;
+            cb_statusFood.Location = new Point(132, 148);
+            cb_statusFood.Name = "cb_statusFood";
+            cb_statusFood.Size = new Size(163, 28);
+            cb_statusFood.TabIndex = 11;
+            // 
+            // label16
+            // 
+            label16.AutoSize = true;
+            label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label16.Location = new Point(9, 144);
+            label16.Name = "label16";
+            label16.Size = new Size(108, 28);
+            label16.TabIndex = 10;
+            label16.Text = "Trạng thái";
             // 
             // nm_priceFood
             // 
@@ -619,6 +637,7 @@
             btn_addTable.TabIndex = 0;
             btn_addTable.Text = "Thêm";
             btn_addTable.UseVisualStyleBackColor = true;
+            btn_addTable.Click += btn_addTable_Click;
             // 
             // tabPage4
             // 
@@ -1070,24 +1089,6 @@
             textBox2.Name = "textBox2";
             textBox2.Size = new Size(802, 59);
             textBox2.TabIndex = 0;
-            // 
-            // label16
-            // 
-            label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(9, 144);
-            label16.Name = "label16";
-            label16.Size = new Size(108, 28);
-            label16.TabIndex = 10;
-            label16.Text = "Trạng thái";
-            // 
-            // cb_statusFood
-            // 
-            cb_statusFood.FormattingEnabled = true;
-            cb_statusFood.Location = new Point(132, 148);
-            cb_statusFood.Name = "cb_statusFood";
-            cb_statusFood.Size = new Size(163, 28);
-            cb_statusFood.TabIndex = 11;
             // 
             // Admin
             // 
