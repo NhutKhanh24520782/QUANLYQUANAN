@@ -214,7 +214,7 @@
             btn_XemDoanhThu.TabIndex = 4;
             btn_XemDoanhThu.Text = "Xem doanh thu";
             btn_XemDoanhThu.UseVisualStyleBackColor = true;
-            btn_XemDoanhThu.Click += btn_XemDoanhThu_ClickAsync;
+            this.btn_XemDoanhThu.Click += new System.EventHandler(this.btn_XemDoanhThu_Click);
             // 
             // dtp_denNgay
             // 

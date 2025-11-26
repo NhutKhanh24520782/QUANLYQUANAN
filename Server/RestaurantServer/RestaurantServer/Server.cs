@@ -96,6 +96,7 @@ namespace RestaurantServer
                         "UpdateMenuStatus" => await HandleUpdateMenuStatusRequestAsync(rawRequest),
                         "AddTable" => await HandleAddTableRequestAsync(rawRequest),
                         "UpdateTable" => await HandleUpdateTableRequestAsync(rawRequest),
+                        "DeleteTable" => await HandleDeleteTableRequestAsync(rawRequest),
 
                         _ => HandleUnknownRequest()
                     };
@@ -405,17 +406,23 @@ namespace RestaurantServer
                 catch (Exception ex) { return CreateErrorResponse($"Lỗi cập nhật trạng thái món: {ex.Message}"); }
             });
         }
+        // --- XỬ LÝ THÊM ---
+        // ================== KHU VỰC XỬ LÝ BÀN ĂN (TABLE HANDLERS) ==================
+
+        // 1. Xử lý THÊM BÀN
         private async Task<string> HandleAddTableRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    // 1. Giải mã JSON request
-                    var request = rawRequest.ToObject<AddTableRequest>();
-                    if (request == null) return CreateErrorResponse("Request 'AddTable' không hợp lệ");
+                    // ✅ SỬA QUAN TRỌNG: Phải lấy từ ["Data"]
+                    var request = rawRequest["Data"]?.ToObject<AddTableRequest>();
 
-                    // 2. Tạo đối tượng Models.Database.BanAn
+                    if (request == null)
+                        return CreateErrorResponse("Dữ liệu 'Data' gửi lên bị rỗng hoặc sai định dạng");
+
+                    // Tạo object Database.BanAn
                     Models.Database.Database.BanAn banMoi = new Models.Database.Database.BanAn
                     {
                         MaBan = request.MaBan,
@@ -423,36 +430,38 @@ namespace RestaurantServer
                         TrangThai = request.TrangThai
                     };
 
-                    // 3. Gọi DatabaseAccess
+                    // Gọi Database
                     bool result = DatabaseAccess.AddBanToSQL(banMoi);
 
-                    // 4. Trả về Response
-                    var response = new AddTableResponse
+                    // Tạo Response
+                    var response = new TableActionResponse
                     {
                         Success = result,
-                        Message = result ? "Thêm bàn thành công" : "Lỗi: ID bàn có thể đã tồn tại"
+                        Message = result ? "Thêm bàn thành công" : "Thêm thất bại (Có thể trùng ID)"
                     };
 
                     return JsonConvert.SerializeObject(response);
                 }
                 catch (Exception ex)
                 {
-                    return CreateErrorResponse($"Lỗi hệ thống khi thêm bàn: {ex.Message}");
+                    return CreateErrorResponse($"Lỗi Server khi thêm bàn: {ex.Message}");
                 }
             });
         }
 
+        // 2. Xử lý SỬA BÀN
         private async Task<string> HandleUpdateTableRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    // 1. Giải mã JSON request
-                    var request = rawRequest.ToObject<UpdateTableRequest>();
-                    if (request == null) return CreateErrorResponse("Request 'UpdateTable' không hợp lệ");
+                    // ✅ SỬA QUAN TRỌNG: Lấy từ ["Data"]
+                    var request = rawRequest["Data"]?.ToObject<UpdateTableRequest>();
 
-                    // 2. Tạo đối tượng Models.Database.BanAn
+                    if (request == null)
+                        return CreateErrorResponse("Dữ liệu 'Data' gửi lên bị rỗng");
+
                     Models.Database.Database.BanAn banSua = new Models.Database.Database.BanAn
                     {
                         MaBan = request.MaBan,
@@ -460,21 +469,77 @@ namespace RestaurantServer
                         TrangThai = request.TrangThai
                     };
 
-                    // 3. Gọi DatabaseAccess
                     bool result = DatabaseAccess.UpdateBanInSQL(banSua);
 
-                    // 4. Trả về Response
-                    var response = new UpdateTableResponse
+                    var response = new TableActionResponse
                     {
                         Success = result,
-                        Message = result ? "Cập nhật bàn thành công" : "Lỗi: Không tìm thấy ID bàn hoặc lỗi SQL"
+                        Message = result ? "Cập nhật thành công" : "Không tìm thấy bàn để sửa"
                     };
 
                     return JsonConvert.SerializeObject(response);
                 }
                 catch (Exception ex)
                 {
-                    return CreateErrorResponse($"Lỗi hệ thống khi sửa bàn: {ex.Message}");
+                    return CreateErrorResponse($"Lỗi Server khi sửa bàn: {ex.Message}");
+                }
+            });
+        }
+
+        // 3. Xử lý XÓA BÀN
+        private async Task<string> HandleDeleteTableRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // ✅ SỬA QUAN TRỌNG: Lấy từ ["Data"]
+                    var request = rawRequest["Data"]?.ToObject<DeleteTableRequest>();
+
+                    if (request == null)
+                        return CreateErrorResponse("Dữ liệu 'Data' gửi lên bị rỗng");
+
+                    bool result = DatabaseAccess.DeleteBanFromSQL(request.MaBan);
+
+                    var response = new TableActionResponse
+                    {
+                        Success = result,
+                        Message = result ? "Xóa thành công" : "Xóa thất bại (Có thể do khóa ngoại hoặc ID không tồn tại)"
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi Server khi xóa bàn: {ex.Message}");
+                }
+            });
+        }
+
+        // 4. Xử lý LẤY DANH SÁCH BÀN
+        // (Nhớ thêm case "GetTables" => await HandleGetTablesRequestAsync(rawRequest) ở switch case chính)
+        private async Task<string> HandleGetTablesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Hàm này không cần Data đầu vào, chỉ cần gọi Database
+                    var listBan = DatabaseAccess.GetListBanFromSQL();
+
+                    // Trả về danh sách (Sử dụng anonymous object để tạo JSON nhanh)
+                    var response = new
+                    {
+                        Success = true,
+                        Message = $"Lấy thành công {listBan.Count} bàn",
+                        ListBan = listBan
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách bàn: {ex.Message}");
                 }
             });
         }
