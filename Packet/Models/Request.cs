@@ -197,15 +197,26 @@ namespace Models.Request
     }
     public class AddTableRequest
     {
+        public string Type => "AddTable"; // ✅ THÊM DÒNG NÀY
         public int MaBan { get; set; }
         public string TenBan { get; set; }
         public string TrangThai { get; set; }
     }
     public class UpdateTableRequest
     {
+        public string Type => "UpdateTable"; // ✅ THÊM DÒNG NÀY
         public int MaBan { get; set; }
         public string TenBan { get; set; }
         public string TrangThai { get; set; }
+    }
+    public class DeleteTableRequest
+    {
+        public string Type => "DeleteTable"; // ✅ THÊM DÒNG NÀY
+        public int MaBan { get; set; }
+    }
+    public class GetTablesRequest
+    {
+        public string Type => "GetTables"; // ✅ THÊM DÒNG NÀY
     }
 }
 

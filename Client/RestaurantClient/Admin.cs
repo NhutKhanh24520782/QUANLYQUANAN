@@ -1,21 +1,22 @@
-﻿using Models.Database;
+﻿using Microsoft.VisualBasic.Devices;
+using Models.Database;
 using Models.Request;
 using Models.Response;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using OfficeOpenXml;
-using OfficeOpenXml.Style;
-using System.Drawing;
-using System.IO;
-using Microsoft.VisualBasic.Devices;
-using System.Data;
 
 namespace RestaurantClient
 {
@@ -26,7 +27,7 @@ namespace RestaurantClient
         private GridViewManager<DoanhThuTheoBan> _doanhThuManager;
         private GridViewManager<BillData> _billManager;
         private GridViewManager<MenuItemData> _menuManager;
-
+        private GridViewManager<Models.Database.Database.BanAn> _tableManager;
 
         // ==================== CONSTANTS ====================
         private const string SERVER_IP = "127.0.0.1";
@@ -38,6 +39,12 @@ namespace RestaurantClient
         public Admin()
         {
             InitializeComponent();
+            comboBox1.Items.Clear();
+            comboBox1.Items.Add("Trống");
+            comboBox1.Items.Add("Có người");
+            comboBox1.Items.Add("Đã đặt");
+            comboBox1.SelectedIndex = 0; // Chọn mặc định là Trống
+            comboBox1.DropDownStyle = ComboBoxStyle.DropDownList; // Không cho gõ bậy
             InitializeGridViewManagers();
             InitializeDoanhThuControls();
             InitializeBillTab();
@@ -159,7 +166,52 @@ namespace RestaurantClient
                 }
             };
             dataGridView_menu.CellFormatting += DataGridView_Menu_CellFormatting;
+            //==========================================================================
+            // --- CẤU HÌNH BẢNG BÀN ĂN (dataGridView3) ---
 
+            _tableManager = new GridViewManager<Models.Database.Database.BanAn>(
+                dataGridView3, // Tên bảng trong Designer của bạn
+                LoadTablesFromServer,
+                table => new
+                {
+                    ID = table.MaBan,
+                    TenBan = table.TenBan,
+                    // Dịch trạng thái SQL (DangSuDung) -> Tiếng Việt (Có người) để hiện lên bảng
+                    TrangThai = ConvertStatusToVietnamese(table.TrangThai)
+                },
+                "MaBan"
+            );
+
+            // 1. Sự kiện chọn dòng -> Đổ dữ liệu ngược lại ô nhập
+            dataGridView3.SelectionChanged += (s, e) =>
+            {
+                var selected = _tableManager.GetSelectedItem();
+                if (selected != null)
+                {
+                    textBox1.Text = selected.MaBan.ToString();
+                    tb_nameTable.Text = selected.TenBan;
+
+                    // 🛑 QUAN TRỌNG: Dịch từ SQL -> Tiếng Việt trước khi gán vào ComboBox
+                    string statusViet = ConvertStatusToVietnamese(selected.TrangThai);
+
+                    if (comboBox1.Items.Contains(statusViet))
+                        comboBox1.SelectedItem = statusViet;
+                }
+            };
+
+            // 2. Sự kiện tô màu (Trang trí)
+            dataGridView3.CellFormatting += (s, e) =>
+            {
+                if (e.RowIndex >= 0)
+                {
+                    var row = dataGridView3.Rows[e.RowIndex];
+                    var status = row.Cells["TrangThai"].Value?.ToString();
+
+                    if (status == "Có người") row.DefaultCellStyle.BackColor = Color.LightSalmon;
+                    else if (status == "Đã đặt") row.DefaultCellStyle.BackColor = Color.LightYellow;
+                    else row.DefaultCellStyle.BackColor = Color.LightGreen;
+                }
+            };
         }
 
         private void InitializeControls()
@@ -200,6 +252,8 @@ namespace RestaurantClient
             //await _doanhThuManager.LoadDataAsync();
             await _billManager.LoadDataAsync(); // ✅ THÊM: Tự động load bills
             await _menuManager.LoadDataAsync();
+            await _tableManager.LoadDataAsync();
+            
         }
 
         // ==================== DATA LOADING ====================
@@ -342,6 +396,57 @@ namespace RestaurantClient
             var res = await SendRequest<SearchMenuRequest, GetMenuResponse>(req);
 
             return res?.Success == true ? res.Items : new List<MenuItemData>();
+
+        }
+
+        // --- HELPER BÀN ĂN ---
+        private string MapStatusToSQL(string statusViet)
+        {
+            if (statusViet == "Có người") return "DangSuDung";
+            if (statusViet == "Đã đặt") return "DaDat";
+            return "Trong";
+        }
+
+        private string ConvertStatusToVietnamese(string sqlStatus)
+        {
+            if (sqlStatus == "DangSuDung") return "Có người";
+            if (sqlStatus == "DaDat") return "Đã đặt";
+            return "Trống";
+        }
+
+        // =======================================================================
+        // 🔥 XÓA HẾT CÁC HÀM LoadTablesFromServer CŨ VÀ DÁN ĐÈ ĐOẠN NÀY VÀO 🔥
+        // =======================================================================
+
+        // HÀM 1: Không tham số (Dùng cho nút Xem, Thêm, Xóa, Sửa gọi lại)
+        private Task<List<Models.Database.Database.BanAn>> LoadTablesFromServer() => LoadTablesFromServer("");
+
+        private async Task<List<Models.Database.Database.BanAn>> LoadTablesFromServer(string keyword)
+        {
+            try
+            {
+                // Gói yêu cầu vào object ẩn danh để có { Type, Data }
+                var wrapper = new { Type = "GetTables", Data = new object() };
+
+                // Dùng SendRequest chuẩn, nhận về JObject
+                var json = await SendRequest<object, JObject>(wrapper);
+
+                if (json != null && (bool)json["Success"])
+                {
+                    var list = json["ListBan"].ToObject<List<Models.Database.Database.BanAn>>();
+
+                    // Dịch dữ liệu trước khi hiển thị
+                    foreach (var item in list) item.TrangThai = ConvertStatusToVietnamese(item.TrangThai);
+
+                    // Tìm kiếm Client-side
+                    if (!string.IsNullOrEmpty(keyword))
+                        return list.Where(t => t.TenBan.ToLower().Contains(keyword.ToLower()) || t.MaBan.ToString().Contains(keyword)).ToList();
+
+                    return list;
+                }
+            }
+            catch { }
+            return new List<Models.Database.Database.BanAn>();
         }
         // ==================== DISPLAY METHODS ====================
 
@@ -1055,8 +1160,14 @@ namespace RestaurantClient
                 }
             }
         }
+        //==================== TABLE ===============================
+        // 1. Hàm chuyển đổi trạng thái để khớp với SQL của bạn
+       
+
 
         // ==================== HELPER METHODS ====================
+        // --- HELPER BÀN ĂN ---
+       
         private async Task ExecuteAsync(Button button, string loadingText, Func<Task> action)
         {
             string originalText = button.Text;
@@ -1106,6 +1217,123 @@ namespace RestaurantClient
         {
             MessageBox.Show(message, "Cảnh báo",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        private async void btn_addTable_Click(object sender, EventArgs e)
+        {
+
+
+            // ID trong SQL là tự tăng, nhưng cứ parse để tránh lỗi format
+            if (string.IsNullOrEmpty(textBox1.Text)) return;
+
+            try
+            {
+                string status = MapStatusToSQL(comboBox1.SelectedItem?.ToString() ?? "Trống");
+                var req = new AddTableRequest
+                {
+                    MaBan = int.Parse(textBox1.Text),
+                    TenBan = tb_nameTable.Text,
+                    TrangThai = status
+                };
+
+                await ExecuteAsync(btn_addTable, "...", async () =>
+                {
+                    // 1. Gói dữ liệu (Wrapper)
+                    var wrapper = new { Type = "AddTable", Data = req };
+
+                    // 2. Gọi SendRequest chuẩn (hứng về class AddTableResponse của bạn)
+                    var resp = await SendRequest<object, AddTableResponse>(wrapper);
+
+                    if (resp != null && resp.Success)
+                    {
+                        ShowSuccess(resp.Message);
+
+                        // 3. ✅ Xóa dữ liệu trên ô nhập liệu
+                        textBox1.Clear();
+                        tb_nameTable.Clear();
+                        comboBox1.SelectedIndex = 0;
+
+                        // 4. ✅ Load lại bảng (hiện vào ô màu xám)
+                        await _tableManager.RefreshAsync();
+                    }
+                    else ShowError(resp?.Message ?? "Thất bại");
+                });
+            }
+            catch { ShowError("ID phải là số"); }
+        }
+
+        private async void btn_editTable_Click(object sender, EventArgs e)
+        {
+            if (_tableManager.GetSelectedItem() == null) { ShowWarning("Chọn bàn cần sửa"); return; }
+
+            try
+            {
+                string status = MapStatusToSQL(comboBox1.SelectedItem?.ToString() ?? "Trống");
+                var req = new UpdateTableRequest
+                {
+                    MaBan = int.Parse(textBox1.Text),
+                    TenBan = tb_nameTable.Text,
+                    TrangThai = status
+                };
+
+                await ExecuteAsync((Button)sender, "...", async () =>
+                {
+                    var wrapper = new { Type = "UpdateTable", Data = req };
+                    var resp = await SendRequest<object, UpdateTableResponse>(wrapper);
+
+                    if (resp != null && resp.Success)
+                    {
+                        ShowSuccess(resp.Message);
+                        // Xóa ô nhập và load lại
+                        textBox1.Clear(); tb_nameTable.Clear();
+                        await _tableManager.RefreshAsync();
+                    }
+                    else ShowError(resp?.Message ?? "Thất bại");
+                });
+            }
+            catch { ShowError("ID phải là số"); }
+        }
+
+        private async void btn_deleteTable_Click(object sender, EventArgs e)
+        {
+            var s = _tableManager.GetSelectedItem();
+            if (s == null || !Confirm("Xóa bàn này?")) return;
+
+            await ExecuteAsync((Button)sender, "...", async () =>
+            {
+                var req = new DeleteTableRequest { MaBan = s.MaBan };
+                var wrapper = new { Type = "DeleteTable", Data = req };
+
+                // Dùng BaseResponse hứng kết quả
+                var resp = await SendRequest<object, BaseResponse>(wrapper);
+
+                if (resp != null && resp.Success)
+                {
+                    ShowSuccess(resp.Message);
+                    // Xóa ô nhập và load lại
+                    textBox1.Clear(); tb_nameTable.Clear();
+                    await _tableManager.RefreshAsync();
+                }
+                else ShowError(resp?.Message ?? "Lỗi (Có thể bàn đang có hóa đơn)");
+            });
+        }
+
+        private async void button1_Click(object sender, EventArgs e)
+        {
+            await ExecuteAsync((Button)sender, "...", async () => {
+                await _tableManager.RefreshAsync();
+                textBox1.Clear(); tb_nameTable.Clear();
+                ShowSuccess("Đã tải lại");
+            });
+        }
+
+        private async void btn_searchTable_Click(object sender, EventArgs e)
+        {
+            string kw = "";
+            if (this.Controls.Find("tb_searchTable", true).FirstOrDefault() is TextBox tb)
+                kw = tb.Text.Trim();
+
+            await _tableManager.LoadDataAsync(() => LoadTablesFromServer(kw));
         }
     }
 }
