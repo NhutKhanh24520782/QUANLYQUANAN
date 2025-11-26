@@ -1,16 +1,15 @@
 ﻿using BCrypt.Net;
-using Models;
 using Models.Database;
+using Models;
 using Models.Response;
-using OfficeOpenXml;
-using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Data.SqlClient;
 
 namespace RestaurantServer
 {
@@ -510,115 +509,52 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-
-                    // 🛑 SỬA Ở ĐÂY:
-                    // 1. Bỏ "MaBanAn" trong phần INSERT INTO
-                    // 2. Bỏ "@id" trong phần VALUES
-                    string insertQuery = @"INSERT INTO BAN (TenBan, TrangThai) VALUES (@ten, @trangthai)";
+                    string insertQuery = @"INSERT INTO BAN (MaBanAn, TenBan, TrangThai) VALUES (@id, @ten, @trangthai)";
 
                     using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
                     {
-                        // 🛑 VÀ BỎ DÒNG NÀY ĐI (Không add tham số ID nữa)
-                        // cmd.Parameters.Add("@id", SqlDbType.Int).Value = banMoi.MaBan;
-
-                        // Chỉ giữ lại Tên và Trạng thái
-                        cmd.Parameters.Add("@ten", SqlDbType.NVarChar).Value =
-                            string.IsNullOrEmpty(banMoi.TenBan) ? (object)DBNull.Value : banMoi.TenBan;
-
-                        cmd.Parameters.Add("@trangthai", SqlDbType.NVarChar).Value =
-                            string.IsNullOrEmpty(banMoi.TrangThai) ? (object)DBNull.Value : banMoi.TrangThai;
+                        cmd.Parameters.AddWithValue("@id", banMoi.MaBan);
+                        cmd.Parameters.AddWithValue("@ten", banMoi.TenBan);
+                        cmd.Parameters.AddWithValue("@trangthai", banMoi.TrangThai);
 
                         int rowsAffected = cmd.ExecuteNonQuery();
                         return rowsAffected > 0;
                     }
                 }
             }
-            catch (SqlException ex)
-            {
-                Console.WriteLine($"Lỗi SQL Add: {ex.Message}"); // Hiện lên màn hình đen để dễ nhìn
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"General Error: {ex.Message}");
-                return false;
-            }
-        }
-        // ==================== GET TABLES (LẤY DANH SÁCH BÀN) ====================
-        public static List<Models.Database.Database.BanAn> GetListBanFromSQL()
+                catch (Exception ex) // Đã rút gọn catch để code ngắn gọn hơn
+                {
+                    Console.WriteLine($"SQL Error: {ex.Message}");
+                    return false;
+                }
+            }   
+
+        // 2. Hàm Sửa Bàn
+       public static bool UpdateBanInSQL(Models.Database.Database.BanAn banCapNhat)
         {
-            var list = new List<Models.Database.Database.BanAn>();
             try
             {
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-
-                    // Lấy tất cả dữ liệu từ bảng BAN
-                    string query = "SELECT MaBanAn, TenBan, TrangThai FROM BAN";
+                    string query = @"UPDATE BAN SET TenBan = @ten, TrangThai = @tt WHERE MaBanAn = @id";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                list.Add(new Models.Database.Database.BanAn
-                                {
-                                    // Đảm bảo tên cột trong ngoặc vuông [] khớp với SQL của bạn
-                                    MaBan = Convert.ToInt32(reader["MaBanAn"]),
-                                    TenBan = reader["TenBan"].ToString(),
-                                    TrangThai = reader["TrangThai"].ToString()
-                                });
-                            }
-                        }
+                        cmd.Parameters.AddWithValue("@id", banCapNhat.MaBan);
+                        cmd.Parameters.AddWithValue("@ten", banCapNhat.TenBan);
+                        cmd.Parameters.AddWithValue("@tt", banCapNhat.TrangThai);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        return rowsAffected > 0;
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Ghi lỗi ra màn hình console server để dễ debug
-                Console.WriteLine("Lỗi GetListBanFromSQL: " + ex.Message);
+                Console.WriteLine("Lỗi Update SQL: " + ex.Message);
+                return false;
             }
-            return list;
-        }
-        public static bool DeleteBanFromSQL(int maBan)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-                    string query = "DELETE FROM BAN WHERE MaBanAn = @id";
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@id", maBan);
-                        return cmd.ExecuteNonQuery() > 0;
-                    }
-                }
-            }
-            catch (Exception ex) { Console.WriteLine("Lỗi SQL Delete: " + ex.Message); return false; }
-        }
-
-        // 2. Sửa bàn trong SQL
-        public static bool UpdateBanInSQL(Models.Database.Database.BanAn banMoi)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-                    string query = "UPDATE BAN SET TenBan = @ten, TrangThai = @tt WHERE MaBanAn = @id";
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@id", banMoi.MaBan);
-                        cmd.Parameters.AddWithValue("@ten", banMoi.TenBan);
-                        cmd.Parameters.AddWithValue("@tt", banMoi.TrangThai);
-                        return cmd.ExecuteNonQuery() > 0;
-                    }
-                }
-            }
-            catch (Exception ex) { Console.WriteLine("Lỗi SQL Update: " + ex.Message); return false; }
         }
         //===================== DOANH THU ======================
         public static decimal GetTongDoanhThu(DateTime tuNgay, DateTime denNgay)
