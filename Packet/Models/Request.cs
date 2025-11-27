@@ -195,19 +195,41 @@ namespace Models.Request
         public int MaMon { get; set; }
         public string TrangThai { get; set; } = "ConMon"; // "ConMon" hoặc "HetMon"
     }
+    // ==================== BÀN ĂN (TABLE) REQUESTS ====================
+    // Trong Models/Request.cs
     public class AddTableRequest
     {
-        public string Type => "AddTable"; // ✅ THÊM DÒNG NÀY
-        public int MaBan { get; set; }
-        public string TenBan { get; set; }
-        public string TrangThai { get; set; }
+        public string Type => "AddTable";
+        public string TenBan { get; set; } = string.Empty;
+        public int? SoChoNgoi { get; set; }
+        public string TrangThai { get; set; } = "Trong";    
+        public int? MaNhanVien { get; set; } = null;
     }
+
     public class UpdateTableRequest
     {
-        public string Type => "UpdateTable"; // ✅ THÊM DÒNG NÀY
-        public int MaBan { get; set; }
-        public string TenBan { get; set; }
-        public string TrangThai { get; set; }
+        public string Type => "UpdateTable";
+        public int MaBanAn { get; set; } // Đổi từ MaBan -> MaBanAn
+        public string TenBan { get; set; } = string.Empty;
+        public int? SoChoNgoi { get; set; }
+        public string TrangThai { get; set; } = "Trong";
+        public int? MaNhanVien { get; set; } = null;
+    }
+
+    public class DeleteTableRequest
+    {
+        public string Type => "DeleteTable";
+        public int MaBanAn { get; set; } // Đổi từ MaBan -> MaBanAn
+    }
+    public class GetTablesRequest
+    {
+        public string Type => "GetTables";
+        // Không cần tham số gì thêm vì lấy toàn bộ
+    }
+    public class SearchTablesRequest
+    {
+        public string Type => "SearchTables";
+        public string Keyword { get; set; } = "";
     }
 }
 

@@ -43,6 +43,8 @@
             dataGridView_doanhthu = new DataGridView();
             tabPage2 = new TabPage();
             panel6 = new Panel();
+            cb_statusFood = new ComboBox();
+            label16 = new Label();
             nm_priceFood = new NumericUpDown();
             label4 = new Label();
             tb_nameFood = new TextBox();
@@ -59,6 +61,8 @@
             dataGridView_menu = new DataGridView();
             tabPage3 = new TabPage();
             cb_statusTable = new Panel();
+            lbl_seat = new Label();
+            nm_seats = new NumericUpDown();
             comboBox1 = new ComboBox();
             label7 = new Label();
             tb_nameTable = new TextBox();
@@ -71,7 +75,7 @@
             btn_searchTable = new Button();
             tb_searchTable = new TextBox();
             panel7 = new Panel();
-            button1 = new Button();
+            btn_viewTable = new Button();
             btn_editTable = new Button();
             btn_deleteTable = new Button();
             btn_addTable = new Button();
@@ -120,8 +124,6 @@
             panel18 = new Panel();
             btn_send = new Button();
             textBox2 = new TextBox();
-            label16 = new Label();
-            cb_statusFood = new ComboBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             panel2.SuspendLayout();
@@ -136,6 +138,7 @@
             ((System.ComponentModel.ISupportInitialize)dataGridView_menu).BeginInit();
             tabPage3.SuspendLayout();
             cb_statusTable.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)nm_seats).BeginInit();
             panel9.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView3).BeginInit();
             panel8.SuspendLayout();
@@ -323,6 +326,24 @@
             panel6.Size = new Size(389, 390);
             panel6.TabIndex = 3;
             // 
+            // cb_statusFood
+            // 
+            cb_statusFood.FormattingEnabled = true;
+            cb_statusFood.Location = new Point(132, 148);
+            cb_statusFood.Name = "cb_statusFood";
+            cb_statusFood.Size = new Size(163, 28);
+            cb_statusFood.TabIndex = 11;
+            // 
+            // label16
+            // 
+            label16.AutoSize = true;
+            label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label16.Location = new Point(9, 144);
+            label16.Name = "label16";
+            label16.Size = new Size(108, 28);
+            label16.TabIndex = 10;
+            label16.Text = "Trạng thái";
+            // 
             // nm_priceFood
             // 
             nm_priceFood.Location = new Point(132, 88);
@@ -451,6 +472,7 @@
             dataGridView_menu.RowHeadersWidth = 51;
             dataGridView_menu.Size = new Size(559, 390);
             dataGridView_menu.TabIndex = 0;
+            dataGridView_menu.CellContentClick += dataGridView_menu_CellContentClick;
             // 
             // tabPage3
             // 
@@ -468,6 +490,8 @@
             // 
             // cb_statusTable
             // 
+            cb_statusTable.Controls.Add(lbl_seat);
+            cb_statusTable.Controls.Add(nm_seats);
             cb_statusTable.Controls.Add(comboBox1);
             cb_statusTable.Controls.Add(label7);
             cb_statusTable.Controls.Add(tb_nameTable);
@@ -478,6 +502,23 @@
             cb_statusTable.Name = "cb_statusTable";
             cb_statusTable.Size = new Size(388, 380);
             cb_statusTable.TabIndex = 3;
+            // 
+            // lbl_seat
+            // 
+            lbl_seat.AutoSize = true;
+            lbl_seat.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lbl_seat.Location = new Point(15, 214);
+            lbl_seat.Name = "lbl_seat";
+            lbl_seat.Size = new Size(123, 28);
+            lbl_seat.TabIndex = 7;
+            lbl_seat.Text = "Số chỗ ngồi";
+            // 
+            // nm_seats
+            // 
+            nm_seats.Location = new Point(166, 215);
+            nm_seats.Name = "nm_seats";
+            nm_seats.Size = new Size(208, 27);
+            nm_seats.TabIndex = 6;
             // 
             // comboBox1
             // 
@@ -547,6 +588,7 @@
             dataGridView3.RowHeadersWidth = 51;
             dataGridView3.Size = new Size(560, 374);
             dataGridView3.TabIndex = 0;
+            dataGridView3.CellContentClick += dataGridView3_CellContentClick;
             // 
             // panel8
             // 
@@ -576,7 +618,7 @@
             // 
             // panel7
             // 
-            panel7.Controls.Add(button1);
+            panel7.Controls.Add(btn_viewTable);
             panel7.Controls.Add(btn_editTable);
             panel7.Controls.Add(btn_deleteTable);
             panel7.Controls.Add(btn_addTable);
@@ -585,15 +627,15 @@
             panel7.Size = new Size(566, 72);
             panel7.TabIndex = 0;
             // 
-            // button1
+            // btn_viewTable
             // 
-            button1.Location = new Point(385, 15);
-            button1.Name = "button1";
-            button1.Size = new Size(111, 45);
-            button1.TabIndex = 3;
-            button1.Text = "Xem";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
+            btn_viewTable.Location = new Point(385, 15);
+            btn_viewTable.Name = "btn_viewTable";
+            btn_viewTable.Size = new Size(111, 45);
+            btn_viewTable.TabIndex = 3;
+            btn_viewTable.Text = "Xem";
+            btn_viewTable.UseVisualStyleBackColor = true;
+            btn_viewTable.Click += btn_viewTable_Click;
             // 
             // btn_editTable
             // 
@@ -623,6 +665,7 @@
             btn_addTable.TabIndex = 0;
             btn_addTable.Text = "Thêm";
             btn_addTable.UseVisualStyleBackColor = true;
+            btn_addTable.Click += btn_addTable_Click;
             // 
             // tabPage4
             // 
@@ -1075,24 +1118,6 @@
             textBox2.Size = new Size(802, 59);
             textBox2.TabIndex = 0;
             // 
-            // label16
-            // 
-            label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(9, 144);
-            label16.Name = "label16";
-            label16.Size = new Size(108, 28);
-            label16.TabIndex = 10;
-            label16.Text = "Trạng thái";
-            // 
-            // cb_statusFood
-            // 
-            cb_statusFood.FormattingEnabled = true;
-            cb_statusFood.Location = new Point(132, 148);
-            cb_statusFood.Name = "cb_statusFood";
-            cb_statusFood.Size = new Size(163, 28);
-            cb_statusFood.TabIndex = 11;
-            // 
             // Admin
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
@@ -1120,6 +1145,7 @@
             tabPage3.ResumeLayout(false);
             cb_statusTable.ResumeLayout(false);
             cb_statusTable.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)nm_seats).EndInit();
             panel9.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dataGridView3).EndInit();
             panel8.ResumeLayout(false);
@@ -1184,7 +1210,7 @@
         private Button btn_addTable;
         private Button btn_deleteTable;
         private Button btn_editTable;
-        private Button button1;
+        private Button btn_viewTable;
         private ComboBox comboBox1;
         private Label label7;
         private TextBox tb_nameTable;
@@ -1244,5 +1270,7 @@
         private Button btn_xuatbaocao;
         private ComboBox cb_statusFood;
         private Label label16;
+        private Label lbl_seat;
+        private NumericUpDown nm_seats;
     }
 }

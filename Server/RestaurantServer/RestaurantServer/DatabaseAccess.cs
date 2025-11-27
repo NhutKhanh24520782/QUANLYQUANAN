@@ -501,59 +501,295 @@ namespace RestaurantServer
         }
         // ====================== BAN AN ======================
 
-        // 1. Hàm Thêm Bàn
-        public static bool AddBanToSQL(Models.Database.Database.BanAn banMoi)
+        // ====================== BAN AN (TABLE) FUNCTIONS ======================
+
+        /// <summary>
+        /// Lấy danh sách tất cả bàn ăn
+        /// </summary>
+        public static BanAnResult GetTables()
         {
             try
             {
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string insertQuery = @"INSERT INTO BAN (MaBanAn, TenBan, TrangThai) VALUES (@id, @ten, @trangthai)";
-
-                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@id", banMoi.MaBan);
-                        cmd.Parameters.AddWithValue("@ten", banMoi.TenBan);
-                        cmd.Parameters.AddWithValue("@trangthai", banMoi.TrangThai);
-
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        return rowsAffected > 0;
-                    }
-                }
-            }
-                catch (Exception ex) // Đã rút gọn catch để code ngắn gọn hơn
-                {
-                    Console.WriteLine($"SQL Error: {ex.Message}");
-                    return false;
-                }
-            }   
-
-        // 2. Hàm Sửa Bàn
-       public static bool UpdateBanInSQL(Models.Database.Database.BanAn banCapNhat)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-                    string query = @"UPDATE BAN SET TenBan = @ten, TrangThai = @tt WHERE MaBanAn = @id";
+                    string query = @"SELECT MaBanAn, TenBan, SoChoNgoi, TrangThai, MaNhanVien 
+                           FROM BAN 
+                           ORDER BY MaBanAn";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
-                        cmd.Parameters.AddWithValue("@id", banCapNhat.MaBan);
-                        cmd.Parameters.AddWithValue("@ten", banCapNhat.TenBan);
-                        cmd.Parameters.AddWithValue("@tt", banCapNhat.TrangThai);
-
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        return rowsAffected > 0;
+                        var tables = new List<BanAnData>();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                tables.Add(new BanAnData
+                                {
+                                    MaBanAn = (int)reader["MaBanAn"],
+                                    TenBan = reader["TenBan"].ToString(),
+                                    SoChoNgoi = reader["SoChoNgoi"] as int?,
+                                    TrangThai = reader["TrangThai"].ToString(),
+                                    MaNhanVien = reader["MaNhanVien"] as int?
+                                });
+                            }
+                        }
+                        return new BanAnResult { Success = true, Tables = tables, Message = $"Lấy danh sách {tables.Count} bàn thành công" };
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Lỗi Update SQL: " + ex.Message);
-                return false;
+                return new BanAnResult { Success = false, Message = $"Lỗi lấy danh sách bàn: {ex.Message}" };
+            }
+        }
+
+        /// <summary>
+        /// Tìm kiếm bàn ăn
+        /// </summary>
+        public static BanAnResult SearchTables(string keyword)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = @"SELECT MaBanAn, TenBan, SoChoNgoi, TrangThai, MaNhanVien 
+                           FROM BAN 
+                           WHERE @Keyword = '' OR TenBan LIKE '%' + @Keyword + '%'
+                           ORDER BY MaBanAn";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@Keyword", keyword);
+                        var tables = new List<BanAnData>();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                tables.Add(new BanAnData
+                                {
+                                    MaBanAn = (int)reader["MaBanAn"],
+                                    TenBan = reader["TenBan"].ToString(),
+                                    SoChoNgoi = reader["SoChoNgoi"] as int?,
+                                    TrangThai = reader["TrangThai"].ToString(),
+                                    MaNhanVien = reader["MaNhanVien"] as int?
+                                });
+                            }
+                        }
+                        return new BanAnResult { Success = true, Tables = tables, Message = $"Tìm thấy {tables.Count} bàn" };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BanAnResult { Success = false, Message = $"Lỗi tìm kiếm bàn: {ex.Message}" };
+            }
+        }
+
+        /// <summary>
+        /// Thêm bàn ăn mới
+        /// </summary>
+        public static BanAnResult AddTable(string tenBan, int? soChoNgoi, string trangThai, int? maNhanVien)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Kiểm tra tên bàn đã tồn tại chưa
+                    string checkQuery = "SELECT COUNT(*) FROM BAN WHERE TenBan = @TenBan";
+                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                    {
+                        checkCmd.Parameters.AddWithValue("@TenBan", tenBan);
+                        int count = (int)checkCmd.ExecuteScalar();
+                        if (count > 0)
+                            return new BanAnResult { Success = false, Message = "Tên bàn đã tồn tại" };
+                    }
+
+                    // Thêm bàn mới
+                    string insertQuery = @"INSERT INTO BAN (TenBan, SoChoNgoi, TrangThai, MaNhanVien) 
+                                 OUTPUT INSERTED.MaBanAn
+                                 VALUES (@TenBan, @SoChoNgoi, @TrangThai, @MaNhanVien)";
+
+                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TenBan", tenBan);
+                        cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+
+                        // Xử lý parameter nullable
+                        if (soChoNgoi.HasValue)
+                            cmd.Parameters.AddWithValue("@SoChoNgoi", soChoNgoi.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@SoChoNgoi", DBNull.Value);
+
+                        if (maNhanVien.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVien", DBNull.Value);
+
+                        int newId = (int)cmd.ExecuteScalar();
+                        return new BanAnResult
+                        {
+                            Success = true,
+                            Message = "Thêm bàn thành công",
+                            MaBanAn = newId
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BanAnResult { Success = false, Message = $"Lỗi thêm bàn: {ex.Message}" };
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật thông tin bàn ăn
+        /// </summary>
+        public static BanAnResult UpdateTable(int maBanAn, string tenBan, int? soChoNgoi, string trangThai, int? maNhanVien)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Kiểm tra tên bàn đã tồn tại chưa (trừ bàn hiện tại)
+                    string checkQuery = "SELECT COUNT(*) FROM BAN WHERE TenBan = @TenBan AND MaBanAn != @MaBanAn";
+                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                    {
+                        checkCmd.Parameters.AddWithValue("@TenBan", tenBan);
+                        checkCmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        int count = (int)checkCmd.ExecuteScalar();
+                        if (count > 0)
+                            return new BanAnResult { Success = false, Message = "Tên bàn đã tồn tại" };
+                    }
+
+                    // Cập nhật bàn
+                    string updateQuery = @"UPDATE BAN 
+                                 SET TenBan = @TenBan, 
+                                     SoChoNgoi = @SoChoNgoi, 
+                                     TrangThai = @TrangThai,
+                                     MaNhanVien = @MaNhanVien
+                                 WHERE MaBanAn = @MaBanAn";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        cmd.Parameters.AddWithValue("@TenBan", tenBan);
+                        cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+
+                        // Xử lý parameter nullable
+                        if (soChoNgoi.HasValue)
+                            cmd.Parameters.AddWithValue("@SoChoNgoi", soChoNgoi.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@SoChoNgoi", DBNull.Value);
+
+                        if (maNhanVien.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVien", DBNull.Value);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                            return new BanAnResult { Success = true, Message = "Cập nhật bàn thành công" };
+                        else
+                            return new BanAnResult { Success = false, Message = "Không tìm thấy bàn để cập nhật" };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BanAnResult { Success = false, Message = $"Lỗi cập nhật bàn: {ex.Message}" };
+            }
+        }
+
+        /// <summary>
+        /// Xóa bàn ăn (soft delete - cập nhật trạng thái)
+        /// </summary>
+        public static BanAnResult DeleteTable(int maBanAn)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Kiểm tra xem bàn có đang được sử dụng không
+                    string checkQuery = @"SELECT COUNT(*) FROM HOADON 
+                               WHERE MaBanAn = @MaBanAn AND TrangThai IN ('ChuaThanhToan')";
+                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                    {
+                        checkCmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        int count = (int)checkCmd.ExecuteScalar();
+                        if (count > 0)
+                            return new BanAnResult { Success = false, Message = "Không thể xóa bàn đang có hóa đơn chưa thanh toán" };
+                    }
+
+                    // Thực hiện xóa (có thể là soft delete hoặc hard delete tùy yêu cầu)
+                    // Ở đây tôi dùng hard delete, bạn có thể đổi thành soft delete nếu cần
+                    string deleteQuery = "DELETE FROM BAN WHERE MaBanAn = @MaBanAn";
+                    using (SqlCommand cmd = new SqlCommand(deleteQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                            return new BanAnResult { Success = true, Message = "Xóa bàn thành công" };
+                        else
+                            return new BanAnResult { Success = false, Message = "Không tìm thấy bàn để xóa" };
+                    }
+                }
+            }
+            catch (SqlException sqlEx) when (sqlEx.Number == 547) // Foreign key constraint
+            {
+                return new BanAnResult { Success = false, Message = "Không thể xóa bàn vì có dữ liệu liên quan" };
+            }
+            catch (Exception ex)
+            {
+                return new BanAnResult { Success = false, Message = $"Lỗi xóa bàn: {ex.Message}" };
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật trạng thái bàn
+        /// </summary>
+        public static BanAnResult UpdateTableStatus(int maBanAn, string trangThai, int? maNhanVien = null)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string updateQuery = @"UPDATE BAN 
+                                 SET TrangThai = @TrangThai,
+                                     MaNhanVien = @MaNhanVien
+                                 WHERE MaBanAn = @MaBanAn";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+
+                        if (maNhanVien.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVien", DBNull.Value);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                            return new BanAnResult { Success = true, Message = "Cập nhật trạng thái bàn thành công" };
+                        else
+                            return new BanAnResult { Success = false, Message = "Không tìm thấy bàn để cập nhật" };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BanAnResult { Success = false, Message = $"Lỗi cập nhật trạng thái bàn: {ex.Message}" };
             }
         }
         //===================== DOANH THU ======================

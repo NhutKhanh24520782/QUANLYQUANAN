@@ -179,14 +179,38 @@ namespace Models.Response
         public List<BillData> Bills { get; set; } = new List<BillData>();
     }
     //=================================
-    public class AddTableResponse
+    // ==================== BÀN ĂN (TABLE) RESPONSES ====================
+    // ==================== BÀN ĂN (TABLE) RESPONSES ====================
+
+    // 1. Response cho Thêm Bàn (Cần trả về MaBan để hiển thị lên ô ID)
+    public class AddTableResponse : BaseResponse
     {
-        public bool Success { get; set; }
-        public string Message { get; set; }
+        public AddTableResponse() => Type = "AddTableResponse";
+        public int MaBan { get; set; } // ID vừa được SQL tạo
     }
-    public class UpdateTableResponse
+
+    // 2. Response cho Sửa Bàn (Chỉ cần báo thành công/thất bại, BaseResponse đã đủ nhưng tạo riêng cho rõ ràng)
+    public class UpdateTableResponse : BaseResponse
     {
-        public bool Success { get; set; }
-        public string Message { get; set; }
+        public UpdateTableResponse() => Type = "UpdateTableResponse";
     }
+
+    // 3. Response cho Xóa Bàn
+    public class DeleteTableResponse : BaseResponse
+    {
+        public DeleteTableResponse() => Type = "DeleteTableResponse";
+    }
+
+    // 4. Response cho Lấy danh sách bàn
+    public class GetTablesResponse : BaseResponse
+    {
+        public GetTablesResponse() => Type = "GetTablesResponse";
+
+        // Chứa danh sách bàn lấy từ SQL
+        // Lưu ý: Đảm bảo Models.Database.Database.BanAn tồn tại
+        public List<BanAnData> ListBan { get; set; } = new List<BanAnData>();
+    }
+
+  
+
 }

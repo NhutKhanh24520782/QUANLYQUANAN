@@ -94,9 +94,12 @@ namespace RestaurantServer
                         "UpdateMenu" => await HandleUpdateMenuAsync(rawRequest),
                         "DeleteMenu" => await HandleDeleteMenuAsync(rawRequest),
                         "UpdateMenuStatus" => await HandleUpdateMenuStatusRequestAsync(rawRequest),
+                        "GetTables" => await HandleGetTablesRequestAsync(rawRequest),
+                        "SearchTables" => await HandleSearchTablesRequestAsync(rawRequest),
                         "AddTable" => await HandleAddTableRequestAsync(rawRequest),
                         "UpdateTable" => await HandleUpdateTableRequestAsync(rawRequest),
-
+                        "DeleteTable" => await HandleDeleteTableRequestAsync(rawRequest),
+                       // "UpdateTableStatus" => await HandleUpdateTableStatusRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -405,39 +408,86 @@ namespace RestaurantServer
                 catch (Exception ex) { return CreateErrorResponse($"Lỗi cập nhật trạng thái món: {ex.Message}"); }
             });
         }
+        // ====================== TABLE HANDLERS ======================
+
+        private async Task<string> HandleGetTablesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var result = DatabaseAccess.GetTables();
+                    var response = new GetTablesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ListBan = result.Tables
+                    };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách bàn: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleSearchTablesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<SearchTablesRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.SearchTables(request.Keyword);
+                    var response = new GetTablesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ListBan = result.Tables
+                    };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi tìm kiếm bàn: {ex.Message}");
+                }
+            });
+        }
+
         private async Task<string> HandleAddTableRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    // 1. Giải mã JSON request
                     var request = rawRequest.ToObject<AddTableRequest>();
-                    if (request == null) return CreateErrorResponse("Request 'AddTable' không hợp lệ");
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
 
-                    // 2. Tạo đối tượng Models.Database.BanAn
-                    Models.Database.Database.BanAn banMoi = new Models.Database.Database.BanAn
-                    {
-                        MaBan = request.MaBan,
-                        TenBan = request.TenBan,
-                        TrangThai = request.TrangThai
-                    };
+                    var result = DatabaseAccess.AddTable(
+                        request.TenBan,
+                        request.SoChoNgoi,
+                        request.TrangThai,
+                        request.MaNhanVien
+                    );
 
-                    // 3. Gọi DatabaseAccess
-                    bool result = DatabaseAccess.AddBanToSQL(banMoi);
-
-                    // 4. Trả về Response
                     var response = new AddTableResponse
                     {
-                        Success = result,
-                        Message = result ? "Thêm bàn thành công" : "Lỗi: ID bàn có thể đã tồn tại"
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaBan = result.MaBanAn
                     };
+
+                    if (result.Success)
+                        Console.WriteLine($"✅ Thêm bàn thành công: {request.TenBan} (ID: {result.MaBanAn})");
 
                     return JsonConvert.SerializeObject(response);
                 }
                 catch (Exception ex)
                 {
-                    return CreateErrorResponse($"Lỗi hệ thống khi thêm bàn: {ex.Message}");
+                    return CreateErrorResponse($"Lỗi thêm bàn: {ex.Message}");
                 }
             });
         }
@@ -448,41 +498,96 @@ namespace RestaurantServer
             {
                 try
                 {
-                    // 1. Giải mã JSON request
                     var request = rawRequest.ToObject<UpdateTableRequest>();
-                    if (request == null) return CreateErrorResponse("Request 'UpdateTable' không hợp lệ");
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
 
-                    // 2. Tạo đối tượng Models.Database.BanAn
-                    Models.Database.Database.BanAn banSua = new Models.Database.Database.BanAn
-                    {
-                        MaBan = request.MaBan,
-                        TenBan = request.TenBan,
-                        TrangThai = request.TrangThai
-                    };
+                    var result = DatabaseAccess.UpdateTable(
+                        request.MaBanAn,
+                        request.TenBan,
+                        request.SoChoNgoi,
+                        request.TrangThai,
+                        request.MaNhanVien
+                    );
 
-                    // 3. Gọi DatabaseAccess
-                    bool result = DatabaseAccess.UpdateBanInSQL(banSua);
-
-                    // 4. Trả về Response
                     var response = new UpdateTableResponse
                     {
-                        Success = result,
-                        Message = result ? "Cập nhật bàn thành công" : "Lỗi: Không tìm thấy ID bàn hoặc lỗi SQL"
+                        Success = result.Success,
+                        Message = result.Message
                     };
+
+                    if (result.Success)
+                        Console.WriteLine($"✅ Cập nhật bàn thành công: {request.TenBan} (ID: {request.MaBanAn})");
 
                     return JsonConvert.SerializeObject(response);
                 }
                 catch (Exception ex)
                 {
-                    return CreateErrorResponse($"Lỗi hệ thống khi sửa bàn: {ex.Message}");
+                    return CreateErrorResponse($"Lỗi cập nhật bàn: {ex.Message}");
                 }
             });
         }
 
-        // ------------------------------------------------------------------------
-        // CÁC HÀM TIỆN ÍCH (HELPER)
-        // ------------------------------------------------------------------------
+        private async Task<string> HandleDeleteTableRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<DeleteTableRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
 
+                    var result = DatabaseAccess.DeleteTable(request.MaBanAn);
+
+                    var response = new DeleteTableResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"✅ Xóa bàn thành công: ID {request.MaBanAn}");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi xóa bàn: {ex.Message}");
+                }
+            });
+        }
+
+        //private async Task<string> HandleUpdateTableStatusRequestAsync(JObject rawRequest)
+        //{
+        //    return await Task.Run(() =>
+        //    {
+        //        try
+        //        {
+        //            var request = rawRequest.ToObject<UpdateTableStatusRequest>();
+        //            if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+        //            var result = DatabaseAccess.UpdateTableStatus(
+        //                request.MaBanAn,
+        //                request.TrangThai,
+        //                request.MaNhanVien
+        //            );
+
+        //            var response = new UpdateTableResponse
+        //            {
+        //                Success = result.Success,
+        //                Message = result.Message
+        //            };
+
+        //            if (result.Success)
+        //                Console.WriteLine($"🔄 Cập nhật trạng thái bàn: {request.MaBanAn} -> {request.TrangThai}");
+
+        //            return JsonConvert.SerializeObject(response);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            return CreateErrorResponse($"Lỗi cập nhật trạng thái bàn: {ex.Message}");
+        //        }
+        //    });
+        //}
         private string HandleUnknownRequest()
         {
             return CreateErrorResponse("Loại request không hợp lệ");

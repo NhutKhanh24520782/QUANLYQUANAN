@@ -134,16 +134,22 @@ namespace Models.Database
         public int MaMon { get; set; }
         public List<MenuItemData> Items { get; set; } = new();
     }
-    public class Database
+    public class BanAnResult
     {
-        // Class BanAn nằm TRONG class Database
-        public class BanAn
-        {
-            public int MaBan { get; set; }
-            public string TenBan { get; set; }
-            public string TrangThai { get; set; }
-        }
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<BanAnData> Tables { get; set; } = new List<BanAnData>();
+        public int MaBanAn { get; set; }
     }
+    public class BanAnData
+    {
+        public int MaBanAn { get; set; }  // Đổi từ MaBan -> MaBanAn để khớp database
+        public string TenBan { get; set; } = string.Empty;
+        public string TrangThai { get; set; } = "Trong";
+        public int? SoChoNgoi { get; set; } // Thêm theo database
+        public int? MaNhanVien { get; set; } // Thêm theo database
+    }
+
 
 }
 
