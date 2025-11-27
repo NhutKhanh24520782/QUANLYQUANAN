@@ -617,7 +617,12 @@ namespace RestaurantServer
                     {
                         cmd.Parameters.AddWithValue("@TenBan", tenBan);
                         cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+                        // THÊM KIỂM TRA NÀY VÀO CẢ 2 PHƯƠNG THỨC:
+                        if (string.IsNullOrWhiteSpace(tenBan))
+                            return new BanAnResult { Success = false, Message = "Tên bàn không được để trống" };
 
+                        if (soChoNgoi.HasValue && soChoNgoi.Value <= 0)
+                            return new BanAnResult { Success = false, Message = "Số chỗ ngồi phải lớn hơn 0" };
                         // Xử lý parameter nullable
                         if (soChoNgoi.HasValue)
                             cmd.Parameters.AddWithValue("@SoChoNgoi", soChoNgoi.Value);
@@ -682,6 +687,13 @@ namespace RestaurantServer
                         cmd.Parameters.AddWithValue("@TrangThai", trangThai);
 
                         // Xử lý parameter nullable
+                        // THÊM KIỂM TRA NÀY VÀO CẢ 2 PHƯƠNG THỨC:
+                        if (string.IsNullOrWhiteSpace(tenBan))
+                            return new BanAnResult { Success = false, Message = "Tên bàn không được để trống" };
+
+                        if (soChoNgoi.HasValue && soChoNgoi.Value <= 0)
+                            return new BanAnResult { Success = false, Message = "Số chỗ ngồi phải lớn hơn 0" };
+
                         if (soChoNgoi.HasValue)
                             cmd.Parameters.AddWithValue("@SoChoNgoi", soChoNgoi.Value);
                         else

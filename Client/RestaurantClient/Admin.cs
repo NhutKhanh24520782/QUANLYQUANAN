@@ -34,19 +34,18 @@ namespace RestaurantClient
         private const int SERVER_PORT = 5000;
         private const string SEARCH_PLACEHOLDER = "Tìm theo tên hoặc email...";
         private const string SEARCH_BILL = "Tìm theo mã bàn hoặc nhân viên...";
-
+        private const string SEARCH_TABLE ="Tìm theo mã bàn hoặc trạng thái...";
         // ==================== INITIALIZATION ====================
         public Admin()
         {
             InitializeComponent();
-            comboBox1.Items.Clear();
-            comboBox1.Items.Add("Trống");
-            comboBox1.Items.Add("Có người");
-            comboBox1.Items.Add("Đã đặt");
-            comboBox1.SelectedIndex = 0;
-            comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
+            cb_statusban.Items.Clear();
+            cb_statusban.Items.Add("Trống");
+            cb_statusban.Items.Add("Có người");
+            cb_statusban.Items.Add("Đã đặt");
+            cb_statusban.SelectedIndex = 0;
+            cb_statusban.DropDownStyle = ComboBoxStyle.DropDownList;
             CheckTableControls();
-            CheckDataGridViewColumns(); // ✅ THÊM DÒNG NÀY
             InitializeGridViewManagers();
             InitializeDoanhThuControls();
             InitializeBillTab();
@@ -139,7 +138,7 @@ namespace RestaurantClient
        LoadTablesFromServer,
        table => new
        {
-           MaBan = table.MaBanAn,
+           MaBanAn = table.MaBanAn,
            TenBan = table.TenBan,
            SoChoNgoi = table.SoChoNgoi?.ToString() ?? "Không xác định",
            TrangThai = ConvertStatusToVietnamese(table.TrangThai),
@@ -214,15 +213,15 @@ namespace RestaurantClient
             cb_statusFood.Items.AddRange(new[] { "Còn món", "Hết món" }); // ✅ THÊM
             tb_password.PasswordChar = '●';
             SetupSearchBox(tb_searchHuman, SEARCH_PLACEHOLDER);
-            SetupSearchBox(tb_searchTable, "Tìm theo mã bàn hoặc trạng thái...");
+            SetupSearchBox(tb_searchTable, SEARCH_TABLE);
 
             // Thiết lập combobox trạng thái bàn
-            comboBox1.Items.Clear();
-            comboBox1.Items.Add("Trống");
-            comboBox1.Items.Add("Có người");
-            comboBox1.Items.Add("Đã đặt");
-            comboBox1.SelectedIndex = 0;
-            comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
+            cb_statusban.Items.Clear();
+            cb_statusban.Items.Add("Trống");
+            cb_statusban.Items.Add("Có người");
+            cb_statusban.Items.Add("Đã đặt");
+            cb_statusban.SelectedIndex = 0;
+            cb_statusban.DropDownStyle = ComboBoxStyle.DropDownList;
             dataGridView3.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView3.MultiSelect = false;
             dataGridView3.ReadOnly = true;
@@ -469,81 +468,45 @@ namespace RestaurantClient
 
         private void ShowTableDetails(BanAnData table)
         {
-            if (table == null) return;
-
-            // HIỂN THỊ THẲNG LÊN CONTROL - KHÔNG CHECK NULL
-            textBox1.Text = table.MaBanAn.ToString();
-            tb_nameTable.Text = table.TenBan;
-            nm_seats.Value = table.SoChoNgoi ?? 4;
-
-            string status = ConvertStatusToVietnamese(table.TrangThai);
-            comboBox1.SelectedItem = status;
-        }
-        // ✅ THÊM: Phương thức xử lý sự kiện riêng cho bàn ăn
-        private void DataGridView3_SelectionChanged(object sender, EventArgs e)
-        {
-            Console.WriteLine($"🎯 SelectionChanged - Số hàng được chọn: {dataGridView3.SelectedRows.Count}");
-
-            if (dataGridView3.SelectedRows.Count > 0)
+            if (table == null)
             {
-                var selectedRow = dataGridView3.SelectedRows[0];
-                Console.WriteLine($"📋 Đã chọn hàng index: {selectedRow.Index}");
+                Console.WriteLine("❌ Table is NULL");
+                return;
+            }
 
-                var selected = _tableManager.GetSelectedItem();
-                if (selected != null)
+            try
+            {
+                Console.WriteLine($"🔍 Hiển thị bàn: {table.MaBanAn} - {table.TenBan} - Trạng thái: {table.TrangThai}");
+
+                // 1. HIỂN THỊ THÔNG TIN CƠ BẢN
+                tb_idban.Text = table.MaBanAn.ToString();
+                tb_nameTable.Text = table.TenBan;
+                nm_seats.Value = table.SoChoNgoi ?? 4;
+
+                // 2. XỬ LÝ COMBOBOX ĐÚNG CÁCH
+                string statusVietnamese = ConvertStatusToVietnamese(table.TrangThai);
+                Console.WriteLine($"🔄 Convert: {table.TrangThai} -> {statusVietnamese}");
+
+                // Tìm item trong combobox bằng tiếng Việt
+                var matchingItem = cb_statusban.Items.Cast<string>()
+                    .FirstOrDefault(item => item.Equals(statusVietnamese, StringComparison.OrdinalIgnoreCase));
+
+                if (matchingItem != null)
                 {
-                    Console.WriteLine($"✅ Đã chọn bàn qua SelectionChanged: {selected.MaBanAn} - {selected.TenBan}");
-                    ShowTableDetails(selected);
+                    cb_statusban.SelectedItem = matchingItem;
+                    Console.WriteLine($"✅ Đã set combobox: {matchingItem}");
                 }
                 else
                 {
-                    Console.WriteLine("❌ GetSelectedItem trả về null trong SelectionChanged");
+                    Console.WriteLine($"❌ Không tìm thấy '{statusVietnamese}' trong combobox");
+                    cb_statusban.SelectedIndex = 0; // Mặc định là "Trống"
                 }
+
+                Console.WriteLine("✅ Đã hiển thị đầy đủ thông tin bàn");
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("ℹ️ Không có hàng nào được chọn");
-                ClearTableForm();
-            }
-        }
-        private void DataGridView3_CellClick(object sender, DataGridViewCellEventArgs e)
-        {
-            Console.WriteLine($"🖱️ CellClick - Row: {e.RowIndex}, Column: {e.ColumnIndex}");
-
-            if (e.RowIndex >= 0 && e.RowIndex < dataGridView3.Rows.Count)
-            {
-                // Đảm bảo hàng được chọn
-                dataGridView3.Rows[e.RowIndex].Selected = true;
-
-                var selected = _tableManager.GetSelectedItem();
-                if (selected != null)
-                {
-                    Console.WriteLine($"✅ Đã chọn bàn qua CellClick: {selected.MaBanAn} - {selected.TenBan}");
-                    ShowTableDetails(selected);
-                }
-                else
-                {
-                    Console.WriteLine("❌ GetSelectedItem trả về null trong CellClick");
-                }
-            }
-        }
-
-
-        // ✅ THÊM: Kiểm tra mapping columns
-        private void CheckDataGridViewColumns()
-        {
-            Console.WriteLine("🔍 Kiểm tra columns trong dataGridView3:");
-            foreach (DataGridViewColumn column in dataGridView3.Columns)
-            {
-                Console.WriteLine($"   - {column.Name}: {column.DataPropertyName} (Visible: {column.Visible})");
-            }
-
-            Console.WriteLine("🔍 Kiểm tra properties của BanAnData:");
-            var sampleTable = new BanAnData();
-            var properties = typeof(BanAnData).GetProperties();
-            foreach (var prop in properties)
-            {
-                Console.WriteLine($"   - {prop.Name}: {prop.PropertyType}");
+                Console.WriteLine($"💥 Lỗi trong ShowTableDetails: {ex.Message}");
             }
         }
         private void ShowEmployeeDetails(EmployeeData employee)
@@ -695,10 +658,10 @@ namespace RestaurantClient
 
         private void ClearTableForm()
         {
-            textBox1.Text = "";        // ID bàn
+            tb_idban.Text = "";        // ID bàn
             tb_nameTable.Text = "";    // Tên bàn
             nm_seats.Value = 4;        // Số chỗ ngồi mặc định
-            comboBox1.SelectedIndex = 0; // Mặc định là "Trống"
+            cb_statusban.SelectedIndex = 0; // Mặc định là "Trống"
 
             // Reset search box về placeholder
             if (tb_searchTable != null && (string.IsNullOrEmpty(tb_searchTable.Text) || tb_searchTable.Text == "Tìm theo mã bàn hoặc trạng thái..."))
@@ -857,36 +820,52 @@ namespace RestaurantClient
         {
             if (statusViet == "Có người") return "DangSuDung";
             if (statusViet == "Đã đặt") return "DaDat";
-            return "Trong";
+            if (statusViet == "Trống") return "Trong";  // ✅ THÊM
+            return "Trong"; // Mặc định
         }
         // ✅ THÊM: Phương thức kiểm tra control có tồn tại không
         private void CheckTableControls()
         {
             Console.WriteLine("🔍 Kiểm tra controls bàn ăn:");
-            Console.WriteLine($"   - textBox1: {(textBox1 != null ? "CÓ" : "NULL")}");
+            Console.WriteLine($"   - textBox1: {(tb_idban != null ? "CÓ" : "NULL")}");
             Console.WriteLine($"   - tb_nameTable: {(tb_nameTable != null ? "CÓ" : "NULL")}");
             Console.WriteLine($"   - nm_seats: {(nm_seats != null ? "CÓ" : "NULL")}");
-            Console.WriteLine($"   - comboBox1: {(comboBox1 != null ? "CÓ" : "NULL")}");
+            Console.WriteLine($"   - comboBox1: {(cb_statusban != null ? "CÓ" : "NULL")}");
 
-            if (comboBox1 != null)
+            if (cb_statusban != null)
             {
-                Console.WriteLine($"   - comboBox1 items: {string.Join(", ", comboBox1.Items.Cast<string>())}");
+                Console.WriteLine($"   - comboBox1 items: {string.Join(", ", cb_statusban.Items.Cast<string>())}");
             }
         }
 
         private string ConvertStatusToVietnamese(string sqlStatus)
         {
-            if (string.IsNullOrEmpty(sqlStatus)) return "Trống";
+            if (string.IsNullOrEmpty(sqlStatus))
+            {
+                Console.WriteLine("⚠️ SQL status is null or empty");
+                return "Trống";
+            }
 
-            if (sqlStatus.Equals("DangSuDung", StringComparison.OrdinalIgnoreCase)) return "Có người";
-            if (sqlStatus.Equals("DaDat", StringComparison.OrdinalIgnoreCase)) return "Đã đặt";
-            if (sqlStatus.Equals("Trong", StringComparison.OrdinalIgnoreCase)) return "Trống";
+            Console.WriteLine($"🔍 Converting status: '{sqlStatus}'");
 
-            // ✅ THÊM: Xử lý thêm các trường hợp có thể có
-            if (sqlStatus.Equals("Có người", StringComparison.OrdinalIgnoreCase)) return "Có người";
-            if (sqlStatus.Equals("Đã đặt", StringComparison.OrdinalIgnoreCase)) return "Đã đặt";
-            if (sqlStatus.Equals("Trống", StringComparison.OrdinalIgnoreCase)) return "Trống";
+            // Chuyển đổi từ SQL format sang tiếng Việt
+            var statusMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Trong", "Trống" },
+                { "DangSuDung", "Có người" },
+                { "DaDat", "Đã đặt" },
+                { "Có người", "Có người" }, // Phòng trường hợp đã là tiếng Việt
+                { "Đã đặt", "Đã đặt" },
+                { "Trống", "Trống" }
+            };
 
+            if (statusMap.TryGetValue(sqlStatus, out string vietnameseStatus))
+            {
+                Console.WriteLine($"✅ Mapped: '{sqlStatus}' -> '{vietnameseStatus}'");
+                return vietnameseStatus;
+            }
+
+            Console.WriteLine($"❌ Không map được status: '{sqlStatus}'");
             return "Trống"; // Mặc định
         }
         // ==================== CRUD OPERATIONS ====================
@@ -914,7 +893,8 @@ namespace RestaurantClient
                 ShowSuccess($"Đã tải {_tableManager.GetRowCount()} bàn");
                 return;
             }
-
+            _tableManager.ClearSelection();
+            ClearTableForm();
             // Hiển thị loading
             btn_searchTable.Enabled = false;
             btn_searchTable.Text = "Đang tìm...";
@@ -967,7 +947,7 @@ namespace RestaurantClient
                 return;
             }
 
-            if (comboBox1.SelectedItem == null)
+            if (cb_statusban.SelectedItem == null)
             {
                 ShowWarning("Vui lòng chọn trạng thái bàn!");
                 return;
@@ -980,7 +960,7 @@ namespace RestaurantClient
             await ExecuteAsync(btn_addTable, "Đang thêm...", async () =>
             {
                 // Chuyển đổi trạng thái từ tiếng Việt sang SQL
-                string trangThai = MapStatusToSQL(comboBox1.SelectedItem.ToString());
+                string trangThai = MapStatusToSQL(cb_statusban.SelectedItem.ToString());
 
                 var request = new AddTableRequest
                 {
@@ -1022,7 +1002,7 @@ namespace RestaurantClient
                 return;
             }
 
-            if (comboBox1.SelectedItem == null)
+            if (cb_statusban.SelectedItem == null)
             {
                 ShowWarning("Vui lòng chọn trạng thái bàn!");
                 return;
@@ -1035,7 +1015,7 @@ namespace RestaurantClient
             await ExecuteAsync(btn_editTable, "Đang cập nhật...", async () =>
             {
                 // Chuyển đổi trạng thái từ tiếng Việt sang SQL
-                string trangThai = MapStatusToSQL(comboBox1.SelectedItem.ToString());
+                string trangThai = MapStatusToSQL(cb_statusban.SelectedItem.ToString());
 
                 var request = new UpdateTableRequest
                 {
@@ -1594,16 +1574,6 @@ namespace RestaurantClient
         {
             MessageBox.Show(message, "Cảnh báo",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        }
-
-        private void dataGridView_menu_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-
-        }
-
-        private void dataGridView3_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-
         }
     }
 }

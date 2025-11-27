@@ -63,11 +63,11 @@
             cb_statusTable = new Panel();
             lbl_seat = new Label();
             nm_seats = new NumericUpDown();
-            comboBox1 = new ComboBox();
+            cb_statusban = new ComboBox();
             label7 = new Label();
             tb_nameTable = new TextBox();
             label6 = new Label();
-            textBox1 = new TextBox();
+            tb_idban = new TextBox();
             label5 = new Label();
             panel9 = new Panel();
             dataGridView3 = new DataGridView();
@@ -472,7 +472,6 @@
             dataGridView_menu.RowHeadersWidth = 51;
             dataGridView_menu.Size = new Size(559, 390);
             dataGridView_menu.TabIndex = 0;
-            dataGridView_menu.CellContentClick += dataGridView_menu_CellContentClick;
             // 
             // tabPage3
             // 
@@ -492,11 +491,11 @@
             // 
             cb_statusTable.Controls.Add(lbl_seat);
             cb_statusTable.Controls.Add(nm_seats);
-            cb_statusTable.Controls.Add(comboBox1);
+            cb_statusTable.Controls.Add(cb_statusban);
             cb_statusTable.Controls.Add(label7);
             cb_statusTable.Controls.Add(tb_nameTable);
             cb_statusTable.Controls.Add(label6);
-            cb_statusTable.Controls.Add(textBox1);
+            cb_statusTable.Controls.Add(tb_idban);
             cb_statusTable.Controls.Add(label5);
             cb_statusTable.Location = new Point(578, 84);
             cb_statusTable.Name = "cb_statusTable";
@@ -520,13 +519,13 @@
             nm_seats.Size = new Size(208, 27);
             nm_seats.TabIndex = 6;
             // 
-            // comboBox1
+            // cb_statusban
             // 
-            comboBox1.FormattingEnabled = true;
-            comboBox1.Location = new Point(166, 158);
-            comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(208, 28);
-            comboBox1.TabIndex = 5;
+            cb_statusban.FormattingEnabled = true;
+            cb_statusban.Location = new Point(166, 158);
+            cb_statusban.Name = "cb_statusban";
+            cb_statusban.Size = new Size(208, 28);
+            cb_statusban.TabIndex = 5;
             // 
             // label7
             // 
@@ -555,12 +554,12 @@
             label6.TabIndex = 2;
             label6.Text = "Tên bàn";
             // 
-            // textBox1
+            // tb_idban
             // 
-            textBox1.Location = new Point(108, 44);
-            textBox1.Name = "textBox1";
-            textBox1.Size = new Size(266, 27);
-            textBox1.TabIndex = 1;
+            tb_idban.Location = new Point(108, 44);
+            tb_idban.Name = "tb_idban";
+            tb_idban.Size = new Size(266, 27);
+            tb_idban.TabIndex = 1;
             // 
             // label5
             // 
@@ -588,7 +587,6 @@
             dataGridView3.RowHeadersWidth = 51;
             dataGridView3.Size = new Size(560, 374);
             dataGridView3.TabIndex = 0;
-            dataGridView3.CellContentClick += dataGridView3_CellContentClick;
             // 
             // panel8
             // 
@@ -1211,11 +1209,11 @@
         private Button btn_deleteTable;
         private Button btn_editTable;
         private Button btn_viewTable;
-        private ComboBox comboBox1;
+        private ComboBox cb_statusban;
         private Label label7;
         private TextBox tb_nameTable;
         private Label label6;
-        private TextBox textBox1;
+        private TextBox tb_idban;
         private Label label5;
         private Button btn_searchTable;
         private TextBox tb_searchTable;
