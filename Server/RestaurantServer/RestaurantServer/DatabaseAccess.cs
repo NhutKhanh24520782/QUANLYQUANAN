@@ -501,11 +501,6 @@ namespace RestaurantServer
         }
         // ====================== BAN AN ======================
 
-        // ====================== BAN AN (TABLE) FUNCTIONS ======================
-
-        /// <summary>
-        /// Lấy danh sách tất cả bàn ăn
-        /// </summary>
         public static BanAnResult GetTables()
         {
             try
@@ -513,8 +508,10 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
+                    // ✅ CHỈ LẤY BÀN KHÔNG ẨN
                     string query = @"SELECT MaBanAn, TenBan, SoChoNgoi, TrangThai, MaNhanVien 
                            FROM BAN 
+                           WHERE TrangThai != N'An'
                            ORDER BY MaBanAn";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
@@ -543,10 +540,6 @@ namespace RestaurantServer
                 return new BanAnResult { Success = false, Message = $"Lỗi lấy danh sách bàn: {ex.Message}" };
             }
         }
-
-        /// <summary>
-        /// Tìm kiếm bàn ăn
-        /// </summary>
         public static BanAnResult SearchTables(string keyword)
         {
             try
@@ -720,7 +713,6 @@ namespace RestaurantServer
 
         /// <summary>
         /// Xóa bàn ăn (soft delete - cập nhật trạng thái)
-        /// </summary>
         public static BanAnResult DeleteTable(int maBanAn)
         {
             try
@@ -729,81 +721,26 @@ namespace RestaurantServer
                 {
                     conn.Open();
 
-                    // Kiểm tra xem bàn có đang được sử dụng không
-                    string checkQuery = @"SELECT COUNT(*) FROM HOADON 
-                               WHERE MaBanAn = @MaBanAn AND TrangThai IN ('ChuaThanhToan')";
-                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
-                    {
-                        checkCmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
-                        int count = (int)checkCmd.ExecuteScalar();
-                        if (count > 0)
-                            return new BanAnResult { Success = false, Message = "Không thể xóa bàn đang có hóa đơn chưa thanh toán" };
-                    }
-
-                    // Thực hiện xóa (có thể là soft delete hoặc hard delete tùy yêu cầu)
-                    // Ở đây tôi dùng hard delete, bạn có thể đổi thành soft delete nếu cần
-                    string deleteQuery = "DELETE FROM BAN WHERE MaBanAn = @MaBanAn";
-                    using (SqlCommand cmd = new SqlCommand(deleteQuery, conn))
+                    // ✅ THAY VÌ XÓA -> ẨN BÀN
+                    string hideQuery = "UPDATE BAN SET TrangThai = N'An' WHERE MaBanAn = @MaBanAn";
+                    using (SqlCommand cmd = new SqlCommand(hideQuery, conn))
                     {
                         cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
                         int rowsAffected = cmd.ExecuteNonQuery();
 
                         if (rowsAffected > 0)
-                            return new BanAnResult { Success = true, Message = "Xóa bàn thành công" };
+                            return new BanAnResult { Success = true, Message = "Đã ẩn bàn thành công" };
                         else
-                            return new BanAnResult { Success = false, Message = "Không tìm thấy bàn để xóa" };
-                    }
-                }
-            }
-            catch (SqlException sqlEx) when (sqlEx.Number == 547) // Foreign key constraint
-            {
-                return new BanAnResult { Success = false, Message = "Không thể xóa bàn vì có dữ liệu liên quan" };
-            }
-            catch (Exception ex)
-            {
-                return new BanAnResult { Success = false, Message = $"Lỗi xóa bàn: {ex.Message}" };
-            }
-        }
-
-        /// <summary>
-        /// Cập nhật trạng thái bàn
-        /// </summary>
-        public static BanAnResult UpdateTableStatus(int maBanAn, string trangThai, int? maNhanVien = null)
-        {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-
-                    string updateQuery = @"UPDATE BAN 
-                                 SET TrangThai = @TrangThai,
-                                     MaNhanVien = @MaNhanVien
-                                 WHERE MaBanAn = @MaBanAn";
-
-                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
-                        cmd.Parameters.AddWithValue("@TrangThai", trangThai);
-
-                        if (maNhanVien.HasValue)
-                            cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien.Value);
-                        else
-                            cmd.Parameters.AddWithValue("@MaNhanVien", DBNull.Value);
-
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        if (rowsAffected > 0)
-                            return new BanAnResult { Success = true, Message = "Cập nhật trạng thái bàn thành công" };
-                        else
-                            return new BanAnResult { Success = false, Message = "Không tìm thấy bàn để cập nhật" };
+                            return new BanAnResult { Success = false, Message = "Không tìm thấy bàn để ẩn" };
                     }
                 }
             }
             catch (Exception ex)
             {
-                return new BanAnResult { Success = false, Message = $"Lỗi cập nhật trạng thái bàn: {ex.Message}" };
+                return new BanAnResult { Success = false, Message = $"Lỗi ẩn bàn: {ex.Message}" };
             }
         }
+      
         //===================== DOANH THU ======================
         public static decimal GetTongDoanhThu(DateTime tuNgay, DateTime denNgay)
         {

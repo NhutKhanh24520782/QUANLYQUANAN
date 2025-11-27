@@ -551,7 +551,7 @@ namespace RestaurantClient
 
                     if (status == "Có người")
                     {
-                        row.DefaultCellStyle.BackColor = Color.LightCoral;
+                        row.DefaultCellStyle.BackColor = Color.LightSalmon;
                         row.DefaultCellStyle.SelectionBackColor = Color.Red;
                     }
                     else if (status == "Đã đặt")
@@ -815,15 +815,22 @@ namespace RestaurantClient
 
             _menuManager.ClearSelection();
         }
-
         private string MapStatusToSQL(string statusViet)
         {
-            if (statusViet == "Có người") return "DangSuDung";
-            if (statusViet == "Đã đặt") return "DaDat";
-            if (statusViet == "Trống") return "Trong";  // ✅ THÊM
-            return "Trong"; // Mặc định
+            var statusMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Trống", "Trong" },
+                { "Có người", "DangSuDung" },
+                { "Đã đặt", "DaDat" },
+                { "🫥 Đã ẩn", "An" },  // ✅ THÊM TRẠNG THÁI ẨN
+                { "Đã ẩn", "An" }      // ✅ THÊM TRẠNG THÁI ẨN (dự phòng)
+            };
+
+            if (statusMap.TryGetValue(statusViet, out string sqlStatus))
+                return sqlStatus;
+
+            return "Trong";
         }
-        // ✅ THÊM: Phương thức kiểm tra control có tồn tại không
         private void CheckTableControls()
         {
             Console.WriteLine("🔍 Kiểm tra controls bàn ăn:");
@@ -840,33 +847,18 @@ namespace RestaurantClient
 
         private string ConvertStatusToVietnamese(string sqlStatus)
         {
-            if (string.IsNullOrEmpty(sqlStatus))
-            {
-                Console.WriteLine("⚠️ SQL status is null or empty");
-                return "Trống";
-            }
-
-            Console.WriteLine($"🔍 Converting status: '{sqlStatus}'");
-
-            // Chuyển đổi từ SQL format sang tiếng Việt
             var statusMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 { "Trong", "Trống" },
                 { "DangSuDung", "Có người" },
                 { "DaDat", "Đã đặt" },
-                { "Có người", "Có người" }, // Phòng trường hợp đã là tiếng Việt
-                { "Đã đặt", "Đã đặt" },
-                { "Trống", "Trống" }
+                { "An", "Đã ẩn" }  // ✅ THÊM TRẠNG THÁI ẨN
             };
 
             if (statusMap.TryGetValue(sqlStatus, out string vietnameseStatus))
-            {
-                Console.WriteLine($"✅ Mapped: '{sqlStatus}' -> '{vietnameseStatus}'");
                 return vietnameseStatus;
-            }
 
-            Console.WriteLine($"❌ Không map được status: '{sqlStatus}'");
-            return "Trống"; // Mặc định
+            return "Trống";
         }
         // ==================== CRUD OPERATIONS ====================
         // ==================== TABLE CRUD OPERATIONS ====================
@@ -1040,44 +1032,43 @@ namespace RestaurantClient
                 }
             });
         }
-
         private async void btn_deleteTable_Click(object sender, EventArgs e)
         {
             var selectedTable = _tableManager.GetSelectedItem();
             if (selectedTable == null)
             {
-                ShowWarning("Vui lòng chọn bàn cần xóa!");
+                ShowWarning("Vui lòng chọn bàn cần ẩn!");
                 return;
             }
 
-            // Xác nhận xóa
-            if (!Confirm($"⚠️ XÓA BÀN:\n{selectedTable.TenBan}?\n\nHành động không thể hoàn tác!"))
+            // ✅ ĐỔI THÔNG BÁO "XÓA" THÀNH "ẨN"
+            if (!Confirm($"⚠️ ẨN BÀN:\n{selectedTable.TenBan}?\n\nBàn sẽ không hiển thị trong danh sách nữa."))
                 return;
 
-            await ExecuteAsync(btn_deleteTable, "Đang xóa...", async () =>
+            await ExecuteAsync(btn_deleteTable, "Đang ẩn...", async () =>
             {
                 var request = new DeleteTableRequest { MaBanAn = selectedTable.MaBanAn };
                 var response = await SendRequest<DeleteTableRequest, DeleteTableResponse>(request);
 
                 if (response?.Success == true)
                 {
-                    ShowSuccess("Xóa bàn thành công!");
+                    ShowSuccess("✅ Đã ẩn bàn thành công!");
                     ClearTableForm();
                     await _tableManager.RefreshAsync();
                 }
                 else
                 {
-                    ShowError(response?.Message ?? "Xóa bàn thất bại");
+                    ShowError(response?.Message ?? "Ẩn bàn thất bại");
                 }
             });
         }
 
-        private async void btn_resetTable_Click(object sender, EventArgs e)
-        {
-            await _tableManager.LoadDataAsync();
-            ClearTableForm();
-            ShowSuccess("Đã làm mới danh sách bàn");
-        }
+        //private async void btn_resetTable_Click(object sender, EventArgs e)
+        //{
+        //    await _tableManager.LoadDataAsync();
+        //    ClearTableForm();
+        //    ShowSuccess("Đã làm mới danh sách bàn");
+        //}
         private async void btn_addHuman_Click(object sender, EventArgs e)
         {
             if (!ValidateInput(isAddMode: true, out string error))

@@ -556,38 +556,6 @@ namespace RestaurantServer
             });
         }
 
-        //private async Task<string> HandleUpdateTableStatusRequestAsync(JObject rawRequest)
-        //{
-        //    return await Task.Run(() =>
-        //    {
-        //        try
-        //        {
-        //            var request = rawRequest.ToObject<UpdateTableStatusRequest>();
-        //            if (request == null) return CreateErrorResponse("Request không hợp lệ");
-
-        //            var result = DatabaseAccess.UpdateTableStatus(
-        //                request.MaBanAn,
-        //                request.TrangThai,
-        //                request.MaNhanVien
-        //            );
-
-        //            var response = new UpdateTableResponse
-        //            {
-        //                Success = result.Success,
-        //                Message = result.Message
-        //            };
-
-        //            if (result.Success)
-        //                Console.WriteLine($"🔄 Cập nhật trạng thái bàn: {request.MaBanAn} -> {request.TrangThai}");
-
-        //            return JsonConvert.SerializeObject(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            return CreateErrorResponse($"Lỗi cập nhật trạng thái bàn: {ex.Message}");
-        //        }
-        //    });
-        //}
         private string HandleUnknownRequest()
         {
             return CreateErrorResponse("Loại request không hợp lệ");
