@@ -31,6 +31,7 @@
             tabControl1 = new TabControl();
             tp_phucvuqly = new TabPage();
             gb_thucdonorder = new GroupBox();
+            nm_gia = new NumericUpDown();
             dataGridView_mon = new DataGridView();
             btn_guiorder = new Button();
             btn_xoamon = new Button();
@@ -58,21 +59,27 @@
             gb_thongtin = new GroupBox();
             label6 = new Label();
             listView3 = new ListView();
-            btn_lammoi = new Button();
-            cb_state = new ComboBox();
             label5 = new Label();
-            cb_ban = new ComboBox();
             lbl_ban = new Label();
             lbl_boloc = new Label();
             label4 = new Label();
             tb_chat = new TabPage();
-            button1 = new Button();
-            textBox1 = new TextBox();
-            dataGridView1 = new DataGridView();
-            nm_gia = new NumericUpDown();
+            groupBox1 = new GroupBox();
+            label10 = new Label();
+            btn_lammoi = new Button();
+            cb_trangthai = new ComboBox();
+            label9 = new Label();
+            label8 = new Label();
+            label7 = new Label();
+            tabPage1 = new TabPage();
+            btn_send = new Button();
+            tb_message = new TextBox();
+            dataGridView2 = new DataGridView();
+            cb_banan = new ComboBox();
             tabControl1.SuspendLayout();
             tp_phucvuqly.SuspendLayout();
             gb_thucdonorder.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)nm_gia).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridView_mon).BeginInit();
             gb_thongtinban.SuspendLayout();
             gb_chitietorder.SuspendLayout();
@@ -80,8 +87,9 @@
             tb_theodoidon.SuspendLayout();
             gb_thongtin.SuspendLayout();
             tb_chat.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)nm_gia).BeginInit();
+            groupBox1.SuspendLayout();
+            tabPage1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView2).BeginInit();
             SuspendLayout();
             // 
             // tabControl1
@@ -89,6 +97,7 @@
             tabControl1.Controls.Add(tp_phucvuqly);
             tabControl1.Controls.Add(tb_theodoidon);
             tabControl1.Controls.Add(tb_chat);
+            tabControl1.Controls.Add(tabPage1);
             tabControl1.Location = new Point(-1, 0);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
@@ -125,6 +134,13 @@
             gb_thucdonorder.TabIndex = 4;
             gb_thucdonorder.TabStop = false;
             gb_thucdonorder.Text = "Thực đơn & Order món";
+            // 
+            // nm_gia
+            // 
+            nm_gia.Location = new Point(484, 31);
+            nm_gia.Name = "nm_gia";
+            nm_gia.Size = new Size(114, 31);
+            nm_gia.TabIndex = 12;
             // 
             // dataGridView_mon
             // 
@@ -378,10 +394,7 @@
             // 
             gb_thongtin.Controls.Add(label6);
             gb_thongtin.Controls.Add(listView3);
-            gb_thongtin.Controls.Add(btn_lammoi);
-            gb_thongtin.Controls.Add(cb_state);
             gb_thongtin.Controls.Add(label5);
-            gb_thongtin.Controls.Add(cb_ban);
             gb_thongtin.Controls.Add(lbl_ban);
             gb_thongtin.Controls.Add(lbl_boloc);
             gb_thongtin.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -410,23 +423,6 @@
             listView3.TabIndex = 6;
             listView3.UseCompatibleStateImageBehavior = false;
             // 
-            // btn_lammoi
-            // 
-            btn_lammoi.Location = new Point(913, 55);
-            btn_lammoi.Name = "btn_lammoi";
-            btn_lammoi.Size = new Size(173, 53);
-            btn_lammoi.TabIndex = 5;
-            btn_lammoi.Text = "Làm mới";
-            btn_lammoi.UseVisualStyleBackColor = true;
-            // 
-            // cb_state
-            // 
-            cb_state.FormattingEnabled = true;
-            cb_state.Location = new Point(612, 63);
-            cb_state.Name = "cb_state";
-            cb_state.Size = new Size(216, 36);
-            cb_state.TabIndex = 4;
-            // 
             // label5
             // 
             label5.AutoSize = true;
@@ -436,14 +432,6 @@
             label5.Size = new Size(93, 25);
             label5.TabIndex = 3;
             label5.Text = "Trạng thái:";
-            // 
-            // cb_ban
-            // 
-            cb_ban.FormattingEnabled = true;
-            cb_ban.Location = new Point(186, 60);
-            cb_ban.Name = "cb_ban";
-            cb_ban.Size = new Size(216, 36);
-            cb_ban.TabIndex = 2;
             // 
             // lbl_ban
             // 
@@ -475,50 +463,134 @@
             // 
             // tb_chat
             // 
-            tb_chat.Controls.Add(button1);
-            tb_chat.Controls.Add(textBox1);
-            tb_chat.Controls.Add(dataGridView1);
+            tb_chat.Controls.Add(groupBox1);
             tb_chat.Location = new Point(4, 29);
             tb_chat.Name = "tb_chat";
             tb_chat.Padding = new Padding(3);
             tb_chat.Size = new Size(1389, 605);
             tb_chat.TabIndex = 2;
-            tb_chat.Text = "Chat";
+            tb_chat.Text = "Theo dõi đơn hàng";
             tb_chat.UseVisualStyleBackColor = true;
             // 
-            // button1
+            // groupBox1
             // 
-            button1.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            button1.Location = new Point(1051, 418);
-            button1.Name = "button1";
-            button1.Size = new Size(225, 65);
-            button1.TabIndex = 5;
-            button1.Text = "Gửi";
-            button1.UseVisualStyleBackColor = true;
+            groupBox1.Controls.Add(cb_banan);
+            groupBox1.Controls.Add(label10);
+            groupBox1.Controls.Add(btn_lammoi);
+            groupBox1.Controls.Add(cb_trangthai);
+            groupBox1.Controls.Add(label9);
+            groupBox1.Controls.Add(label8);
+            groupBox1.Controls.Add(label7);
+            groupBox1.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            groupBox1.Location = new Point(6, 6);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Size = new Size(1377, 593);
+            groupBox1.TabIndex = 0;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "Thông tin đơn hàng";
             // 
-            // textBox1
+            // label10
             // 
-            textBox1.Location = new Point(-4, 418);
-            textBox1.Multiline = true;
-            textBox1.Name = "textBox1";
-            textBox1.Size = new Size(1006, 65);
-            textBox1.TabIndex = 4;
+            label10.AutoSize = true;
+            label10.Location = new Point(576, 197);
+            label10.Name = "label10";
+            label10.Size = new Size(207, 28);
+            label10.TabIndex = 6;
+            label10.Text = "Danh sách đơn hàng";
             // 
-            // dataGridView1
+            // btn_lammoi
             // 
-            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView1.Location = new Point(-4, 15);
-            dataGridView1.Name = "dataGridView1";
-            dataGridView1.RowHeadersWidth = 51;
-            dataGridView1.Size = new Size(1280, 397);
-            dataGridView1.TabIndex = 3;
+            btn_lammoi.Location = new Point(1002, 76);
+            btn_lammoi.Name = "btn_lammoi";
+            btn_lammoi.Size = new Size(152, 48);
+            btn_lammoi.TabIndex = 5;
+            btn_lammoi.Text = "Làm mới";
+            btn_lammoi.UseVisualStyleBackColor = true;
             // 
-            // nm_gia
+            // cb_trangthai
             // 
-            nm_gia.Location = new Point(484, 31);
-            nm_gia.Name = "nm_gia";
-            nm_gia.Size = new Size(114, 31);
-            nm_gia.TabIndex = 12;
+            cb_trangthai.FormattingEnabled = true;
+            cb_trangthai.Location = new Point(655, 78);
+            cb_trangthai.Name = "cb_trangthai";
+            cb_trangthai.Size = new Size(210, 36);
+            cb_trangthai.TabIndex = 4;
+            // 
+            // label9
+            // 
+            label9.AutoSize = true;
+            label9.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label9.Location = new Point(560, 84);
+            label9.Name = "label9";
+            label9.Size = new Size(98, 25);
+            label9.TabIndex = 3;
+            label9.Text = "Trạng thái: ";
+            // 
+            // label8
+            // 
+            label8.AutoSize = true;
+            label8.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label8.Location = new Point(115, 84);
+            label8.Name = "label8";
+            label8.Size = new Size(74, 25);
+            label8.TabIndex = 1;
+            label8.Text = "Bàn ăn: ";
+            // 
+            // label7
+            // 
+            label7.AutoSize = true;
+            label7.Location = new Point(17, 81);
+            label7.Name = "label7";
+            label7.Size = new Size(76, 28);
+            label7.TabIndex = 0;
+            label7.Text = "Bộ lọc:";
+            // 
+            // tabPage1
+            // 
+            tabPage1.Controls.Add(btn_send);
+            tabPage1.Controls.Add(tb_message);
+            tabPage1.Controls.Add(dataGridView2);
+            tabPage1.Location = new Point(4, 29);
+            tabPage1.Name = "tabPage1";
+            tabPage1.Padding = new Padding(3);
+            tabPage1.Size = new Size(1389, 605);
+            tabPage1.TabIndex = 3;
+            tabPage1.Text = "Chat";
+            tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // btn_send
+            // 
+            btn_send.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_send.Location = new Point(1089, 408);
+            btn_send.Name = "btn_send";
+            btn_send.Size = new Size(197, 65);
+            btn_send.TabIndex = 2;
+            btn_send.Text = "Gửi";
+            btn_send.UseVisualStyleBackColor = true;
+            // 
+            // tb_message
+            // 
+            tb_message.Location = new Point(6, 408);
+            tb_message.Multiline = true;
+            tb_message.Name = "tb_message";
+            tb_message.Size = new Size(1039, 65);
+            tb_message.TabIndex = 1;
+            // 
+            // dataGridView2
+            // 
+            dataGridView2.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView2.Location = new Point(6, 6);
+            dataGridView2.Name = "dataGridView2";
+            dataGridView2.RowHeadersWidth = 51;
+            dataGridView2.Size = new Size(1280, 396);
+            dataGridView2.TabIndex = 0;
+            // 
+            // cb_banan
+            // 
+            cb_banan.FormattingEnabled = true;
+            cb_banan.Location = new Point(195, 78);
+            cb_banan.Name = "cb_banan";
+            cb_banan.Size = new Size(205, 36);
+            cb_banan.TabIndex = 7;
             // 
             // NVPhucVu
             // 
@@ -532,6 +604,7 @@
             tp_phucvuqly.ResumeLayout(false);
             gb_thucdonorder.ResumeLayout(false);
             gb_thucdonorder.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)nm_gia).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridView_mon).EndInit();
             gb_thongtinban.ResumeLayout(false);
             gb_thongtinban.PerformLayout();
@@ -543,9 +616,11 @@
             gb_thongtin.ResumeLayout(false);
             gb_thongtin.PerformLayout();
             tb_chat.ResumeLayout(false);
-            tb_chat.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)nm_gia).EndInit();
+            groupBox1.ResumeLayout(false);
+            groupBox1.PerformLayout();
+            tabPage1.ResumeLayout(false);
+            tabPage1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView2).EndInit();
             ResumeLayout(false);
         }
 
@@ -577,19 +652,19 @@
         private DataGridView dataGridView_chatphucvu;
         private Button btn_sendphucvu;
         private TabPage tb_chat;
-        private Button button1;
-        private TextBox textBox1;
-        private DataGridView dataGridView1;
         private Label label4;
         private GroupBox gb_thongtin;
         private Label lbl_boloc;
         private ComboBox cb_state;
         private Label label5;
         private ComboBox cb_ban;
+        private Label label10;
+        private Button btn_lammoi;
+        private ComboBox cb_trangthai;
+        private Label label9;
         private Label lbl_ban;
         private Label label6;
         private ListView listView3;
-        private Button btn_lammoi;
         private CheckBox checkBox2;
         private CheckBox checkBox1;
         private CheckBox checkBox_tienmat;
@@ -597,5 +672,13 @@
         private DataGridView dataGridView_mon;
         private DataGridView dataGridView_order;
         private NumericUpDown nm_gia;
+        private TabPage tabPage1;
+        private Button btn_send;
+        private TextBox tb_message;
+        private DataGridView dataGridView2;
+        private GroupBox groupBox1;
+        private Label label7;
+        private Label label8;
+        private ComboBox cb_banan;
     }
 }

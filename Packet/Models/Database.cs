@@ -150,6 +150,14 @@ namespace Models.Database
         public int? MaNhanVien { get; set; } // Thêm theo database
     }
 
+    public class OrderMon
+    {
+        public string TenMon { get; set; } = "";
+        public int Gia { get; set; }
+        public string MoTa { get; set; } = "";
+        public string TrangThai { get; set; } = "";
+    }
+
 
 }
 
