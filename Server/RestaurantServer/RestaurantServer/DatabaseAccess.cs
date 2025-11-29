@@ -1193,5 +1193,219 @@ namespace RestaurantServer
                 }
             }
         }
+
+        public static OrderMonResult GetMon()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = @"SELECT MaMon, TenMon, Gia, MoTa, TrangThai FROM MENUITEMS ";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        var mons = new List<OrderMonData>();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                mons.Add(new OrderMonData
+                                {
+                                    MaMon = (int)reader["MaMon"],
+                                    TenMon = reader["TenMon"].ToString(),
+                                    Gia = (int)reader["Gia"],
+                                    MoTa = reader["Gia"].ToString(),
+                                    TrangThai = reader["TrangThai"]?.ToString() ?? ""
+                                });
+                            }
+                        }
+                        return new OrderMonResult { Success = true, Message = $"Tìm thấy {mons.Count} món", OrderMons = mons };
+                    }
+                }
+            }
+            catch (Exception ex) { return new OrderMonResult { Success = false, Message = $"Lỗi truy xuất món: {ex.Message}", OrderMons = new List<OrderMonData>() }; }
+        }
+        // ==================== chọn theo danh mục món ====================
+
+        public static CategoryResult GetCategories()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = @"SELECT MaLoaiMon, TenLoai 
+                             FROM LoaiMon 
+                             WHERE TrangThai = 1 
+                             ORDER BY MaLoaiMon";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        var categories = new List<CategoryData>();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                categories.Add(new CategoryData
+                                {
+                                    MaLoaiMon = (int)reader["MaLoaiMon"],
+                                    TenLoai = reader["TenLoai"].ToString()
+                                });
+                            }
+                        }
+                        return new CategoryResult
+                        {
+                            Success = true,
+                            Categories = categories,
+                            Message = $"Lấy được {categories.Count} loại món"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new CategoryResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy danh sách loại món: {ex.Message}",
+                    Categories = new List<CategoryData>()
+                };
+            }
+        }
+
+        // 🔥 THÊM: Lấy món ăn theo loại
+        public static MenuResult GetMenuByCategory(int maLoaiMon)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query;
+                    SqlCommand cmd;
+
+                    if (maLoaiMon == 0) // Tất cả món
+                    {
+                        query = @"SELECT * FROM MENUITEMS 
+                          WHERE TrangThai != 'HetMon' 
+                          ORDER BY MaMon DESC";
+                        cmd = new SqlCommand(query, conn);
+                    }
+                    else // Món theo loại
+                    {
+                        query = @"SELECT * FROM MENUITEMS 
+                          WHERE MaLoaiMon = @MaLoaiMon 
+                          AND TrangThai != 'HetMon' 
+                          ORDER BY MaMon DESC";
+                        cmd = new SqlCommand(query, conn);
+                        cmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon);
+                    }
+
+                    var list = new List<MenuItemData>();
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            list.Add(new MenuItemData
+                            {
+                                MaMon = (int)r["MaMon"],
+                                TenMon = r["TenMon"].ToString(),
+                                Gia = Convert.ToDecimal(r["Gia"]),
+                                MoTa = r["MoTa"].ToString(),
+                                TrangThai = r["TrangThai"].ToString(),
+                                MaLoaiMon = r["MaLoaiMon"] as int?
+                            });
+                        }
+                    }
+
+                    return new MenuResult
+                    {
+                        Success = true,
+                        Items = list,
+                        Message = $"Tìm thấy {list.Count} món ăn"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MenuResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy món theo loại: {ex.Message}",
+                    Items = new List<MenuItemData>()
+                };
+            }
+        }
+        public static CreateOrderResult CreateOrder(int maBan, int maNhanVien, decimal tongTien, List<ChiTietOrder> chiTiet)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                using (SqlTransaction transaction = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // 1. Thêm hóa đơn
+                        string insertHoaDon = @"
+                    INSERT INTO HOADON (MaBanAn, MaNV, Ngay, TongTien, TrangThai)
+                    OUTPUT INSERTED.MaHD
+                    VALUES (@MaBanAn, @MaNV, GETDATE(), @TongTien, N'ChuaThanhToan')";
+
+                        int maHoaDon;
+                        using (SqlCommand cmd = new SqlCommand(insertHoaDon, conn, transaction))
+                        {
+                            cmd.Parameters.AddWithValue("@MaBanAn", maBan);
+                            cmd.Parameters.AddWithValue("@MaNV", maNhanVien);
+                            cmd.Parameters.AddWithValue("@TongTien", tongTien);
+                            maHoaDon = (int)cmd.ExecuteScalar();
+                        }
+
+                        // 2. Thêm chi tiết hóa đơn
+                    //    string insertChiTiet = @"
+                    //INSERT INTO CTHD (MaHD, MaMon, SoLuong, DonGia)
+                    //VALUES (@MaHD, @MaMon, @SoLuong, @DonGia)";
+
+                    //    foreach (var item in chiTiet)
+                    //    {
+                    //        using (SqlCommand cmd = new SqlCommand(insertChiTiet, conn, transaction))
+                    //        {
+                    //            cmd.Parameters.AddWithValue("@MaHD", maHoaDon);
+                    //            cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
+                    //            cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
+                    //            cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
+                    //            cmd.ExecuteNonQuery();
+                    //        }
+                    //    }
+
+                        // 3. Cập nhật trạng thái bàn
+                        string updateBan = "UPDATE BAN SET TrangThai = 'DangSuDung' WHERE MaBanAn = @MaBanAn";
+                        using (SqlCommand cmd = new SqlCommand(updateBan, conn, transaction))
+                        {
+                            cmd.Parameters.AddWithValue("@MaBanAn", maBan);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        transaction.Commit();
+
+                        return new CreateOrderResult
+                        {
+                            Success = true,
+                            Message = "Tạo order thành công",
+                            MaHoaDon = maHoaDon
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return new CreateOrderResult
+                        {
+                            Success = false,
+                            Message = $"Lỗi tạo order: {ex.Message}"
+                        };
+                    }
+                }
+            }
+        }
     }
 }

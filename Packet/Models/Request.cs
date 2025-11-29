@@ -324,5 +324,46 @@ namespace Models.Request
             return (true, string.Empty);
         }
     }
+    // ==================== ORDER REQUESTS ====================
+    public class GetMonRequest
+    {
+        public string Type => "GetMon";
+        public int MaMon { get; set; }
+        public string TenMon { get; set; } = "";
+        public int Gia { get; set; }
+        public string MoTa { get; set; } = "";
+        public string TrangThai { get; set; } = "";
+    }
+    public class AddMonRequest
+    {
+        public string Type => "AddMon";
+        public int MaLoaiMon { get; set; }
+        public string TenMon { get; set; } = "";
+        public int Gia { get; set; }
+        public string MoTa { get; set; } = "";
+        public string TrangThai { get; set; } = "";
+    }
+    public class DeleteMonRequest
+    {
+        public string Type => "DeleteMon";
+        public string TenMon { get; set; } = "";
+    }
+    public class SendOrderRequest
+    {
+        public string Type => "SendOrder";
+        public string TenMon { get; set; } = "";
+        public int Gia { get; set; }
+        public string MoTa { get; set; } = "";
+        public string TrangThai { get; set; } = "";
+    }
+    public class GetMenuByCategoryRequest
+    {
+        public string Type => "GetMenuByCategory";
+        public int MaLoaiMon { get; set; }
+    }
+    public class GetCategoriesRequest
+    {
+        public string Type => "GetCategories";
+    }
 }
 

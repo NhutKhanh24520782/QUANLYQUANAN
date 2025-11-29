@@ -144,7 +144,7 @@ namespace Models.Database
     }
     public class BanAnData
     {
-        public int MaBanAn { get; set; }  // Đổi từ MaBan -> MaBanAn để khớp database
+        public int MaBanAn { get; set; }  
         public string TenBan { get; set; } = string.Empty;
         public string TrangThai { get; set; } = "Trong";
         public int? SoChoNgoi { get; set; } // Thêm theo database
@@ -157,6 +157,22 @@ namespace Models.Database
         public int Gia { get; set; }
         public string MoTa { get; set; } = "";
         public string TrangThai { get; set; } = "";
+        public int MaMon { get; set; }
+    }
+    public class OrderMonData
+    {
+        public string TenMon { get; set; } = "";
+        public int Gia { get; set; }
+        public string MoTa { get; set; } = "";
+        public string TrangThai { get; set; } = "";
+        public int MaMon { get; set; }
+    }
+    public class OrderMonResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int MaMon { get; set; }
+        public List<OrderMonData> OrderMons { get; set; } = new List<OrderMonData>();
     }
     public class ThanhToanData
     {
@@ -251,6 +267,53 @@ namespace Models.Database
         public decimal SoTienThua { get; set; }
         public DateTime NgayThanhToan { get; set; }
         public string TransactionNo { get; set; } = string.Empty;
+    }
+    public class CategoryData
+    {
+        public int MaLoaiMon { get; set; }
+        public string TenLoai { get; set; }
+    }
+
+    public class CategoryResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public List<CategoryData> Categories { get; set; } = new List<CategoryData>();
+    }
+    public class CartItem
+    {
+        public int MaMon { get; set; }
+        public string TenMon { get; set; }
+        public decimal Gia { get; set; }
+        public int SoLuong { get; set; }
+    }
+    public class CreateOrderRequest
+    {
+        public string Type => "CreateOrder";
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public decimal TongTien { get; set; }
+        public List<ChiTietOrder> ChiTietOrder { get; set; }
+    }
+
+    public class ChiTietOrder
+    {
+        public int MaMon { get; set; }
+        public int SoLuong { get; set; }
+        public decimal DonGia { get; set; }
+    }
+
+    public class CreateOrderResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public int MaHoaDon { get; set; }
+    }
+    public class CreateOrderResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public int MaHoaDon { get; set; }
     }
 }
 

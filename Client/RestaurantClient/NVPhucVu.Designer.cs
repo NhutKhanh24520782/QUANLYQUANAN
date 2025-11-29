@@ -31,20 +31,23 @@
             tabControl1 = new TabControl();
             tp_phucvuqly = new TabPage();
             gb_thucdonorder = new GroupBox();
-            nm_gia = new NumericUpDown();
+            nm_soluong = new NumericUpDown();
             dataGridView_mon = new DataGridView();
             btn_guiorder = new Button();
             btn_xoamon = new Button();
             btn_themmon = new Button();
             label3 = new Label();
-            cb_namedish = new ComboBox();
+            cb_nameDish = new ComboBox();
             gb_thongtinban = new GroupBox();
+            label11 = new Label();
+            dataGridView_giohang = new DataGridView();
+            lbl_trangthaiban = new Label();
             btn_huyban = new Button();
             btn_datban = new Button();
             lbl_trangthai = new Label();
             label2 = new Label();
             label1 = new Label();
-            comboBox1 = new ComboBox();
+            cb_banOrder = new ComboBox();
             lbl_chonban = new Label();
             tp_thanhtoan = new TabPage();
             gb_thanhtoan = new GroupBox();
@@ -85,9 +88,10 @@
             tabControl1.SuspendLayout();
             tp_phucvuqly.SuspendLayout();
             gb_thucdonorder.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)nm_gia).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)nm_soluong).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridView_mon).BeginInit();
             gb_thongtinban.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_giohang).BeginInit();
             tp_thanhtoan.SuspendLayout();
             gb_thanhtoan.SuspendLayout();
             panel8.SuspendLayout();
@@ -124,13 +128,13 @@
             // 
             // gb_thucdonorder
             // 
-            gb_thucdonorder.Controls.Add(nm_gia);
+            gb_thucdonorder.Controls.Add(nm_soluong);
             gb_thucdonorder.Controls.Add(dataGridView_mon);
             gb_thucdonorder.Controls.Add(btn_guiorder);
             gb_thucdonorder.Controls.Add(btn_xoamon);
             gb_thucdonorder.Controls.Add(btn_themmon);
             gb_thucdonorder.Controls.Add(label3);
-            gb_thucdonorder.Controls.Add(cb_namedish);
+            gb_thucdonorder.Controls.Add(cb_nameDish);
             gb_thucdonorder.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
             gb_thucdonorder.Location = new Point(700, 6);
             gb_thucdonorder.Name = "gb_thucdonorder";
@@ -139,12 +143,12 @@
             gb_thucdonorder.TabStop = false;
             gb_thucdonorder.Text = "Thực đơn & Order món";
             // 
-            // nm_gia
+            // nm_soluong
             // 
-            nm_gia.Location = new Point(484, 31);
-            nm_gia.Name = "nm_gia";
-            nm_gia.Size = new Size(114, 31);
-            nm_gia.TabIndex = 12;
+            nm_soluong.Location = new Point(484, 31);
+            nm_soluong.Name = "nm_soluong";
+            nm_soluong.Size = new Size(114, 31);
+            nm_soluong.TabIndex = 12;
             // 
             // dataGridView_mon
             // 
@@ -154,6 +158,7 @@
             dataGridView_mon.RowHeadersWidth = 51;
             dataGridView_mon.Size = new Size(650, 342);
             dataGridView_mon.TabIndex = 11;
+            dataGridView_mon.CellContentClick += dataGridView_mon_CellContentClick;
             // 
             // btn_guiorder
             // 
@@ -164,6 +169,7 @@
             btn_guiorder.TabIndex = 10;
             btn_guiorder.Text = "Gửi Order";
             btn_guiorder.UseVisualStyleBackColor = true;
+            btn_guiorder.Click += btn_guiorder_Click;
             // 
             // btn_xoamon
             // 
@@ -174,6 +180,7 @@
             btn_xoamon.TabIndex = 9;
             btn_xoamon.Text = "Xóa Món";
             btn_xoamon.UseVisualStyleBackColor = true;
+            btn_xoamon.Click += btn_xoamon_Click;
             // 
             // btn_themmon
             // 
@@ -184,6 +191,7 @@
             btn_themmon.TabIndex = 8;
             btn_themmon.Text = "Thêm món";
             btn_themmon.UseVisualStyleBackColor = true;
+            btn_themmon.Click += btn_themmon_Click;
             // 
             // label3
             // 
@@ -195,31 +203,61 @@
             label3.TabIndex = 7;
             label3.Text = "Số lượng:";
             // 
-            // cb_namedish
+            // cb_nameDish
             // 
-            cb_namedish.FormattingEnabled = true;
-            cb_namedish.Location = new Point(42, 30);
-            cb_namedish.Name = "cb_namedish";
-            cb_namedish.Size = new Size(311, 33);
-            cb_namedish.TabIndex = 1;
-            cb_namedish.Text = "Danh mục món";
+            cb_nameDish.FormattingEnabled = true;
+            cb_nameDish.Location = new Point(42, 30);
+            cb_nameDish.Name = "cb_nameDish";
+            cb_nameDish.Size = new Size(311, 33);
+            cb_nameDish.TabIndex = 1;
+            cb_nameDish.Text = "Danh mục món";
             // 
             // gb_thongtinban
             // 
+            gb_thongtinban.Controls.Add(label11);
+            gb_thongtinban.Controls.Add(dataGridView_giohang);
+            gb_thongtinban.Controls.Add(lbl_trangthaiban);
             gb_thongtinban.Controls.Add(btn_huyban);
             gb_thongtinban.Controls.Add(btn_datban);
             gb_thongtinban.Controls.Add(lbl_trangthai);
             gb_thongtinban.Controls.Add(label2);
             gb_thongtinban.Controls.Add(label1);
-            gb_thongtinban.Controls.Add(comboBox1);
+            gb_thongtinban.Controls.Add(cb_banOrder);
             gb_thongtinban.Controls.Add(lbl_chonban);
-            gb_thongtinban.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            gb_thongtinban.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
             gb_thongtinban.Location = new Point(20, 3);
             gb_thongtinban.Name = "gb_thongtinban";
             gb_thongtinban.Size = new Size(674, 590);
             gb_thongtinban.TabIndex = 3;
             gb_thongtinban.TabStop = false;
             gb_thongtinban.Text = "Thông tin bàn ăn";
+            // 
+            // label11
+            // 
+            label11.AutoSize = true;
+            label11.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label11.Location = new Point(0, 165);
+            label11.Name = "label11";
+            label11.Size = new Size(88, 25);
+            label11.TabIndex = 9;
+            label11.Text = "Giỏ hàng:";
+            // 
+            // dataGridView_giohang
+            // 
+            dataGridView_giohang.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView_giohang.Location = new Point(0, 193);
+            dataGridView_giohang.Name = "dataGridView_giohang";
+            dataGridView_giohang.RowHeadersWidth = 51;
+            dataGridView_giohang.Size = new Size(561, 371);
+            dataGridView_giohang.TabIndex = 8;
+            // 
+            // lbl_trangthaiban
+            // 
+            lbl_trangthaiban.AutoSize = true;
+            lbl_trangthaiban.Location = new Point(134, 88);
+            lbl_trangthaiban.Name = "lbl_trangthaiban";
+            lbl_trangthaiban.Size = new Size(0, 25);
+            lbl_trangthaiban.TabIndex = 7;
             // 
             // btn_huyban
             // 
@@ -230,6 +268,7 @@
             btn_huyban.TabIndex = 6;
             btn_huyban.Text = "Hủy bàn";
             btn_huyban.UseVisualStyleBackColor = true;
+            btn_huyban.Click += btn_huyban_Click;
             // 
             // btn_datban
             // 
@@ -240,6 +279,7 @@
             btn_datban.TabIndex = 5;
             btn_datban.Text = "Đặt bàn";
             btn_datban.UseVisualStyleBackColor = true;
+            btn_datban.Click += btn_datban_Click;
             // 
             // lbl_trangthai
             // 
@@ -269,13 +309,13 @@
             label1.TabIndex = 2;
             label1.Text = "Trạng thái bàn:";
             // 
-            // comboBox1
+            // cb_banOrder
             // 
-            comboBox1.FormattingEnabled = true;
-            comboBox1.Location = new Point(151, 33);
-            comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(223, 36);
-            comboBox1.TabIndex = 1;
+            cb_banOrder.FormattingEnabled = true;
+            cb_banOrder.Location = new Point(151, 33);
+            cb_banOrder.Name = "cb_banOrder";
+            cb_banOrder.Size = new Size(223, 33);
+            cb_banOrder.TabIndex = 1;
             // 
             // lbl_chonban
             // 
@@ -667,10 +707,11 @@
             tp_phucvuqly.ResumeLayout(false);
             gb_thucdonorder.ResumeLayout(false);
             gb_thucdonorder.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)nm_gia).EndInit();
+            ((System.ComponentModel.ISupportInitialize)nm_soluong).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridView_mon).EndInit();
             gb_thongtinban.ResumeLayout(false);
             gb_thongtinban.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_giohang).EndInit();
             tp_thanhtoan.ResumeLayout(false);
             tp_thanhtoan.PerformLayout();
             gb_thanhtoan.ResumeLayout(false);
@@ -698,14 +739,14 @@
         private Button btn_xoamon;
         private Button btn_themmon;
         private Label label3;
-        private ComboBox cb_namedish;
+        private ComboBox cb_nameDish;
         private GroupBox gb_thongtinban;
         private Button btn_huyban;
         private Button btn_datban;
         private Label lbl_trangthai;
         private Label label2;
         private Label label1;
-        private ComboBox comboBox1;
+        private ComboBox cb_banOrder;
         private Label lbl_chonban;
         private TextBox tb_chatphucvu;
         private DataGridView dataGridView_chatphucvu;
@@ -720,7 +761,7 @@
         private ComboBox cb_trangthai;
         private Label label9;
         private DataGridView dataGridView_mon;
-        private NumericUpDown nm_gia;
+        private NumericUpDown nm_soluong;
         private TabPage tabPage1;
         private Button btn_send;
         private TextBox tb_message;
@@ -750,5 +791,8 @@
         private Panel panel8;
         private Button btn_searchBill;
         private TextBox tb_searchBill;
+        private Label lbl_trangthaiban;
+        private Label label11;
+        private DataGridView dataGridView_giohang;
     }
 }

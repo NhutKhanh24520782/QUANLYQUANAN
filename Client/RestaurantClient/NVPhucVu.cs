@@ -23,8 +23,11 @@ namespace RestaurantClient
 
         private int _currentUserId;
         private string _currentUserName;
-
+        private List<CategoryData> _danhSachLoaiMon;
+        private List<BanAnData> _danhSachBan;
+        private List<CartItem> _gioHang = new List<CartItem>();
         private GridViewManager<PendingPaymentData> _billManager;
+        private GridViewManager<MenuItemData> _ordermonManager;
         private System.Windows.Forms.Timer _autoRefreshTimer; // 🔥 ĐÃ ĐƯỢC SỬ DỤNG
 
         // ==================== INITIALIZATION ====================
@@ -38,6 +41,9 @@ namespace RestaurantClient
             InitializePaymentControls();
             InitializeAutoRefreshTimer(); // 🔥 BỔ SUNG: Khởi tạo Timer
             LoadPendingBills();
+            LoadMenuItems();
+            InitializeCategoryComboBox();
+            InitializeTableComboBox();
         }
 
         private void InitializeGridViewManager()
@@ -66,8 +72,414 @@ namespace RestaurantClient
             dataGridView_thanhtoan.CellFormatting += DataGridView_Bills_CellFormatting;
 
             // Sort sẽ được gọi sau khi load data lần đầu (trong LoadPendingBills)
+            _ordermonManager = new GridViewManager<MenuItemData>(
+                dataGridView_mon,
+                LoadMenuFromServer,
+                mon => new
+                {
+                    MaMon = mon.MaMon,
+                    TenMon = mon.TenMon,
+                    Gia = mon.Gia,
+                    TrangThai = mon.TrangThai,
+                    MaLoaiMon = mon.MaLoaiMon
+                },
+                "MaMon"
+            );
+            dataGridView_mon.CellFormatting += DataGridView_Menu_CellFormatting;
         }
+        private void DataGridView_Menu_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (dataGridView_mon.Columns["Gia"] != null &&
+                e.ColumnIndex == dataGridView_mon.Columns["Gia"].Index &&
+                e.Value != null)
+            {
+                if (decimal.TryParse(e.Value.ToString(), out decimal value))
+                {
+                    e.Value = value.ToString("N0") + " VNĐ";
+                    e.FormattingApplied = true;
+                }
+            }
+        }
+        private async void LoadMenuItems()
+        {
+            try
+            {
+                await _ordermonManager.LoadDataAsync();
 
+                // Kiểm tra kết quả
+                var menuData = _ordermonManager.GetCachedData();
+                if (menuData?.Count > 0)
+                {
+                    Console.WriteLine($"✅ Đã tải {menuData.Count} món ăn khi khởi động");
+                }
+                else
+                {
+                    Console.WriteLine("⚠️ Không có món ăn nào được tải");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi tải menu: {ex.Message}");
+                // Có thể show thông báo nhẹ nếu cần
+            }
+        }
+        private async Task<List<MenuItemData>> LoadMenuFromServer()
+        {
+            try
+            {
+                var request = new GetMenuRequest { };
+                var response = await SendRequest<GetMenuRequest, GetMenuResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    // 🔥 DEBUG: Log số lượng món ăn nhận được
+                    Console.WriteLine($"Nhận được {response.Items?.Count ?? 0} món ăn từ server");
+
+                    var sortedMenu = response.Items?
+                        .OrderBy(m => m.MaMon)
+                        .ToList() ?? new List<MenuItemData>();
+
+                    return sortedMenu;
+                }
+                else
+                {
+                    ShowError(response?.Message ?? "Không thể tải danh sách món ăn");
+                    return new List<MenuItemData>();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi tải menu: {ex.Message}");
+                return new List<MenuItemData>();
+            }
+        }
+        private void InitializeCategoryComboBox()
+        {
+            if (cb_nameDish == null) return;
+
+            cb_nameDish.DropDownStyle = ComboBoxStyle.DropDownList;
+            cb_nameDish.SelectedIndexChanged += Cb_nameDish_SelectedIndexChanged;
+
+            LoadCategories();
+        }
+        private async void LoadCategories()
+        {
+            try
+            {
+                var request = new GetCategoriesRequest { };
+                var response = await SendRequest<GetCategoriesRequest, GetCategoriesResponse>(request);
+
+                if (response?.Success == true && response.Categories != null)
+                {
+                    _danhSachLoaiMon = response.Categories;
+
+                    var displayList = new List<CategoryData>
+            {
+                new CategoryData { MaLoaiMon = 0, TenLoai = "Tất cả các món" }
+            };
+                    displayList.AddRange(_danhSachLoaiMon);
+
+                    cb_nameDish.DataSource = displayList;
+                    cb_nameDish.DisplayMember = "TenLoai";
+                    cb_nameDish.ValueMember = "MaLoaiMon";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi tải loại món: {ex.Message}");
+            }
+        }
+        private async void Cb_nameDish_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cb_nameDish.SelectedValue == null) return;
+
+            try
+            {
+                int selectedCategoryId = (int)cb_nameDish.SelectedValue;
+
+                if (selectedCategoryId == 0)
+                {
+                    await _ordermonManager.LoadDataAsync();
+                }
+                else
+                {
+                    await FilterMenuByCategory(selectedCategoryId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi lọc món: {ex.Message}");
+            }
+        }
+        private async Task FilterMenuByCategory(int categoryId)
+        {
+            try
+            {
+                var request = new GetMenuByCategoryRequest
+                {
+                    MaLoaiMon = categoryId
+                };
+                var response = await SendRequest<GetMenuByCategoryRequest, GetMenuResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    _ordermonManager.UpdateDataSource(response.Items);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi lọc món từ server: {ex.Message}");
+            }
+        }
+        //================== combobox chọn bàn
+        private void InitializeTableComboBox()
+        {
+            if (cb_banOrder == null) return;
+
+            cb_banOrder.DropDownStyle = ComboBoxStyle.DropDownList;
+            cb_banOrder.SelectedIndexChanged += Cb_banOrder_SelectedIndexChanged;
+
+            LoadTables();
+        }
+        private async void LoadTables()
+        {
+            try
+            {
+                var request = new GetTablesRequest { };
+                var response = await SendRequest<GetTablesRequest, GetTablesResponse>(request);
+
+                if (response?.Success == true && response.ListBan != null)
+                {
+                    _danhSachBan = response.ListBan;
+
+                    // Hiển thị tên bàn và mã bàn
+                    cb_banOrder.DataSource = _danhSachBan;
+                    cb_banOrder.DisplayMember = "TenBan";
+                    cb_banOrder.ValueMember = "MaBanAn";
+
+                    Console.WriteLine($"✅ Đã tải {_danhSachBan.Count} bàn ăn");
+
+                    // Tự động chọn bàn đầu tiên nếu có
+                    if (_danhSachBan.Count > 0)
+                    {
+                        cb_banOrder.SelectedIndex = 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi tải danh sách bàn: {ex.Message}");
+                ShowError("Không thể tải danh sách bàn ăn");
+            }
+        }
+        private void Cb_banOrder_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cb_banOrder.SelectedValue == null) return;
+
+            try
+            {
+                int selectedTableId = (int)cb_banOrder.SelectedValue;
+                var selectedTable = _danhSachBan.FirstOrDefault(b => b.MaBanAn == selectedTableId);
+
+                if (selectedTable != null)
+                {
+                    UpdateTableStatusDisplay(selectedTable);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi hiển thị trạng thái bàn: {ex.Message}");
+            }
+        }
+        private void UpdateTableStatusDisplay(BanAnData table)
+        {
+            if (lbl_trangthaiban == null) return;
+
+            string statusText = "";
+            Color statusColor = Color.Black;
+
+            switch (table.TrangThai)
+            {
+                case "Trong":
+                    statusText = " Bàn trống";
+                    statusColor = Color.Green;
+                    break;
+                case "DangSuDung":
+                    statusText = " Đang có khách";
+                    statusColor = Color.Orange;
+                    break;
+                case "DaDat":
+                    statusText = " Đã đặt trước";
+                    statusColor = Color.Blue;
+                    break;
+                case "An":
+                    statusText = " Đóng";
+                    statusColor = Color.Gray;
+                    break;
+                default:
+                    statusText = table.TrangThai ?? "Không xác định";
+                    statusColor = Color.Black;
+                    break;
+            }
+
+            lbl_trangthaiban.Text = $"{statusText}";
+            //lbl_trangthaiban.ForeColor = statusColor;
+
+            // Hiển thị thêm thông tin nếu có
+            if (table.SoChoNgoi.HasValue)
+            {
+                lbl_trangthaiban.Text += $" | {table.SoChoNgoi} chỗ";
+            }
+        }
+        //=============== THÊM MÓN ==============
+        private void btn_themmon_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var selectedMon = _ordermonManager.GetSelectedItem();
+
+                if (selectedMon == null)
+                {
+                    ShowWarning("Vui lòng chọn món cần thêm!");
+                    return;
+                }
+
+                // Lấy số lượng từ numeric
+                int soLuong = (int)nm_soluong.Value;
+
+                if (soLuong <= 0)
+                {
+                    ShowWarning("Số lượng phải lớn hơn 0!");
+                    return;
+                }
+
+                // Thêm vào giỏ hàng với số lượng
+                AddToCart(selectedMon, soLuong);
+
+                ShowSuccess($"Đã thêm {soLuong} '{selectedMon.TenMon}' vào giỏ hàng");
+
+                // Reset số lượng về 1 sau khi thêm
+                nm_soluong.Value = 1;
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi thêm món: {ex.Message}");
+            }
+        }
+        private void AddToCart(MenuItemData mon, int soLuong)
+        {
+            // Kiểm tra xem món đã có trong giỏ chưa
+            var existingItem = _gioHang.FirstOrDefault(item => item.MaMon == mon.MaMon);
+
+            if (existingItem != null)
+            {
+                // Nếu đã có, cộng thêm số lượng
+                existingItem.SoLuong += soLuong;
+            }
+            else
+            {
+                // Nếu chưa có, thêm mới với số lượng
+                _gioHang.Add(new CartItem
+                {
+                    MaMon = mon.MaMon,
+                    TenMon = mon.TenMon,
+                    Gia = mon.Gia,
+                    SoLuong = soLuong
+                });
+            }
+
+            // Cập nhật hiển thị giỏ hàng
+            UpdateCartDisplay();
+        }
+        private void UpdateCartDisplay()
+        {
+            try
+            {
+                // Hiển thị lên dataGridView_giohang
+                var displayData = _gioHang.Select(item => new
+                {
+                    MaMon = item.MaMon,
+                    TenMon = item.TenMon,
+                    DonGia = item.Gia,
+                    SoLuong = item.SoLuong
+                }).ToList();
+
+                if (dataGridView_giohang.InvokeRequired)
+                {
+                    dataGridView_giohang.Invoke(new Action(() =>
+                    {
+                        dataGridView_giohang.DataSource = displayData;
+                        FormatCartGridView();
+                    }));
+                }
+                else
+                {
+                    dataGridView_giohang.DataSource = displayData;
+                    FormatCartGridView();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi cập nhật giỏ hàng: {ex.Message}");
+            }
+        }
+        private void FormatCartGridView()
+        {
+            if (dataGridView_giohang.Columns.Count == 0) return;
+            if (dataGridView_giohang.Columns["DonGia"] != null)
+            {
+                dataGridView_giohang.Columns["DonGia"].DefaultCellStyle.Format = "N0";
+                dataGridView_giohang.Columns["DonGia"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            }
+
+            if (dataGridView_giohang.Columns["SoLuong"] != null)
+            {
+                dataGridView_giohang.Columns["SoLuong"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            }
+            dataGridView_giohang.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        }
+        //=================== xóa món ===========
+        private void btn_xoamon_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Kiểm tra có dòng nào được chọn trong giỏ hàng không
+                if (dataGridView_giohang.SelectedRows.Count == 0)
+                {
+                    ShowWarning("Vui lòng chọn món cần xóa trong giỏ hàng!");
+                    return;
+                }
+
+                // Lấy mã món từ dòng được chọn
+                var selectedRow = dataGridView_giohang.SelectedRows[0];
+                int maMon = Convert.ToInt32(selectedRow.Cells["MaMon"].Value);
+                string tenMon = selectedRow.Cells["TenMon"].Value.ToString();
+
+                // Xác nhận xóa
+                if (Confirm($"Bạn có chắc muốn xóa '{tenMon}' khỏi giỏ hàng?"))
+                {
+                    // Xóa món khỏi giỏ hàng
+                    RemoveFromCart(maMon);
+                    ShowSuccess($"Đã xóa '{tenMon}' khỏi giỏ hàng");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi xóa món: {ex.Message}");
+            }
+        }
+        private void RemoveFromCart(int maMon)
+        {
+            // Tìm và xóa món khỏi giỏ hàng
+            var itemToRemove = _gioHang.FirstOrDefault(item => item.MaMon == maMon);
+            if (itemToRemove != null)
+            {
+                _gioHang.Remove(itemToRemove);
+
+                // Cập nhật hiển thị giỏ hàng
+                UpdateCartDisplay();
+            }
+        }
         // 🔥 BỔ SUNG: Khởi tạo Auto Refresh Timer
         private void InitializeAutoRefreshTimer()
         {
@@ -513,7 +925,7 @@ namespace RestaurantClient
             });
         }
 
-        private void  ShowQRCode(decimal amount, string transactionNo)
+        private void ShowQRCode(decimal amount, string transactionNo)
         {
             try
             {
@@ -780,5 +1192,318 @@ namespace RestaurantClient
             base.OnFormClosing(e);
         }
 
+        private void dataGridView_mon_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+
+        //================= ĐẶT BÀN==============
+        private async void btn_guiorder_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Kiểm tra đã chọn bàn chưa
+                if (cb_banOrder.SelectedValue == null)
+                {
+                    ShowWarning("Vui lòng chọn bàn!");
+                    return;
+                }
+
+                // Kiểm tra giỏ hàng có món không
+                if (_gioHang.Count == 0)
+                {
+                    ShowWarning("Giỏ hàng trống! Vui lòng thêm món.");
+                    return;
+                }
+
+                int maBan = (int)cb_banOrder.SelectedValue;
+                var selectedTable = _danhSachBan.FirstOrDefault(b => b.MaBanAn == maBan);
+
+                if (selectedTable == null)
+                {
+                    ShowWarning("Không tìm thấy thông tin bàn!");
+                    return;
+                }
+
+                // Kiểm tra trạng thái bàn
+                if (selectedTable.TrangThai == "CoNguoi")
+                {
+                    ShowWarning("Bàn này đang có khách! Không thể thêm order.");
+                    return;
+                }
+
+                if (selectedTable.TrangThai == "Dong")
+                {
+                    ShowWarning("Bàn này đã đóng! Không thể thêm order.");
+                    return;
+                }
+
+                // Tính tổng tiền
+                decimal tongTien = _gioHang.Sum(item => item.Gia * item.SoLuong);
+
+                // Hiển thị thông tin xác nhận
+                string confirmMessage = $"Xác nhận gửi order cho bàn '{selectedTable.TenBan}'?\n\n";
+                confirmMessage += $"Số món: {_gioHang.Sum(item => item.SoLuong)}\n";
+                confirmMessage += $"Tổng tiền: {tongTien:N0} VNĐ\n\n";
+                confirmMessage += "Chi tiết:\n";
+
+                foreach (var item in _gioHang)
+                {
+                    confirmMessage += $"- {item.TenMon} x{item.SoLuong}\n";
+                }
+
+                if (Confirm(confirmMessage))
+                {
+                    await ExecuteAsync(btn_guiorder, "Đang gửi order...", async () =>
+                    {
+                        // Tạo request thêm hóa đơn
+                        var request = new CreateOrderRequest
+                        {
+                            MaBanAn = maBan,
+                            MaNhanVien = _currentUserId,
+                            TongTien = tongTien,
+                            ChiTietOrder = _gioHang.Select(item => new ChiTietOrder
+                            {
+                                MaMon = item.MaMon,
+                                SoLuong = item.SoLuong,
+                                DonGia = item.Gia
+                            }).ToList()
+                        };
+
+                        var response = await SendRequest<CreateOrderRequest, CreateOrderResponse>(request);
+
+                        if (response?.Success == true)
+                        {
+                            ShowSuccess($"Đã gửi order thành công!\nMã hóa đơn: {response.MaHoaDon}");
+
+                            // Cập nhật trạng thái bàn thành "CoNguoi"
+                            await UpdateTableStatus(maBan, "CoNguoi");
+
+                            // Xóa giỏ hàng
+                            ClearCart();
+
+                            // Refresh danh sách bàn
+                            await RefreshTableList();
+                        }
+                        else
+                        {
+                            ShowError(response?.Message ?? "Lỗi gửi order!");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi gửi order: {ex.Message}");
+            }
+        }
+        private async Task UpdateTableStatus(int maBan, string trangThai)
+        {
+            try
+            {
+                var table = _danhSachBan.FirstOrDefault(b => b.MaBanAn == maBan);
+                if (table == null) return;
+
+                var request = new UpdateTableRequest
+                {
+                    MaBanAn = maBan,
+                    TenBan = table.TenBan,
+                    SoChoNgoi = table.SoChoNgoi,
+                    TrangThai = trangThai,
+                    MaNhanVien = _currentUserId
+                };
+
+                var response = await SendRequest<UpdateTableRequest, UpdateTableResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    table.TrangThai = trangThai;
+                    UpdateTableStatusDisplay(table);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi cập nhật trạng thái bàn: {ex.Message}");
+            }
+        }
+        private void ClearCart()
+        {
+            _gioHang.Clear();
+            UpdateCartDisplay();
+            Console.WriteLine("✅ Đã xóa giỏ hàng");
+        }
+
+        private void btn_datban_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (cb_banOrder.SelectedValue == null)
+                {
+                    ShowWarning("Vui lòng chọn bàn cần đặt!");
+                    return;
+                }
+
+                int maBan = (int)cb_banOrder.SelectedValue;
+                var selectedTable = _danhSachBan.FirstOrDefault(b => b.MaBanAn == maBan);
+
+                if (selectedTable == null)
+                {
+                    ShowWarning("Không tìm thấy thông tin bàn!");
+                    return;
+                }
+
+                // Kiểm tra trạng thái hiện tại
+                if (selectedTable.TrangThai == "DaDat")
+                {
+                    ShowWarning("Bàn này đã được đặt trước!");
+                    return;
+                }
+
+                if (selectedTable.TrangThai == "CoNguoi")
+                {
+                    ShowWarning("Bàn này đang có khách!");
+                    return;
+                }
+
+                // Xác nhận đặt bàn
+                if (Confirm($"Xác nhận đặt trước bàn '{selectedTable.TenBan}'?"))
+                {
+                    Task datban;
+                    datban=ExecuteAsync(btn_datban, "Đang đặt bàn...", async () =>
+                    {
+                        // Gửi request cập nhật trạng thái bàn
+                        var request = new UpdateTableRequest
+                        {
+                            MaBanAn = maBan,
+                            TenBan = selectedTable.TenBan,
+                            SoChoNgoi = selectedTable.SoChoNgoi,
+                            TrangThai = "DaDat",
+                            MaNhanVien = _currentUserId
+                        };
+
+                        var response = await SendRequest<UpdateTableRequest, UpdateTableResponse>(request);
+
+                        if (response?.Success == true)
+                        {
+                            ShowSuccess($"Đã đặt trước bàn '{selectedTable.TenBan}' thành công!");
+
+                            // Cập nhật local data và hiển thị
+                            selectedTable.TrangThai = "DaDat";
+                            UpdateTableStatusDisplay(selectedTable);
+
+                            // Refresh danh sách bàn (tùy chọn)
+                            await RefreshTableList();
+                        }
+                        else
+                        {
+                            ShowError(response?.Message ?? "Lỗi đặt bàn!");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi đặt bàn: {ex.Message}");
+            }
+        }
+        private async Task RefreshTableList()
+        {
+            try
+            {
+                var request = new GetTablesRequest { };
+                var response = await SendRequest<GetTablesRequest, GetTablesResponse>(request);
+
+                if (response?.Success == true && response.ListBan != null)
+                {
+                    _danhSachBan = response.ListBan;
+
+                    // Giữ lại selection hiện tại
+                    var currentSelection = cb_banOrder.SelectedValue;
+
+                    cb_banOrder.DataSource = null;
+                    cb_banOrder.DataSource = _danhSachBan;
+                    cb_banOrder.DisplayMember = "TenBan";
+                    cb_banOrder.ValueMember = "MaBanAn";
+
+                    // Khôi phục selection
+                    if (currentSelection != null)
+                    {
+                        cb_banOrder.SelectedValue = currentSelection;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi refresh danh sách bàn: {ex.Message}");
+            }
+        }
+
+        private async void btn_huyban_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (cb_banOrder.SelectedValue == null)
+                {
+                    ShowWarning("Vui lòng chọn bàn cần hủy!");
+                    return;
+                }
+
+                int maBan = (int)cb_banOrder.SelectedValue;
+                var selectedTable = _danhSachBan.FirstOrDefault(b => b.MaBanAn == maBan);
+
+                if (selectedTable == null)
+                {
+                    ShowWarning("Không tìm thấy thông tin bàn!");
+                    return;
+                }
+
+                // Kiểm tra trạng thái hiện tại
+                if (selectedTable.TrangThai != "DaDat")
+                {
+                    ShowWarning("Bàn này chưa được đặt trước!");
+                    return;
+                }
+
+                // Xác nhận hủy đặt bàn
+                if (Confirm($"Xác nhận hủy đặt trước bàn '{selectedTable.TenBan}'?"))
+                {
+                    await ExecuteAsync(btn_huyban, "Đang hủy đặt...", async () =>
+                    {
+                        // Gửi request cập nhật trạng thái bàn về "Trong"
+                        var request = new UpdateTableRequest
+                        {
+                            MaBanAn = maBan,
+                            TenBan = selectedTable.TenBan,
+                            SoChoNgoi = selectedTable.SoChoNgoi,
+                            TrangThai = "Trong",
+                            MaNhanVien = _currentUserId
+                        };
+
+                        var response = await SendRequest<UpdateTableRequest, UpdateTableResponse>(request);
+
+                        if (response?.Success == true)
+                        {
+                            ShowSuccess($"Đã hủy đặt trước bàn '{selectedTable.TenBan}' thành công!");
+
+                            // Cập nhật local data và hiển thị
+                            selectedTable.TrangThai = "Trong";
+                            UpdateTableStatusDisplay(selectedTable);
+
+                            // Refresh danh sách bàn (tùy chọn)
+                            await RefreshTableList();
+                        }
+                        else
+                        {
+                            ShowError(response?.Message ?? "Lỗi hủy đặt bàn!");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi hủy đặt bàn: {ex.Message}");
+            }
+        }
     }
 }

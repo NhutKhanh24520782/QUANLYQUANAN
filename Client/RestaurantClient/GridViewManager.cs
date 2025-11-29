@@ -212,4 +212,29 @@ public class GridViewManager<T>
     {
         return _gridView.SelectedRows.Count > 0;
     }
+    public void UpdateDataSource(List<T> newData)
+    {
+        if (newData == null)
+        {
+            Console.WriteLine("⚠️ Dữ liệu mới là null, không thể cập nhật");
+            return;
+        }
+        _cachedSourceList = newData;
+        var displayData = _cachedSourceList.Select(_mapToDisplayModel).ToList();
+        if (_gridView.InvokeRequired)
+        {
+            _gridView.Invoke(new Action(() =>
+            {
+                _gridView.DataSource = displayData;
+                _gridView.ClearSelection();
+            }));
+        }
+        else
+        {
+            _gridView.DataSource = displayData;
+            _gridView.ClearSelection();
+        }
+
+        Console.WriteLine($"✅ Đã cập nhật {newData.Count} items lên DataGridView");
+    }
 }

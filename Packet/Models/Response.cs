@@ -288,4 +288,36 @@ namespace Models.Response
         public decimal TongTien { get; set; }
         public List<PaymentItemData> ChiTiet { get; set; } = new List<PaymentItemData>();
     }
+    //==============ORDER RESPONSE===============
+    public class GetMonResponse : BaseResponse
+    {
+        public GetMonResponse() => Type = "GetMonResponse";
+        public int MaMon { get; set; }
+        public string TenMon { get; set; } = "";
+        public int Gia { get; set; }
+        public string MoTa { get; set; } = "";
+        public string TrangThai { get; set; } = "";
+        public List<OrderMonData> OrderMons { get; set; } = new List<OrderMonData>();
+    }
+    public class AddMonResponse : BaseResponse
+    {
+        public AddMonResponse() => Type = "AddMonResponse";
+        public List<OrderMonData> OrderMons { get; set; } = new List<OrderMonData>();
+    }
+    public class DeleteMonResponse : BaseResponse
+    {
+        public DeleteMonResponse() => Type = "DeleteMonResponse";
+        public List<OrderMonData> OrderMons { get; set; } = new List<OrderMonData>();
+    }
+    public class SendOrderResponse : BaseResponse
+    {
+        public SendOrderResponse() => Type = "SendOrderMonResponse";
+        public List<OrderMonData> OrderMons { get; set; } = new List<OrderMonData>();
+    }
+    public class GetCategoriesResponse : BaseResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public List<CategoryData> Categories { get; set; } = new List<CategoryData>();
+    }
 }

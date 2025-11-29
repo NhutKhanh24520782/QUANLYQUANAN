@@ -102,7 +102,10 @@ namespace RestaurantServer
                         "DeleteTable" => await HandleDeleteTableRequestAsync(rawRequest),
                         "GetPendingPayments" => await HandleGetPendingPaymentsRequestAsync(rawRequest),
                         "ProcessPayment" => await HandleProcessPaymentRequestAsync(rawRequest),
-                        // "UpdateTableStatus" => await HandleUpdateTableStatusRequestAsync(rawRequest),
+                        "GetCategories" => await HandleGetCategoriesRequestAsync(rawRequest),
+                        "GetMenuByCategory" => await HandleGetMenuByCategoryRequestAsync(rawRequest),
+                        "GetMon" => await HandleGetMonRequestAsync(rawRequest),
+                        "CreateOrder" => await HandleCreateOrderRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -673,6 +676,117 @@ namespace RestaurantServer
                 catch (Exception ex)
                 {
                     return CreateErrorResponse($"Lỗi xử lý thanh toán: {ex.Message}");
+                }
+            });
+        }
+        private async Task<string> HandleGetMonRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetMonRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+                    var result = DatabaseAccess.GetMon();
+                    var response = new GetMonResponse { 
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaMon=result.MaMon,
+                        OrderMons = result.OrderMons };
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex) { return CreateErrorResponse($"Lỗi lấy danh sách món: {ex.Message}"); }
+            });
+        }
+        private async Task<string> HandleGetCategoriesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var result = DatabaseAccess.GetCategories();
+                    var response = new GetCategoriesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        Categories = result.Categories
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"✅ Lấy danh sách loại món: {result.Categories?.Count ?? 0} loại");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách loại món: {ex.Message}");
+                }
+            });
+        }
+
+        // 🔥 THÊM: Handler lấy món ăn theo loại
+        private async Task<string> HandleGetMenuByCategoryRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetMenuByCategoryRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetMenuByCategory(request.MaLoaiMon);
+                    var response = new GetMenuResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        Items = result.Items
+                    };
+
+                    if (result.Success)
+                    {
+                        string categoryInfo = request.MaLoaiMon == 0 ? "tất cả các món" : $"loại {request.MaLoaiMon}";
+                        Console.WriteLine($"✅ Lấy menu theo {categoryInfo}: {result.Items?.Count ?? 0} món");
+                    }
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy menu theo loại: {ex.Message}");
+                }
+            });
+        }
+        private async Task<string> HandleCreateOrderRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<CreateOrderRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.CreateOrder(
+                        request.MaBanAn,
+                        request.MaNhanVien,
+                        request.TongTien,
+                        request.ChiTietOrder
+                    );
+
+                    var response = new CreateOrderResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaHoaDon = result.MaHoaDon
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"✅ Tạo order thành công: HD{result.MaHoaDon} cho bàn {request.MaBanAn}");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi tạo order: {ex.Message}");
                 }
             });
         }
