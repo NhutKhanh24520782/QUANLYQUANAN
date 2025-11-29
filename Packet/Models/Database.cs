@@ -115,6 +115,7 @@ namespace Models.Database
     {
         public int MaHoaDon { get; set; }
         public int MaBanAn { get; set; }
+        public string? TenNhanVien { get; set; }
         public int MaNhanVien { get; set; }
         public DateTime NgayXuatHoaDon { get; set; }
         public decimal TongTien { get; set; }
@@ -157,7 +158,99 @@ namespace Models.Database
         public string MoTa { get; set; } = "";
         public string TrangThai { get; set; } = "";
     }
+    public class ThanhToanData
+    {
+        public int MaGiaoDich { get; set; }
+        public int MaHD { get; set; }
+        public int MaNhanVien { get; set; }
+        public string PhuongThucThanhToan { get; set; } = "TienMat"; // "TienMat", "ChuyenKhoan"
+        public decimal SoTienThanhToan { get; set; }
+        public decimal? SoTienNhan { get; set; }
+        public decimal? SoTienThua { get; set; }
+        public string TrangThai { get; set; } = "ThanhCong"; // "ThanhCong", "ThatBai", "Huy"
+        public string? MaGiaoDichNganHang { get; set; }
+        public string? QRCodeData { get; set; }
+        public DateTime ThoiGianTao { get; set; }
+        public DateTime ThoiGianThanhToan { get; set; }
+        public string? GhiChu { get; set; }
+    }
 
+    /// <summary>
+    /// Kết quả lấy danh sách chờ thanh toán
+    /// </summary>
+    public class PendingPaymentResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<PendingPaymentData> PendingPayments { get; set; } = new List<PendingPaymentData>();
+    }
 
+    /// <summary>
+    /// Kết quả thanh toán tiền mặt
+    /// </summary>
+    public class CashPaymentResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public decimal SoTienThua { get; set; }
+        public DateTime NgayThanhToan { get; set; }
+        public string MaGiaoDich { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Kết quả thanh toán chuyển khoản
+    /// </summary>
+    public class TransferPaymentResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string TransactionNo { get; set; } = string.Empty;
+        public string QRCodeData { get; set; } = string.Empty;
+        public DateTime NgayThanhToan { get; set; }
+    }
+
+    /// <summary>
+    /// Kết quả xác nhận thanh toán
+    /// </summary>
+    public class ConfirmPaymentResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Kết quả kiểm tra trạng thái thanh toán
+    /// </summary>
+    public class PaymentStatusResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string PaymentStatus { get; set; } = string.Empty; // "ThanhCong", "ThatBai", "DangXuLy"
+        public DateTime? PaymentTime { get; set; }
+        public string TransactionNo { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Kết quả lấy chi tiết thanh toán
+    /// </summary>
+    public class PaymentDetailsResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public PaymentDetailData PaymentDetails { get; set; } = new PaymentDetailData();
+    }
+
+    /// <summary>
+    /// Kết quả tổng quát cho thanh toán
+    /// </summary>
+    public class ThanhToanResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int MaGiaoDich { get; set; }
+        public decimal SoTienThua { get; set; }
+        public DateTime NgayThanhToan { get; set; }
+        public string TransactionNo { get; set; } = string.Empty;
+    }
 }
 

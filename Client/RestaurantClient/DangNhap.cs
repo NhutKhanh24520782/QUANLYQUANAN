@@ -51,7 +51,7 @@ namespace RestaurantClient
                             new Admin().Show();
                             break;
                         case "PhucVu":
-                            new NVPhucVu().Show();
+                            new NVPhucVu(loginResponse.MaNguoiDung, loginResponse.HoTen).Show();
                             break;
                         case "Bep":
                             new NVBep().Show();

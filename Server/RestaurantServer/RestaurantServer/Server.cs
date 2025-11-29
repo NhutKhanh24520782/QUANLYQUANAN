@@ -1,8 +1,9 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Azure.Core;
 using Models.Database;
 using Models.Request;
 using Models.Response;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -99,7 +100,9 @@ namespace RestaurantServer
                         "AddTable" => await HandleAddTableRequestAsync(rawRequest),
                         "UpdateTable" => await HandleUpdateTableRequestAsync(rawRequest),
                         "DeleteTable" => await HandleDeleteTableRequestAsync(rawRequest),
-                       // "UpdateTableStatus" => await HandleUpdateTableStatusRequestAsync(rawRequest),
+                        "GetPendingPayments" => await HandleGetPendingPaymentsRequestAsync(rawRequest),
+                        "ProcessPayment" => await HandleProcessPaymentRequestAsync(rawRequest),
+                        // "UpdateTableStatus" => await HandleUpdateTableStatusRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -568,6 +571,110 @@ namespace RestaurantServer
                 Message = message
             };
             return JsonConvert.SerializeObject(errorResponse);
+        }
+        //----------------THANH TOÁN---------------------------
+        // ==================== LẤY DANH SÁCH CHỜ THANH TOÁN ====================
+        private async Task<string> HandleGetPendingPaymentsRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetPendingPaymentsRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetPendingPayments(request.MaNhanVien);
+
+                    var response = new GetPendingPaymentsResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        PendingPayments = result.PendingPayments
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"✅ Lấy danh sách chờ thanh toán: {result.PendingPayments.Count} hóa đơn");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách thanh toán: {ex.Message}");
+                }
+            });
+        }
+
+        // ==================== XỬ LÝ THANH TOÁN TỔNG QUÁT ====================
+        private async Task<string> HandleProcessPaymentRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<ProcessPaymentRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // Validate request
+                    var validation = request.Validate();
+                    if (!validation.isValid) return CreateErrorResponse(validation.error);
+
+                    BaseResponse response;
+
+                    if (request.PhuongThucThanhToan == "TienMat")
+                    {
+                        var result = DatabaseAccess.ProcessCashPayment(
+                            request.MaHD,
+                            request.SoTienNhan,
+                            request.MaNhanVien
+                        );
+
+                        response = new ProcessPaymentResponse
+                        {
+                            Success = result.Success,
+                            Message = result.Message,
+                            MaGiaoDich = string.IsNullOrEmpty(result.MaGiaoDich) ? 0 : int.Parse(result.MaGiaoDich),
+                            NgayThanhToan = result.NgayThanhToan,
+                            PhuongThucThanhToan = "TienMat",
+                            SoTienThanhToan = request.SoTienThanhToan,
+                            SoTienThua = result.SoTienThua
+                        };
+
+                        if (result.Success)
+                            Console.WriteLine($"✅ Thanh toán tiền mặt: HD{request.MaHD}, Tiền thừa: {result.SoTienThua:N0} VNĐ");
+                    }
+                    else if (request.PhuongThucThanhToan == "ChuyenKhoan")
+                    {
+                        var result = DatabaseAccess.ProcessTransferPayment(
+                            request.MaHD,
+                            request.MaNhanVien
+                        );
+
+                        response = new ProcessPaymentResponse
+                        {
+                            Success = result.Success,
+                            Message = result.Message,
+                            MaGiaoDich = string.IsNullOrEmpty(result.TransactionNo) ? 0 : int.Parse(result.TransactionNo),
+                            NgayThanhToan = result.NgayThanhToan,
+                            PhuongThucThanhToan = "ChuyenKhoan",
+                            SoTienThanhToan = request.SoTienThanhToan,
+                            SoTienThua = 0
+                        };
+
+                        if (result.Success)
+                            Console.WriteLine($"✅ Thanh toán chuyển khoản: HD{request.MaHD}, Mã GD: {result.TransactionNo}");
+                    }
+                    else
+                    {
+                        return CreateErrorResponse("Phương thức thanh toán không được hỗ trợ");
+                    }
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi xử lý thanh toán: {ex.Message}");
+                }
+            });
         }
     }
 }

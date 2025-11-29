@@ -210,7 +210,82 @@ namespace Models.Response
         // Lưu ý: Đảm bảo Models.Database.Database.BanAn tồn tại
         public List<BanAnData> ListBan { get; set; } = new List<BanAnData>();
     }
+    public class ProcessPaymentResponse : BaseResponse
+    {
+        public ProcessPaymentResponse() => Type = "ProcessPaymentResponse";
+        public int MaGiaoDich { get; set; }
+        public string MaHoaDon { get; set; } = string.Empty;
+        public DateTime NgayThanhToan { get; set; }
+        public string PhuongThucThanhToan { get; set; } = string.Empty;
+        public decimal SoTienThanhToan { get; set; }
+        public decimal SoTienThua { get; set; }
+    }
 
-  
+    public class CashPaymentResponse : BaseResponse
+    {
+        public CashPaymentResponse() => Type = "CashPaymentResponse";
+        public decimal SoTienThua { get; set; }
+        public DateTime NgayThanhToan { get; set; }
+        public string MaGiaoDich { get; set; } = string.Empty;
+    }
 
+    public class TransferPaymentResponse : BaseResponse
+    {
+        public TransferPaymentResponse() => Type = "TransferPaymentResponse";
+        public string QRCodeData { get; set; } = string.Empty;
+        public string TransactionNo { get; set; } = string.Empty;
+        public DateTime NgayThanhToan { get; set; }
+    }
+
+    public class PaymentStatusResponse : BaseResponse
+    {
+        public PaymentStatusResponse() => Type = "PaymentStatusResponse";
+        public string PaymentStatus { get; set; } = string.Empty; // "ThanhCong", "ThatBai", "DangXuLy"
+        public DateTime? PaymentTime { get; set; }
+        public string TransactionNo { get; set; } = string.Empty;
+    }
+
+    public class PaymentDetailsResponse : BaseResponse
+    {
+        public PaymentDetailsResponse() => Type = "PaymentDetailsResponse";
+        public PaymentDetailData PaymentDetails { get; set; } = new PaymentDetailData();
+    }
+    public class GetPendingPaymentsResponse : BaseResponse
+    {
+        public GetPendingPaymentsResponse() => Type = "GetPendingPaymentsResponse";
+        public List<PendingPaymentData> PendingPayments { get; set; } = new List<PendingPaymentData>();
+    }
+    // ==================== PAYMENT DATA MODELS ====================
+
+    public class PendingPaymentData
+    {
+        public int MaHD { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public string TenBan { get; set; } = string.Empty;
+        public string TenNhanVien { get; set; } = string.Empty;
+        public DateTime NgayTao { get; set; }
+        public decimal TongTien { get; set; }
+        public int SoMon { get; set; }
+        public string TrangThai { get; set; } = "ChuaThanhToan";
+        public List<PaymentItemData> ChiTiet { get; set; } = new List<PaymentItemData>();
+    }
+
+    public class PaymentItemData
+    {
+        public string TenMon { get; set; } = string.Empty;
+        public int SoLuong { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal ThanhTien => SoLuong * DonGia;
+    }
+
+    public class PaymentDetailData
+    {
+        public int MaHD { get; set; }
+        public string TenBan { get; set; } = string.Empty;
+        public string TenNhanVien { get; set; } = string.Empty;
+        public DateTime NgayTao { get; set; }
+        public decimal TongTien { get; set; }
+        public List<PaymentItemData> ChiTiet { get; set; } = new List<PaymentItemData>();
+    }
 }

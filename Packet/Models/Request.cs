@@ -231,5 +231,98 @@ namespace Models.Request
         public string Type => "SearchTables";
         public string Keyword { get; set; } = "";
     }
+    // Models/Request/PaymentRequest.cs
+    public class GetPendingPaymentsRequest
+    {
+        public string Type => "GetPendingPayments";
+        public int MaNhanVien { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaNhanVien <= 0) return (false, "Mã nhân viên không hợp lệ");
+            return (true, string.Empty);
+        }
+    }
+
+    public class ProcessPaymentRequest
+    {
+        public string Type => "ProcessPayment";
+        public int MaHD { get; set; }
+        public int MaNhanVien { get; set; }
+        public string PhuongThucThanhToan { get; set; } = "TienMat"; // "TienMat", "ChuyenKhoan"
+        public decimal SoTienThanhToan { get; set; }
+        public decimal SoTienNhan { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaHD <= 0) return (false, "Mã hóa đơn không hợp lệ");
+            if (MaNhanVien <= 0) return (false, "Mã nhân viên không hợp lệ");
+            if (SoTienThanhToan <= 0) return (false, "Số tiền thanh toán phải lớn hơn 0");
+            if (PhuongThucThanhToan != "TienMat" && PhuongThucThanhToan != "ChuyenKhoan")
+                return (false, "Phương thức thanh toán không hợp lệ");
+            if (PhuongThucThanhToan == "TienMat" && SoTienNhan < SoTienThanhToan)
+                return (false, "Số tiền nhận không đủ để thanh toán");
+            return (true, string.Empty);
+        }
+    }
+
+    public class ProcessCashPaymentRequest
+    {
+        public string Type => "ProcessCashPayment";
+        public int MaHD { get; set; }
+        public decimal SoTienNhan { get; set; }
+        public string GhiChu { get; set; } = string.Empty;
+        public int MaNV { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaHD <= 0) return (false, "Mã hóa đơn không hợp lệ");
+            if (SoTienNhan <= 0) return (false, "Số tiền nhận phải lớn hơn 0");
+            if (MaNV <= 0) return (false, "Mã nhân viên không hợp lệ");
+            return (true, string.Empty);
+        }
+    }
+
+    public class ProcessTransferPaymentRequest
+    {
+        public string Type => "ProcessTransferPayment";
+        public int MaHD { get; set; }
+        public string OrderInfo { get; set; } = string.Empty;
+        public int MaNV { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaHD <= 0) return (false, "Mã hóa đơn không hợp lệ");
+            if (string.IsNullOrWhiteSpace(OrderInfo)) return (false, "Thông tin đơn hàng không được trống");
+            if (MaNV <= 0) return (false, "Mã nhân viên không hợp lệ");
+            return (true, string.Empty);
+        }
+    }
+
+    public class CheckPaymentStatusRequest
+    {
+        public string Type => "CheckPaymentStatus";
+        public int MaHoaDon { get; set; }
+        public string TransactionNo { get; set; } = string.Empty;
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaHoaDon <= 0) return (false, "Mã hóa đơn không hợp lệ");
+            if (string.IsNullOrWhiteSpace(TransactionNo)) return (false, "Mã giao dịch không được trống");
+            return (true, string.Empty);
+        }
+    }
+
+    public class GetPaymentDetailsRequest
+    {
+        public string Type => "GetPaymentDetails";
+        public int MaHoaDon { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaHoaDon <= 0) return (false, "Mã hóa đơn không hợp lệ");
+            return (true, string.Empty);
+        }
+    }
 }
 

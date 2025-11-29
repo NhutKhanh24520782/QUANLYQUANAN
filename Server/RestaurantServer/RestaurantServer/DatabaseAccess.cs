@@ -1,15 +1,16 @@
 ﻿using BCrypt.Net;
-using Models.Database;
 using Models;
+using Models.Database;
 using Models.Response;
-using System;
-using System.Collections.Generic;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Data.SqlClient;
 
 namespace RestaurantServer
 {
@@ -900,6 +901,296 @@ namespace RestaurantServer
             catch (Exception ex)
             {
                 return (false, "", $"Lỗi xuất báo cáo Excel: {ex.Message}");
+            }
+        }
+        // ==================== LẤY DANH SÁCH CHỜ THANH TOÁN ====================
+        public static PendingPaymentResult GetPendingPayments(int maNhanVien)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string sql = @"
+                    SELECT 
+                        hd.MaHD,
+                        hd.MaBanAn,
+                        b.TenBan,
+                        hd.MaNV AS MaNhanVien,
+                        nd.HoTen AS TenNhanVien,
+                        hd.Ngay AS NgayTao,
+                        hd.TongTien,
+                        hd.TrangThai,
+                        (SELECT COUNT(*) FROM CTHD WHERE MaHD = hd.MaHD) AS SoMon
+                    FROM HOADON hd
+                    INNER JOIN BAN b ON hd.MaBanAn = b.MaBanAn
+                    INNER JOIN NGUOIDUNG nd ON hd.MaNV = nd.MaNguoiDung
+                    WHERE hd.TrangThai = N'ChuaThanhToan'
+                        AND (@MaNhanVien = 0 OR hd.MaNV = @MaNhanVien)
+                    ORDER BY hd.Ngay DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien);
+
+                        var payments = new List<PendingPaymentData>();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                payments.Add(new PendingPaymentData
+                                {
+                                    MaHD = (int)reader["MaHD"],
+                                    MaBanAn = (int)reader["MaBanAn"],
+                                    TenBan = reader["TenBan"].ToString(),
+                                    MaNhanVien = (int)reader["MaNhanVien"],
+                                    TenNhanVien = reader["TenNhanVien"].ToString(),
+                                    NgayTao = (DateTime)reader["NgayTao"],
+                                    TongTien = Convert.ToDecimal(reader["TongTien"]),
+                                    TrangThai = reader["TrangThai"].ToString(),
+                                    SoMon = (int)reader["SoMon"]
+                                });
+                            }
+                        }
+
+                        return new PendingPaymentResult
+                        {
+                            Success = true,
+                            Message = $"Lấy được {payments.Count} hóa đơn chờ thanh toán",
+                            PendingPayments = payments
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new PendingPaymentResult
+                {
+                    Success = false,
+                    Message = $"Lỗi: {ex.Message}",
+                    PendingPayments = new List<PendingPaymentData>()
+                };
+            }
+        }
+
+        // ==================== XỬ LÝ THANH TOÁN TIỀN MẶT ====================
+        public static CashPaymentResult ProcessCashPayment(int maHD, decimal soTienNhan, int maNV)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                using (SqlTransaction transaction = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // 1. Kiểm tra hóa đơn tồn tại và chưa thanh toán
+                        string checkSql = @"
+                        SELECT TongTien, TrangThai 
+                        FROM HOADON 
+                        WHERE MaHD = @MaHD";
+
+                        decimal tongTien = 0;
+                        string trangThai = "";
+
+                        using (SqlCommand checkCmd = new SqlCommand(checkSql, conn, transaction))
+                        {
+                            checkCmd.Parameters.AddWithValue("@MaHD", maHD);
+                            using (SqlDataReader reader = checkCmd.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
+                                    tongTien = Convert.ToDecimal(reader["TongTien"]);
+                                    trangThai = reader["TrangThai"].ToString();
+                                }
+                            }
+                        }
+
+                        if (tongTien == 0)
+                            throw new Exception("Hóa đơn không tồn tại");
+
+                        if (trangThai != "ChuaThanhToan")
+                            throw new Exception("Hóa đơn đã được thanh toán");
+
+                        // 2. Kiểm tra số tiền nhận
+                        if (soTienNhan < tongTien)
+                            throw new Exception($"Số tiền nhận không đủ. Cần: {tongTien:N0} VNĐ");
+
+                        decimal soTienThua = soTienNhan - tongTien;
+
+                        // 3. Thêm giao dịch thanh toán vào bảng THANHTOAN
+                        string insertPaymentSql = @"
+                        INSERT INTO THANHTOAN (
+                            MaHD, MaNhanVien, PhuongThucThanhToan, 
+                            SoTienThanhToan, SoTienNhan, SoTienThua,
+                            TrangThai, ThoiGianThanhToan, GhiChu
+                        )
+                        VALUES (
+                            @MaHD, @MaNhanVien, N'TienMat',
+                            @SoTienThanhToan, @SoTienNhan, @SoTienThua,
+                            N'ThanhCong', GETDATE(), N'Thanh toán tiền mặt'
+                        );
+                        SELECT CAST(SCOPE_IDENTITY() AS INT)";
+
+                        int maGiaoDich;
+                        using (SqlCommand insertCmd = new SqlCommand(insertPaymentSql, conn, transaction))
+                        {
+                            insertCmd.Parameters.AddWithValue("@MaHD", maHD);
+                            insertCmd.Parameters.AddWithValue("@MaNhanVien", maNV);
+                            insertCmd.Parameters.AddWithValue("@SoTienThanhToan", tongTien);
+                            insertCmd.Parameters.AddWithValue("@SoTienNhan", soTienNhan);
+                            insertCmd.Parameters.AddWithValue("@SoTienThua", soTienThua);
+
+                            maGiaoDich = Convert.ToInt32(insertCmd.ExecuteScalar());
+                        }
+
+                        // 4. Cập nhật trạng thái hóa đơn thành "Đã thanh toán"
+                        string updateHoaDonSql = @"
+                        UPDATE HOADON 
+                        SET TrangThai = N'DaThanhToan',
+                            PhuongThucThanhToan = N'TienMat'
+                        WHERE MaHD = @MaHD";
+
+                        using (SqlCommand updateCmd = new SqlCommand(updateHoaDonSql, conn, transaction))
+                        {
+                            updateCmd.Parameters.AddWithValue("@MaHD", maHD);
+                            int rowsAffected = updateCmd.ExecuteNonQuery();
+
+                            if (rowsAffected == 0)
+                                throw new Exception("Không thể cập nhật hóa đơn");
+                        }
+
+                        transaction.Commit();
+
+                        return new CashPaymentResult
+                        {
+                            Success = true,
+                            Message = "Thanh toán tiền mặt thành công",
+                            SoTienThua = soTienThua,
+                            NgayThanhToan = DateTime.Now,
+                            MaGiaoDich = maGiaoDich.ToString()
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return new CashPaymentResult
+                        {
+                            Success = false,
+                            Message = $"Lỗi thanh toán: {ex.Message}"
+                        };
+                    }
+                }
+            }
+        }
+
+        // ==================== XỬ LÝ THANH TOÁN CHUYỂN KHOẢN ====================
+        public static TransferPaymentResult ProcessTransferPayment(int maHD, int maNV)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                using (SqlTransaction transaction = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // 1. Kiểm tra hóa đơn
+                        string checkSql = @"
+                        SELECT TongTien, TrangThai 
+                        FROM HOADON 
+                        WHERE MaHD = @MaHD";
+
+                        decimal tongTien = 0;
+                        string trangThai = "";
+
+                        using (SqlCommand checkCmd = new SqlCommand(checkSql, conn, transaction))
+                        {
+                            checkCmd.Parameters.AddWithValue("@MaHD", maHD);
+                            using (SqlDataReader reader = checkCmd.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
+                                    tongTien = Convert.ToDecimal(reader["TongTien"]);
+                                    trangThai = reader["TrangThai"].ToString();
+                                }
+                            }
+                        }
+
+                        if (tongTien == 0)
+                            throw new Exception("Hóa đơn không tồn tại");
+
+                        if (trangThai != "ChuaThanhToan")
+                            throw new Exception("Hóa đơn đã được thanh toán");
+
+                        // 2. Tạo mã giao dịch ngân hàng
+                        string transactionNo = "TRF" + DateTime.Now.ToString("yyyyMMddHHmmss") + maHD;
+
+                        // 3. Tạo QR code data (giả lập)
+                        string qrCodeData = $"bank://transfer?amount={tongTien}&account=NH_QUANAN&note=HD{maHD}";
+
+                        // 4. Thêm giao dịch thanh toán
+                        string insertPaymentSql = @"
+                        INSERT INTO THANHTOAN (
+                            MaHD, MaNhanVien, PhuongThucThanhToan, 
+                            SoTienThanhToan, TrangThai, 
+                            MaGiaoDichNganHang, QRCodeData, GhiChu
+                        )
+                        VALUES (
+                            @MaHD, @MaNhanVien, N'ChuyenKhoan',
+                            @SoTienThanhToan, N'ThanhCong',
+                            @MaGiaoDichNganHang, @QRCodeData, N'Thanh toán chuyển khoản'
+                        );
+                        SELECT CAST(SCOPE_IDENTITY() AS INT)";
+
+                        int maGiaoDich;
+                        using (SqlCommand insertCmd = new SqlCommand(insertPaymentSql, conn, transaction))
+                        {
+                            insertCmd.Parameters.AddWithValue("@MaHD", maHD);
+                            insertCmd.Parameters.AddWithValue("@MaNhanVien", maNV);
+                            insertCmd.Parameters.AddWithValue("@SoTienThanhToan", tongTien);
+                            insertCmd.Parameters.AddWithValue("@MaGiaoDichNganHang", transactionNo);
+                            insertCmd.Parameters.AddWithValue("@QRCodeData", qrCodeData);
+
+                            maGiaoDich = Convert.ToInt32(insertCmd.ExecuteScalar());
+                        }
+
+                        // 5. Cập nhật trạng thái hóa đơn
+                        string updateHoaDonSql = @"
+                        UPDATE HOADON 
+                        SET TrangThai = N'DaThanhToan',
+                            PhuongThucThanhToan = N'ChuyenKhoan'
+                        WHERE MaHD = @MaHD";
+
+                        using (SqlCommand updateCmd = new SqlCommand(updateHoaDonSql, conn, transaction))
+                        {
+                            updateCmd.Parameters.AddWithValue("@MaHD", maHD);
+                            int rowsAffected = updateCmd.ExecuteNonQuery();
+
+                            if (rowsAffected == 0)
+                                throw new Exception("Không thể cập nhật hóa đơn");
+                        }
+
+                        transaction.Commit();
+
+                        return new TransferPaymentResult
+                        {
+                            Success = true,
+                            Message = "Thanh toán chuyển khoản thành công",
+                            TransactionNo = transactionNo,
+                            QRCodeData = qrCodeData,
+                            NgayThanhToan = DateTime.Now
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return new TransferPaymentResult
+                        {
+                            Success = false,
+                            Message = $"Lỗi thanh toán: {ex.Message}"
+                        };
+                    }
+                }
             }
         }
     }
