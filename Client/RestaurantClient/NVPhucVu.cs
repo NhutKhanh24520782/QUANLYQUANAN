@@ -95,10 +95,26 @@ namespace RestaurantClient
                 e.ColumnIndex == dataGridView_mon.Columns["Gia"].Index &&
                 e.Value != null)
             {
+
                 if (decimal.TryParse(e.Value.ToString(), out decimal value))
                 {
                     e.Value = value.ToString("N0") + " VNĐ";
                     e.FormattingApplied = true;
+                }
+                DataGridViewRow row = dataGridView_mon.Rows[e.RowIndex];
+                if (row.Cells["TrangThai"].Value != null)
+                {
+                    string status = row.Cells["TrangThai"].Value.ToString();
+                    if (status == "ConMon")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightGreen;
+                        row.DefaultCellStyle.SelectionBackColor = Color.Green; 
+                    }
+                    else if (status == "HetMon")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightSalmon;
+                        row.DefaultCellStyle.SelectionBackColor = Color.Red; 
+                    }
                 }
             }
         }
@@ -385,13 +401,19 @@ namespace RestaurantClient
                     return;
                 }
 
-                // Thêm vào giỏ hàng với số lượng
-                AddToCart(selectedMon, soLuong);
+                if (selectedMon.TrangThai == "ConMon")
+                {
+                    AddToCart(selectedMon, soLuong);
 
-                ShowSuccess($"Đã thêm {soLuong} '{selectedMon.TenMon}' vào giỏ hàng");
+                    ShowSuccess($"Đã thêm {soLuong} '{selectedMon.TenMon}' vào giỏ hàng");
 
-                // Reset số lượng về 1 sau khi thêm
-                nm_soluong.Value = 1;
+                    // Reset số lượng về 1 sau khi thêm
+                    nm_soluong.Value = 1;
+                }
+                else
+                {
+                    ShowWarning("Đã hết món đang chọn !");
+                }
             }
             catch (Exception ex)
             {
