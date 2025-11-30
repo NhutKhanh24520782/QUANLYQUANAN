@@ -316,6 +316,7 @@
             cb_banOrder.Name = "cb_banOrder";
             cb_banOrder.Size = new Size(223, 33);
             cb_banOrder.TabIndex = 1;
+            cb_banOrder.SelectedIndexChanged += cb_banOrder_SelectedIndexChanged_1;
             // 
             // lbl_chonban
             // 

@@ -897,6 +897,7 @@
             cb_position.Name = "cb_position";
             cb_position.Size = new Size(198, 28);
             cb_position.TabIndex = 7;
+            cb_position.SelectedIndexChanged += cb_position_SelectedIndexChanged;
             // 
             // label13
             // 

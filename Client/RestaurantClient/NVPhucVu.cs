@@ -35,8 +35,10 @@ namespace RestaurantClient
         {
             _currentUserId = userId;
             _currentUserName = userName;
-
             InitializeComponent();
+            cb_trangthai.Items.Clear();
+            cb_trangthai.DropDownStyle = ComboBoxStyle.DropDownList;
+            cb_trangthai.Items.AddRange(new string[] { "Trống", "Có người", "Đã đặt" });
             InitializeGridViewManager();
             InitializePaymentControls();
             InitializeAutoRefreshTimer(); // 🔥 BỔ SUNG: Khởi tạo Timer
@@ -239,7 +241,13 @@ namespace RestaurantClient
             cb_banOrder.DropDownStyle = ComboBoxStyle.DropDownList;
             cb_banOrder.SelectedIndexChanged += Cb_banOrder_SelectedIndexChanged;
 
+            if (cb_banan == null) return;
+
+            cb_banan.DropDownStyle = ComboBoxStyle.DropDownList;
+            cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged;
+
             LoadTables();
+            
         }
         private async void LoadTables()
         {
@@ -257,12 +265,17 @@ namespace RestaurantClient
                     cb_banOrder.DisplayMember = "TenBan";
                     cb_banOrder.ValueMember = "MaBanAn";
 
+                    cb_banan.DataSource = _danhSachBan;
+                    cb_banan.DisplayMember = "TenBan";
+                    cb_banan.ValueMember = "MaBanAn";
+
                     Console.WriteLine($"✅ Đã tải {_danhSachBan.Count} bàn ăn");
 
                     // Tự động chọn bàn đầu tiên nếu có
                     if (_danhSachBan.Count > 0)
                     {
                         cb_banOrder.SelectedIndex = 0;
+                        cb_banan.SelectedIndex = 0;
                     }
                 }
             }
@@ -279,6 +292,25 @@ namespace RestaurantClient
             try
             {
                 int selectedTableId = (int)cb_banOrder.SelectedValue;
+                var selectedTable = _danhSachBan.FirstOrDefault(b => b.MaBanAn == selectedTableId);
+
+                if (selectedTable != null)
+                {
+                    UpdateTableStatusDisplay(selectedTable);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi hiển thị trạng thái bàn: {ex.Message}");
+            }
+        }
+        private void cb_banan_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cb_banan.SelectedValue == null) return;
+
+            try
+            {
+                int selectedTableId = (int)cb_banan.SelectedValue;
                 var selectedTable = _danhSachBan.FirstOrDefault(b => b.MaBanAn == selectedTableId);
 
                 if (selectedTable != null)
@@ -1370,7 +1402,7 @@ namespace RestaurantClient
                 if (Confirm($"Xác nhận đặt trước bàn '{selectedTable.TenBan}'?"))
                 {
                     Task datban;
-                    datban=ExecuteAsync(btn_datban, "Đang đặt bàn...", async () =>
+                    datban = ExecuteAsync(btn_datban, "Đang đặt bàn...", async () =>
                     {
                         // Gửi request cập nhật trạng thái bàn
                         var request = new UpdateTableRequest
@@ -1504,6 +1536,11 @@ namespace RestaurantClient
             {
                 ShowError($"Lỗi hủy đặt bàn: {ex.Message}");
             }
+        }
+
+        private void cb_banOrder_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+
         }
     }
 }

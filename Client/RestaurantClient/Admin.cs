@@ -34,7 +34,7 @@ namespace RestaurantClient
         private const int SERVER_PORT = 5000;
         private const string SEARCH_PLACEHOLDER = "Tìm theo tên hoặc email...";
         private const string SEARCH_BILL = "Tìm theo mã bàn hoặc nhân viên...";
-        private const string SEARCH_TABLE ="Tìm theo mã bàn hoặc trạng thái...";
+        private const string SEARCH_TABLE = "Tìm theo mã bàn hoặc trạng thái...";
         // ==================== INITIALIZATION ====================
         public Admin()
         {
@@ -1565,6 +1565,11 @@ namespace RestaurantClient
         {
             MessageBox.Show(message, "Cảnh báo",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        private void cb_position_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
