@@ -274,7 +274,9 @@ namespace RestaurantClient
 
                 if (response?.Success == true && response.ListBan != null)
                 {
-                    _danhSachBan = response.ListBan;
+                    _danhSachBan = response.ListBan
+                    .Where(b => b.TrangThai != "An")
+                    .ToList();
 
                     // Hiển thị tên bàn và mã bàn
                     cb_banOrder.DataSource = _danhSachBan;
