@@ -243,7 +243,7 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string q = "SELECT * FROM MENUITEMS ORDER BY MaMon DESC";
+                    string q = "SELECT * FROM MENUITEMS MN JOIN LOAIMON LM ON MN.MaLoaiMon = LM.MaLoaiMon ORDER BY MN.MaMon DESC";
                     SqlCommand cmd = new SqlCommand(q, conn);
                     var list = new List<MenuItemData>();
                     using (SqlDataReader r = cmd.ExecuteReader())
@@ -274,7 +274,7 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string q = @"SELECT * FROM MENUITEMS WHERE @kw='' OR TenMon LIKE '%' + @kw + '%' ORDER BY MaMon DESC";
+                    string q = @"SELECT * FROM MENUITEMS MN JOIN LOAIMON LM ON MN.MaLoaiMon = LM.MaLoaiMon WHERE @kw='' OR MN.TenMon LIKE '%' + @kw + '%' ORDER BY MN.MaMon DESC";
                     SqlCommand cmd = new SqlCommand(q, conn);
                     cmd.Parameters.AddWithValue("@kw", keyword);
                     var list = new List<MenuItemData>();
@@ -306,24 +306,63 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string query = @"INSERT INTO MENUITEMS (TenMon, Gia, MoTa, MaLoaiMon, TrangThai)
-                                     OUTPUT INSERTED.MaMon
-                                     VALUES (@TenMon, @Gia, @MoTa, @MaLoaiMon, @TrangThai)";
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
+
+                    // 1. KIỂM TRA MA LOẠI MÓN CÓ TỒN TẠI KHÔNG (nếu có giá trị)
+                    if (maLoaiMon.HasValue && maLoaiMon.Value > 0)
+                    {
+                        string checkQuery = "SELECT COUNT(*) FROM LOAIMON WHERE MaLoaiMon = @MaLoaiMon AND TrangThai = 1";
+                        using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                        {
+                            checkCmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon.Value);
+                            int exists = (int)checkCmd.ExecuteScalar();
+
+                            if (exists == 0)
+                            {
+                                return new MenuResult
+                                {
+                                    Success = false,
+                                    Message = $"Lỗi: Mã loại món '{maLoaiMon.Value}' không tồn tại hoặc đã bị khóa"
+                                };
+                            }
+                        }
+                    }
+
+                    // 2. THÊM MÓN MỚI
+                    string insertQuery = @"INSERT INTO MENUITEMS (TenMon, Gia, MoTa, MaLoaiMon, TrangThai)
+                                   OUTPUT INSERTED.MaMon
+                                   VALUES (@TenMon, @Gia, @MoTa, @MaLoaiMon, @TrangThai)";
+
+                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
                     {
                         cmd.Parameters.AddWithValue("@TenMon", tenMon);
                         cmd.Parameters.AddWithValue("@Gia", gia);
-                        cmd.Parameters.AddWithValue("@MoTa", moTa ?? "");
-                        cmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@MoTa", moTa ?? string.Empty);
+
+                        // Xử lý giá trị NULL cho ngoại khóa
+                        if (maLoaiMon.HasValue && maLoaiMon.Value > 0)
+                        {
+                            cmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon.Value);
+                        }
+                        else
+                        {
+                            cmd.Parameters.AddWithValue("@MaLoaiMon", DBNull.Value);
+                        }
+
                         cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+
                         int newId = (int)cmd.ExecuteScalar();
-                        return new MenuResult { Success = true, Message = "Thêm món thành công", MaMon = newId };
+
+                        return new MenuResult
+                        {
+                            Success = true,
+                            Message = "Thêm món thành công",
+                            MaMon = newId
+                        };
                     }
                 }
             }
             catch (Exception ex) { return new MenuResult { Success = false, Message = $"Lỗi thêm món: {ex.Message}" }; }
         }
-
         public static MenuResult UpdateMenu(int maMon, string tenMon, decimal gia, string moTa, int? maLoaiMon, string trangThai)
         {
             try
@@ -331,24 +370,74 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string query = @"UPDATE MENUITEMS SET TenMon = @TenMon, Gia = @Gia, MoTa = @MoTa, MaLoaiMon = @MaLoaiMon, TrangThai = @TrangThai
-                                     WHERE MaMon = @MaMon";
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
+
+                    // 1. KIỂM TRA MA LOẠI MÓN CÓ TỒN TẠI KHÔNG (nếu có giá trị)
+                    if (maLoaiMon.HasValue && maLoaiMon.Value > 0)
+                    {
+                        string checkQuery = "SELECT COUNT(*) FROM LOAIMON WHERE MaLoaiMon = @MaLoaiMon";
+                        using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                        {
+                            checkCmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon.Value);
+                            int exists = (int)checkCmd.ExecuteScalar();
+
+                            if (exists == 0)
+                            {
+                                return new MenuResult
+                                {
+                                    Success = false,
+                                    Message = $"Mã loại món '{maLoaiMon.Value}' không tồn tại trong hệ thống"
+                                };
+                            }
+                        }
+                    }
+
+                    // 2. CẬP NHẬT THÔNG TIN MÓN
+                    string updateQuery = @"UPDATE MENUITEMS 
+                                   SET TenMon = @TenMon, 
+                                       Gia = @Gia, 
+                                       MoTa = @MoTa, 
+                                       MaLoaiMon = @MaLoaiMon, 
+                                       TrangThai = @TrangThai
+                                   WHERE MaMon = @MaMon";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
                     {
                         cmd.Parameters.AddWithValue("@MaMon", maMon);
                         cmd.Parameters.AddWithValue("@TenMon", tenMon);
                         cmd.Parameters.AddWithValue("@Gia", gia);
                         cmd.Parameters.AddWithValue("@MoTa", moTa ?? "");
-                        cmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon ?? (object)DBNull.Value);
+
+                        // Xử lý đúng giá trị NULL cho ngoại khóa
+                        if (maLoaiMon.HasValue && maLoaiMon.Value > 0)
+                        {
+                            cmd.Parameters.AddWithValue("@MaLoaiMon", maLoaiMon.Value);
+                        }
+                        else
+                        {
+                            cmd.Parameters.AddWithValue("@MaLoaiMon", DBNull.Value);
+                        }
+
                         cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+
                         int rowsAffected = cmd.ExecuteNonQuery();
-                        return new MenuResult { Success = rowsAffected > 0, Message = rowsAffected > 0 ? "Cập nhật món thành công" : "Món không tồn tại" };
+
+                        return new MenuResult
+                        {
+                            Success = rowsAffected > 0,
+                            Message = rowsAffected > 0 ? "Cập nhật món thành công" : "Món không tồn tại"
+                        };
                     }
                 }
             }
-            catch (Exception ex) { return new MenuResult { Success = false, Message = $"Lỗi cập nhật: {ex.Message}" }; }
+            catch (Exception ex)
+            {
+                return new MenuResult
+                {
+                    Success = false,
+                    Message = $"Lỗi cập nhật: {ex.Message}"
+                };
+            }
         }
-
         public static MenuResult DeleteMenu(int maMon)
         {
             try

@@ -124,6 +124,8 @@
             panel18 = new Panel();
             btn_send = new Button();
             textBox2 = new TextBox();
+            tb_maloaimon = new TextBox();
+            label19 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             panel2.SuspendLayout();
@@ -315,6 +317,8 @@
             // 
             // panel6
             // 
+            panel6.Controls.Add(tb_maloaimon);
+            panel6.Controls.Add(label19);
             panel6.Controls.Add(cb_statusFood);
             panel6.Controls.Add(label16);
             panel6.Controls.Add(nm_priceFood);
@@ -329,7 +333,7 @@
             // cb_statusFood
             // 
             cb_statusFood.FormattingEnabled = true;
-            cb_statusFood.Location = new Point(132, 148);
+            cb_statusFood.Location = new Point(140, 185);
             cb_statusFood.Name = "cb_statusFood";
             cb_statusFood.Size = new Size(163, 28);
             cb_statusFood.TabIndex = 11;
@@ -338,7 +342,7 @@
             // 
             label16.AutoSize = true;
             label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(9, 144);
+            label16.Location = new Point(3, 181);
             label16.Name = "label16";
             label16.Size = new Size(108, 28);
             label16.TabIndex = 10;
@@ -346,7 +350,7 @@
             // 
             // nm_priceFood
             // 
-            nm_priceFood.Location = new Point(132, 88);
+            nm_priceFood.Location = new Point(140, 126);
             nm_priceFood.Maximum = new decimal(new int[] { 1000000000, 0, 0, 0 });
             nm_priceFood.Name = "nm_priceFood";
             nm_priceFood.Size = new Size(163, 27);
@@ -356,7 +360,7 @@
             // 
             label4.AutoSize = true;
             label4.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label4.Location = new Point(9, 88);
+            label4.Location = new Point(3, 125);
             label4.Name = "label4";
             label4.Size = new Size(84, 28);
             label4.TabIndex = 8;
@@ -364,16 +368,16 @@
             // 
             // tb_nameFood
             // 
-            tb_nameFood.Location = new Point(132, 31);
+            tb_nameFood.Location = new Point(140, 68);
             tb_nameFood.Name = "tb_nameFood";
-            tb_nameFood.Size = new Size(254, 27);
+            tb_nameFood.Size = new Size(240, 27);
             tb_nameFood.TabIndex = 7;
             // 
             // label3
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label3.Location = new Point(9, 30);
+            label3.Location = new Point(3, 67);
             label3.Name = "label3";
             label3.Size = new Size(93, 28);
             label3.TabIndex = 1;
@@ -1117,6 +1121,23 @@
             textBox2.Size = new Size(802, 59);
             textBox2.TabIndex = 0;
             // 
+            // tb_maloaimon
+            // 
+            tb_maloaimon.Location = new Point(140, 11);
+            tb_maloaimon.Name = "tb_maloaimon";
+            tb_maloaimon.Size = new Size(240, 27);
+            tb_maloaimon.TabIndex = 13;
+            // 
+            // label19
+            // 
+            label19.AutoSize = true;
+            label19.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label19.Location = new Point(3, 10);
+            label19.Name = "label19";
+            label19.Size = new Size(131, 28);
+            label19.TabIndex = 12;
+            label19.Text = "Mã loại món";
+            // 
             // Admin
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
@@ -1271,5 +1292,7 @@
         private Label label16;
         private Label lbl_seat;
         private NumericUpDown nm_seats;
+        private TextBox tb_maloaimon;
+        private Label label19;
     }
 }

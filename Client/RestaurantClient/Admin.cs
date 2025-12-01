@@ -124,6 +124,7 @@ namespace RestaurantClient
               LoadMenuFromServer,
               food => new
               {
+                  food.MaLoaiMon,
                   food.MaMon,
                   food.TenMon,
                   food.Gia,
@@ -1301,9 +1302,18 @@ namespace RestaurantClient
         }
         private async void btn_addFood_Click(object sender, EventArgs e)
         {
+            // VALIDATE DỮ LIỆU CƠ BẢN
             if (string.IsNullOrWhiteSpace(tb_nameFood.Text))
             {
                 ShowWarning("Tên món không được trống!");
+                tb_nameFood.Focus();
+                return;
+            }
+
+            if (nm_priceFood.Value <= 0)
+            {
+                ShowWarning("Giá món phải lớn hơn 0!");
+                nm_priceFood.Focus();
                 return;
             }
 
@@ -1313,25 +1323,67 @@ namespace RestaurantClient
                 return;
             }
 
+            // ✅ CHỈ KIỂM TRA ĐỊNH DẠNG MA LOẠI MÓN (KHÔNG KIỂM TRA TỒN TẠI)
+            if (string.IsNullOrWhiteSpace(tb_maloaimon.Text))
+            {
+                ShowWarning("Vui lòng nhập mã loại món!");
+                tb_maloaimon.Focus();
+                return;
+            }
+
+            if (!int.TryParse(tb_maloaimon.Text.Trim(), out int maLoaiMon) || maLoaiMon <= 0)
+            {
+                ShowWarning("Mã loại món phải là số nguyên dương!");
+                tb_maloaimon.Focus();
+                return;
+            }
+
+            // XÁC NHẬN THÊM
+            if (!Confirm($"Thêm món: {tb_nameFood.Text} với giá {nm_priceFood.Value:N0} VNĐ?"))
+                return;
+
             // ✅ CHUYỂN ĐỔI TRẠNG THÁI
             string trangThai = cb_statusFood.SelectedItem.ToString() == "Còn món" ? "ConMon" : "HetMon";
 
-            var req = new AddMenuRequest
+            await ExecuteAsync(btn_addFood, "Đang thêm...", async () =>
             {
-                TenMon = tb_nameFood.Text.Trim(),
-                Gia = nm_priceFood.Value,
-                TrangThai = trangThai // ✅ THÊM TRẠNG THÁI
-            };
+                var req = new AddMenuRequest
+                {
+                    MaLoaiMon = maLoaiMon,
+                    TenMon = tb_nameFood.Text.Trim(),
+                    Gia = nm_priceFood.Value,
+                    TrangThai = trangThai
+                };
 
-            var res = await SendRequest<AddMenuRequest, AddMenuResponse>(req);
+                var res = await SendRequest<AddMenuRequest, AddMenuResponse>(req);
 
-            if (res?.Success == true)
-            {
-                ShowSuccess("Thêm món thành công!");
-                await _menuManager.RefreshAsync();
-                ClearFoodForm(); // ✅ XÓA FORM SAU KHI THÊM
-            }
-            else ShowError(res?.Message);
+                if (res?.Success == true)
+                {
+                    ShowSuccess($"Thêm món thành công! Mã món: {res.MaMon}");
+                    await _menuManager.RefreshAsync();
+                    ClearFoodForm();
+                }
+                else
+                {
+                    // ✅ XỬ LÝ LỖI NGOẠI KHÓA CHI TIẾT
+                    string errorMessage = res?.Message ?? "Thêm món thất bại";
+
+                    if (errorMessage.Contains("FOREIGN KEY") ||
+                        errorMessage.Contains("MaloaiMon") ||
+                        errorMessage.Contains("LOAIMON"))
+                    {
+                        ShowError($"Lỗi: Mã loại món '{maLoaiMon}' không tồn tại trong hệ thống.\n\nVui lòng kiểm tra lại hoặc liên hệ quản trị viên để thêm loại món mới.");
+                    }
+                    else if (errorMessage.Contains("PRIMARY KEY") || errorMessage.Contains("duplicate"))
+                    {
+                        ShowError("Lỗi: Tên món đã tồn tại trong hệ thống!");
+                    }
+                    else
+                    {
+                        ShowError($"Lỗi: {errorMessage}");
+                    }
+                }
+            });
         }
         private async void btn_editFood_Click(object sender, EventArgs e)
         {
@@ -1374,6 +1426,7 @@ namespace RestaurantClient
 
                 var req = new UpdateMenuRequest
                 {
+                    MaLoaiMon = Convert.ToInt32(tb_maloaimon.Text.Trim()),
                     MaMon = selectedFood.MaMon,
                     TenMon = tb_nameFood.Text.Trim(),
                     Gia = nm_priceFood.Value,
