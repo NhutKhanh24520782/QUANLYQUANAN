@@ -1157,7 +1157,8 @@ namespace RestaurantServer
                             Message = "Thanh toán tiền mặt thành công",
                             SoTienThua = soTienThua,
                             NgayThanhToan = DateTime.Now,
-                            MaGiaoDich = maGiaoDich.ToString()
+                            MaGiaoDich = maGiaoDich.ToString(),
+                            MaGiaoDichId = maGiaoDich
                         };
                     }
                     catch (Exception ex)
@@ -1267,7 +1268,8 @@ namespace RestaurantServer
                             Message = "Thanh toán chuyển khoản thành công",
                             TransactionNo = transactionNo,
                             QRCodeData = qrCodeData,
-                            NgayThanhToan = DateTime.Now
+                            NgayThanhToan = DateTime.Now,
+                            MaGiaoDichId = maGiaoDich
                         };
                     }
                     catch (Exception ex)

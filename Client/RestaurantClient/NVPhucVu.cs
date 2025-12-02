@@ -44,6 +44,8 @@ namespace RestaurantClient
             cb_trangthai.SelectedIndexChanged += OnFilterChanged;
             cb_banan.SelectedIndex = -1;
             cb_trangthai.SelectedIndex = -1;
+            // Đăng ký sự kiện click cho PictureBox
+            pb_QR.Click += pb_QR_Click;
             InitializeGridViewManager();
             InitializePaymentControls();
             InitializeAutoRefreshTimer(); // 🔥 BỔ SUNG: Khởi tạo Timer
@@ -298,7 +300,7 @@ namespace RestaurantClient
                     if (_danhSachBan.Count > 0)
                     {
                         cb_banOrder.SelectedIndex = 0;
-                        
+
                     }
                     cb_banan.SelectedIndex = -1;
                 }
@@ -901,6 +903,10 @@ namespace RestaurantClient
             }
 
             string paymentMethod = checkBox_tienmat.Checked ? "TienMat" : "ChuyenKhoan";
+            if (paymentMethod == "TienMat")
+            {
+                pb_QR.Visible = false; // Chọn tiền mặt thì ẩn QR đi
+            }
 
             // Xác nhận thanh toán
             if (!Confirm($"Xác nhận thanh toán hóa đơn #{selectedPayment.MaHD}?\n" +
@@ -949,7 +955,8 @@ namespace RestaurantClient
                         // Hiển thị QR code nếu là chuyển khoản
                         if (paymentMethod == "ChuyenKhoan")
                         {
-                            ShowQRCode(selectedPayment.TongTien, response.MaGiaoDich.ToString() ?? "N/A");
+                            string noiDungCK = $"{selectedPayment.TenBan} Thanh Toan";
+                            HienThiMaQR(selectedPayment.TongTien, noiDungCK);
                         }
                     }
                     else
@@ -984,6 +991,7 @@ namespace RestaurantClient
 
                     ShowError(errorMessage);
                 }
+
             });
         }
 
@@ -1605,7 +1613,8 @@ namespace RestaurantClient
                 if (response != null && response.Success)
                 {
                     var danhSachDaGop = response.Orders
-                .GroupBy(x => new {
+                .GroupBy(x => new
+                {
                     x.MaBanAn,
                     x.TenMon,
                     x.DonGia,
@@ -1767,6 +1776,86 @@ namespace RestaurantClient
 
             // 3. Đưa ô Trạng thái về trạng thái chưa chọn (Rỗng)
             cb_trangthai.SelectedIndex = -1;
+        }
+        //=============== QR =============================
+        // Hàm hiển thị QR Code sử dụng API VietQR
+        // Hàm gọi API VietQR và hiển thị lên PictureBox
+        private void HienThiMaQR(decimal soTien, string noiDung)
+        {
+            try
+            {
+                // --- SỬA LỖI 1: Bắt buộc dùng TLS 1.2 để tải được ảnh từ https ---
+                System.Net.ServicePointManager.SecurityProtocol =
+                    System.Net.SecurityProtocolType.Tls12 |
+                    System.Net.SecurityProtocolType.Tls11 |
+                    System.Net.SecurityProtocolType.Tls;
+
+                // 1. Cấu hình tài khoản
+                string nganHang = "ICB";
+                string soTaiKhoan = "0933200298";
+                string tenChuTaiKhoan = "NGUYEN QUOC TRUONG";
+
+                // 2. Xử lý dữ liệu
+                string amount = ((int)soTien).ToString();
+                string addInfo = Uri.EscapeDataString(noiDung);
+                string accountName = Uri.EscapeDataString(tenChuTaiKhoan);
+
+                // 3. Tạo link API
+                string apiUrl = $"https://img.vietqr.io/image/{nganHang}-{soTaiKhoan}-compact2.png?amount={amount}&addInfo={addInfo}&accountName={accountName}";
+
+                // --- SỬA LỖI 2: Xử lý hiển thị UI ---
+
+                // Nếu bạn có dùng panel_qrthanhtoan làm nền, hãy hiện nó lên trước
+                if (panel_qrthanhtoan != null)
+                {
+                    panel_qrthanhtoan.Visible = true;
+                    // Nếu pb_QR chưa nằm trong panel này, bạn nên kéo nó vào trong Designer
+                }
+
+                pb_QR.Visible = true;
+                pb_QR.Image = null; // Xóa ảnh cũ
+                pb_QR.SizeMode = PictureBoxSizeMode.Zoom;
+                pb_QR.BringToFront(); // Đưa ảnh lên lớp trên cùng để không bị che
+
+                // 4. Tải ảnh và bắt lỗi tải
+                pb_QR.LoadAsync(apiUrl);
+
+                // (Tùy chọn) Kiểm tra link xem có đúng không
+                Console.WriteLine("Link QR: " + apiUrl);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi tạo QR: " + ex.Message);
+            }
+        }
+
+        private void pb_QR_Click(object sender, EventArgs e)
+        {
+            if (pb_QR.Image == null) return;
+
+            Form zoomForm = new Form();
+            zoomForm.StartPosition = FormStartPosition.CenterScreen;
+            zoomForm.Size = new Size(600, 600);
+            zoomForm.FormBorderStyle = FormBorderStyle.None;
+            zoomForm.BackColor = Color.White;
+
+            PictureBox pbZoom = new PictureBox();
+            pbZoom.Image = pb_QR.Image;
+            pbZoom.Dock = DockStyle.Fill;
+            pbZoom.SizeMode = PictureBoxSizeMode.Zoom;
+            pbZoom.Cursor = Cursors.Hand;
+
+            // Bấm vào ảnh to hoặc bấm ESC thì tắt
+            pbZoom.Click += (s, args) => zoomForm.Close();
+            zoomForm.KeyDown += (s, args) => { if (args.KeyCode == Keys.Escape) zoomForm.Close(); };
+
+            zoomForm.Controls.Add(pbZoom);
+            zoomForm.ShowDialog();
+        }
+
+        private void checkBox_chuyenkhoan_CheckedChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

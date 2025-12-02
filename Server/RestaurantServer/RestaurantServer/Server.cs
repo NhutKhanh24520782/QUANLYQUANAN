@@ -636,7 +636,8 @@ namespace RestaurantServer
                         {
                             Success = result.Success,
                             Message = result.Message,
-                            MaGiaoDich = string.IsNullOrEmpty(result.MaGiaoDich) ? 0 : int.Parse(result.MaGiaoDich),
+                            //MaGiaoDich = string.IsNullOrEmpty(result.MaGiaoDich) ? 0 : int.Parse(result.MaGiaoDich),
+                            MaGiaoDich = result.MaGiaoDichId,
                             NgayThanhToan = result.NgayThanhToan,
                             PhuongThucThanhToan = "TienMat",
                             SoTienThanhToan = request.SoTienThanhToan,
@@ -657,7 +658,8 @@ namespace RestaurantServer
                         {
                             Success = result.Success,
                             Message = result.Message,
-                            MaGiaoDich = string.IsNullOrEmpty(result.TransactionNo) ? 0 : int.Parse(result.TransactionNo),
+                            //MaGiaoDich = string.IsNullOrEmpty(result.TransactionNo) ? 0 : int.Parse(result.TransactionNo),
+                            MaGiaoDich = result.MaGiaoDichId,
                             NgayThanhToan = result.NgayThanhToan,
                             PhuongThucThanhToan = "ChuyenKhoan",
                             SoTienThanhToan = request.SoTienThanhToan,

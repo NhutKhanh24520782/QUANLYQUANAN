@@ -64,6 +64,7 @@
             tb_idBill = new TextBox();
             label6 = new Label();
             panel_qrthanhtoan = new Panel();
+            pb_QR = new PictureBox();
             dataGridView_thanhtoan = new DataGridView();
             checkBox_chuyenkhoan = new CheckBox();
             checkBox_tienmat = new CheckBox();
@@ -96,6 +97,7 @@
             tp_thanhtoan.SuspendLayout();
             gb_thanhtoan.SuspendLayout();
             panel8.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pb_QR).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataGridView_thanhtoan).BeginInit();
             tb_chat.SuspendLayout();
             groupBox1.SuspendLayout();
@@ -343,6 +345,7 @@
             // 
             // gb_thanhtoan
             // 
+            gb_thanhtoan.Controls.Add(pb_QR);
             gb_thanhtoan.Controls.Add(panel8);
             gb_thanhtoan.Controls.Add(btn_refresh);
             gb_thanhtoan.Controls.Add(tb_tongtien);
@@ -363,7 +366,7 @@
             gb_thanhtoan.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
             gb_thanhtoan.Location = new Point(6, 6);
             gb_thanhtoan.Name = "gb_thanhtoan";
-            gb_thanhtoan.Size = new Size(1377, 593);
+            gb_thanhtoan.Size = new Size(1377, 599);
             gb_thanhtoan.TabIndex = 1;
             gb_thanhtoan.TabStop = false;
             gb_thanhtoan.Text = "Thanh toán";
@@ -485,8 +488,20 @@
             // 
             panel_qrthanhtoan.Location = new Point(478, 363);
             panel_qrthanhtoan.Name = "panel_qrthanhtoan";
-            panel_qrthanhtoan.Size = new Size(445, 230);
+            panel_qrthanhtoan.Size = new Size(445, 224);
             panel_qrthanhtoan.TabIndex = 19;
+            // 
+            // pb_QR
+            // 
+            pb_QR.Cursor = Cursors.Hand;
+            pb_QR.Location = new Point(501, 363);
+            pb_QR.Name = "pb_QR";
+            pb_QR.Size = new Size(398, 224);
+            pb_QR.SizeMode = PictureBoxSizeMode.Zoom;
+            pb_QR.TabIndex = 0;
+            pb_QR.TabStop = false;
+            pb_QR.Visible = false;
+            pb_QR.Click += pb_QR_Click;
             // 
             // dataGridView_thanhtoan
             // 
@@ -507,6 +522,7 @@
             checkBox_chuyenkhoan.TabIndex = 16;
             checkBox_chuyenkhoan.Text = "Chuyển khoản";
             checkBox_chuyenkhoan.UseVisualStyleBackColor = true;
+            checkBox_chuyenkhoan.CheckedChanged += checkBox_chuyenkhoan_CheckedChanged;
             // 
             // checkBox_tienmat
             // 
@@ -734,6 +750,7 @@
             gb_thanhtoan.PerformLayout();
             panel8.ResumeLayout(false);
             panel8.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pb_QR).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridView_thanhtoan).EndInit();
             tb_chat.ResumeLayout(false);
             groupBox1.ResumeLayout(false);
@@ -811,5 +828,6 @@
         private Label label11;
         private DataGridView dataGridView_giohang;
         private Button btn_xoahet;
+        private PictureBox pb_QR;
     }
 }

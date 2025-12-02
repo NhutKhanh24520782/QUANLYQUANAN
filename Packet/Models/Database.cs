@@ -211,6 +211,7 @@ namespace Models.Database
         public decimal SoTienThua { get; set; }
         public DateTime NgayThanhToan { get; set; }
         public string MaGiaoDich { get; set; } = string.Empty;
+        public int MaGiaoDichId { get; set; }
     }
 
     /// <summary>
@@ -223,6 +224,7 @@ namespace Models.Database
         public string TransactionNo { get; set; } = string.Empty;
         public string QRCodeData { get; set; } = string.Empty;
         public DateTime NgayThanhToan { get; set; }
+        public int MaGiaoDichId { get; set; }
     }
 
     /// <summary>
