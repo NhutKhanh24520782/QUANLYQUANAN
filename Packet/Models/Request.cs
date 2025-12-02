@@ -365,5 +365,10 @@ namespace Models.Request
     {
         public string Type => "GetCategories";
     }
+    public class GetTableDetailRequest
+    {
+        public string Type => "GetTableDetail"; // Mã hiệu lệnh
+        public int MaBanAn { get; set; }        // Dữ liệu gửi đi: Mã bàn muốn xem
+    }
 }
 

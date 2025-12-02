@@ -1451,21 +1451,21 @@ namespace RestaurantServer
                         }
 
                         // 2. Thêm chi tiết hóa đơn
-                    //    string insertChiTiet = @"
-                    //INSERT INTO CTHD (MaHD, MaMon, SoLuong, DonGia)
-                    //VALUES (@MaHD, @MaMon, @SoLuong, @DonGia)";
+                        string insertChiTiet = @"
+                    INSERT INTO CTHD (MaHD, MaMon, SoLuong, DonGia)
+                    VALUES (@MaHD, @MaMon, @SoLuong, @DonGia)";
 
-                    //    foreach (var item in chiTiet)
-                    //    {
-                    //        using (SqlCommand cmd = new SqlCommand(insertChiTiet, conn, transaction))
-                    //        {
-                    //            cmd.Parameters.AddWithValue("@MaHD", maHoaDon);
-                    //            cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
-                    //            cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
-                    //            cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
-                    //            cmd.ExecuteNonQuery();
-                    //        }
-                    //    }
+                        foreach (var item in chiTiet)
+                        {
+                            using (SqlCommand cmd = new SqlCommand(insertChiTiet, conn, transaction))
+                            {
+                                cmd.Parameters.AddWithValue("@MaHD", maHoaDon);
+                                cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
+                                cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
+                                cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
 
                         // 3. Cập nhật trạng thái bàn
                         string updateBan = "UPDATE BAN SET TrangThai = 'DangSuDung' WHERE MaBanAn = @MaBanAn";
@@ -1495,6 +1495,57 @@ namespace RestaurantServer
                     }
                 }
             }
+        }
+        public static GetTableDetailResponse GetTableDetails(int maBanAn)
+        {
+            var result = new GetTableDetailResponse();
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    // Câu lệnh SQL: Lấy tên món, số lượng, giá từ hóa đơn CHƯA THANH TOÁN của bàn đó
+                    string query = @"
+                SELECT 
+                    m.TenMon, 
+                    ct.SoLuong, 
+                    ct.DonGia, 
+                    hd.Ngay
+                FROM HOADON hd
+                JOIN CTHD ct ON hd.MaHD = ct.MaHD
+                JOIN MENUITEMS m ON ct.MaMon = m.MaMon
+                WHERE hd.MaBanAn = @MaBanAn 
+                  AND hd.TrangThai = N'ChuaThanhToan'
+                ORDER BY hd.Ngay DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                result.Orders.Add(new TableOrderDetailData
+                                {
+                                    TenMon = reader["TenMon"].ToString(),
+                                    SoLuong = Convert.ToInt32(reader["SoLuong"]),
+                                    DonGia = Convert.ToDecimal(reader["DonGia"]),
+                                    ThoiGianGoi = Convert.ToDateTime(reader["Ngay"])
+                                });
+                            }
+                        }
+                    }
+                    result.Success = true;
+                    result.Message = $"Lấy thành công {result.Orders.Count} món.";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = "Lỗi Database: " + ex.Message;
+            }
+            return result;
         }
     }
 }

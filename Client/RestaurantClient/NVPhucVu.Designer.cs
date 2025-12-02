@@ -600,6 +600,7 @@
             cb_banan.Name = "cb_banan";
             cb_banan.Size = new Size(205, 36);
             cb_banan.TabIndex = 7;
+            cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged_1;
             // 
             // label10
             // 
@@ -626,12 +627,13 @@
             cb_trangthai.Name = "cb_trangthai";
             cb_trangthai.Size = new Size(210, 36);
             cb_trangthai.TabIndex = 4;
+            cb_trangthai.SelectedIndexChanged += cb_trangthai_SelectedIndexChanged;
             // 
             // label9
             // 
             label9.AutoSize = true;
             label9.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label9.Location = new Point(560, 58);
+            label9.Location = new Point(551, 58);
             label9.Name = "label9";
             label9.Size = new Size(98, 25);
             label9.TabIndex = 3;

@@ -38,7 +38,8 @@ namespace RestaurantClient
             InitializeComponent();
             cb_trangthai.Items.Clear();
             cb_trangthai.DropDownStyle = ComboBoxStyle.DropDownList;
-            cb_trangthai.Items.AddRange(new string[] { "Trống", "Có người", "Đã đặt" });
+            cb_trangthai.Items.AddRange(new string[] { "Chưa thanh toán", "Đã thanh toán", "Đã đặt trước" });
+            cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged;
             InitializeGridViewManager();
             InitializePaymentControls();
             InitializeAutoRefreshTimer(); // 🔥 BỔ SUNG: Khởi tạo Timer
@@ -108,12 +109,12 @@ namespace RestaurantClient
                     if (status == "ConMon")
                     {
                         row.DefaultCellStyle.BackColor = Color.LightGreen;
-                        row.DefaultCellStyle.SelectionBackColor = Color.Green; 
+                        row.DefaultCellStyle.SelectionBackColor = Color.Green;
                     }
                     else if (status == "HetMon")
                     {
                         row.DefaultCellStyle.BackColor = Color.LightSalmon;
-                        row.DefaultCellStyle.SelectionBackColor = Color.Red; 
+                        row.DefaultCellStyle.SelectionBackColor = Color.Red;
                     }
                 }
             }
@@ -263,7 +264,7 @@ namespace RestaurantClient
             cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged;
 
             LoadTables();
-            
+
         }
         private async void LoadTables()
         {
@@ -1566,5 +1567,84 @@ namespace RestaurantClient
         {
 
         }
-    }
+
+        private void cb_trangthai_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+        private async Task LoadTableDetailsToListView(int maBan)
+        {
+            try
+            {
+                // 1. Setup ListView (nếu chưa chỉnh trong Design)
+                listView1.View = View.Details;
+                listView1.GridLines = true;
+                listView1.FullRowSelect = true;
+
+                // Chỉ thêm cột nếu chưa có (chạy 1 lần)
+                if (listView1.Columns.Count == 0)
+                {
+                    listView1.Columns.Add("Tên Món", 150);
+                    listView1.Columns.Add("SL", 50);
+                    listView1.Columns.Add("Đơn Giá", 100);
+                    listView1.Columns.Add("Thành Tiền", 100);
+                    listView1.Columns.Add("Thời Gian", 100);
+                }
+
+                // 2. Xóa dữ liệu cũ
+                listView1.Items.Clear();
+
+                // 3. Tạo Request gửi đi
+                var request = new GetTableDetailRequest { MaBanAn = maBan };
+
+                // 4. Gửi lên Server và chờ phản hồi
+                var response = await SendRequest<GetTableDetailRequest, GetTableDetailResponse>(request);
+
+                // 5. Nếu thành công, vẽ lên ListView
+                if (response != null && response.Success && response.Orders.Count > 0)
+                {
+                    foreach (var item in response.Orders)
+                    {
+                        // Tạo 1 dòng mới (ListViewItem)
+                        ListViewItem row = new ListViewItem(item.TenMon); // Cột 1: Tên món
+
+                        // Thêm các cột tiếp theo (SubItems)
+                        row.SubItems.Add(item.SoLuong.ToString());
+                        row.SubItems.Add(item.DonGia.ToString("N0"));
+                        row.SubItems.Add(item.ThanhTien.ToString("N0"));
+                        row.SubItems.Add(item.ThoiGianGoi.ToString("HH:mm"));
+
+                        // Nhét dòng đó vào ListView
+                        listView1.Items.Add(row);
+                    }
+                }
+                else
+                {
+                    // Không có món thì thôi, danh sách để trống
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi tải chi tiết bàn: " + ex.Message);
+            }
+        }
+        private async void cb_banan_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+            //MessageBox.Show("Đã chọn bàn!"); // <--- Thêm dòng này để test
+            if (cb_banan.SelectedValue == null)
+            {
+                MessageBox.Show("Chưa chọn được bàn (Value is null)");
+                return;
+            }
+
+            //MessageBox.Show("Đang lấy dữ liệu cho bàn ID: " + cb_banan.SelectedValue.ToString());
+
+            // Lấy mã bàn (ID) từ ComboBox
+            if (int.TryParse(cb_banan.SelectedValue.ToString(), out int maBan))
+            {
+                await LoadTableDetailsToListView(maBan);
+            }
+        }
+        
+        }
 }

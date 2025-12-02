@@ -320,4 +320,17 @@ namespace Models.Response
         public string Message { get; set; }
         public List<CategoryData> Categories { get; set; } = new List<CategoryData>();
     }
+    public class TableOrderDetailData
+    {
+        public string TenMon { get; set; } = "";
+        public int SoLuong { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal ThanhTien => SoLuong * DonGia;
+        public DateTime ThoiGianGoi { get; set; }
+    }
+    public class GetTableDetailResponse : BaseResponse
+    {
+        public GetTableDetailResponse() => Type = "GetTableDetailResponse";
+        public List<TableOrderDetailData> Orders { get; set; } = new List<TableOrderDetailData>();
+    }
 }
