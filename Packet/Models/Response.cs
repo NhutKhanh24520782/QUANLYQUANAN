@@ -322,12 +322,15 @@ namespace Models.Response
     }
     public class TableOrderDetailData
     {
+        public int MaBanAn { get; set; } 
         public string TenMon { get; set; } = "";
         public int SoLuong { get; set; }
         public decimal DonGia { get; set; }
         public decimal ThanhTien => SoLuong * DonGia;
         public DateTime ThoiGianGoi { get; set; }
+        public string TrangThai { get; set; } = "";
     }
+
     public class GetTableDetailResponse : BaseResponse
     {
         public GetTableDetailResponse() => Type = "GetTableDetailResponse";

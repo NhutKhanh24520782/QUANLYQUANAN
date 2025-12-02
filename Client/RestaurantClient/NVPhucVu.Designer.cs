@@ -73,6 +73,7 @@
             label4 = new Label();
             tb_chat = new TabPage();
             groupBox1 = new GroupBox();
+            btn_xoahet = new Button();
             listView1 = new ListView();
             cb_banan = new ComboBox();
             label10 = new Label();
@@ -569,6 +570,7 @@
             // 
             // groupBox1
             // 
+            groupBox1.Controls.Add(btn_xoahet);
             groupBox1.Controls.Add(listView1);
             groupBox1.Controls.Add(cb_banan);
             groupBox1.Controls.Add(label10);
@@ -584,6 +586,16 @@
             groupBox1.TabIndex = 0;
             groupBox1.TabStop = false;
             groupBox1.Text = "Thông tin đơn hàng";
+            // 
+            // btn_xoahet
+            // 
+            btn_xoahet.Location = new Point(1202, 50);
+            btn_xoahet.Name = "btn_xoahet";
+            btn_xoahet.Size = new Size(152, 48);
+            btn_xoahet.TabIndex = 9;
+            btn_xoahet.Text = "Xóa hết";
+            btn_xoahet.UseVisualStyleBackColor = true;
+            btn_xoahet.Click += btn_xoahet_Click;
             // 
             // listView1
             // 
@@ -619,6 +631,7 @@
             btn_lammoi.TabIndex = 5;
             btn_lammoi.Text = "Làm mới";
             btn_lammoi.UseVisualStyleBackColor = true;
+            btn_lammoi.Click += btn_lammoi_Click_1;
             // 
             // cb_trangthai
             // 
@@ -797,5 +810,6 @@
         private Label lbl_trangthaiban;
         private Label label11;
         private DataGridView dataGridView_giohang;
+        private Button btn_xoahet;
     }
 }

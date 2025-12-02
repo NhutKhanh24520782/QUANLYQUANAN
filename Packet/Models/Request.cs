@@ -367,8 +367,9 @@ namespace Models.Request
     }
     public class GetTableDetailRequest
     {
-        public string Type => "GetTableDetail"; // Mã hiệu lệnh
-        public int MaBanAn { get; set; }        // Dữ liệu gửi đi: Mã bàn muốn xem
+        public string Type => "GetTableDetail";
+        public int MaBanAn { get; set; }        // Lọc theo bàn (0 = tất cả)
+        public string TrangThai { get; set; } = ""; // Lọc theo trạng thái ("" = tất cả)
     }
 }
 

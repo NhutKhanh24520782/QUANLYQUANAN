@@ -797,31 +797,14 @@ namespace RestaurantServer
             {
                 try
                 {
-                    // 1. Giải nén gói tin Request từ Client
                     var request = rawRequest.ToObject<GetTableDetailRequest>();
-                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
 
-                    // 2. Gọi thợ kho (DatabaseAccess) đi lấy dữ liệu
-                    // Hàm GetTableDetails này chúng ta đã viết ở bước trước trong DatabaseAccess.cs
-                    var result = DatabaseAccess.GetTableDetails(request.MaBanAn);
+                    // Gọi hàm vừa sửa ở Bước 2
+                    var result = DatabaseAccess.GetTableDetails(request.MaBanAn, request.TrangThai);
 
-                    // 3. In log ra màn hình đen của Server để dễ theo dõi
-                    if (result.Success)
-                    {
-                        Console.WriteLine($"✅ Lấy chi tiết bàn {request.MaBanAn}: Tìm thấy {result.Orders.Count} món");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"⚠️ Lấy chi tiết bàn {request.MaBanAn}: {result.Message}");
-                    }
-
-                    // 4. Đóng gói kết quả thành JSON để trả về
                     return JsonConvert.SerializeObject(result);
                 }
-                catch (Exception ex)
-                {
-                    return CreateErrorResponse($"Lỗi xử lý lấy chi tiết bàn: {ex.Message}");
-                }
+                catch (Exception ex) { return CreateErrorResponse(ex.Message); }
             });
         }
 

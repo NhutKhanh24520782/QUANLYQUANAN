@@ -1496,7 +1496,8 @@ namespace RestaurantServer
                 }
             }
         }
-        public static GetTableDetailResponse GetTableDetails(int maBanAn)
+        // 1. Thêm tham số string trangThai vào hàm
+        public static GetTableDetailResponse GetTableDetails(int maBanAn, string trangThai)
         {
             var result = new GetTableDetailResponse();
             try
@@ -1504,9 +1505,11 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    // Câu lệnh SQL: Lấy tên món, số lượng, giá từ hóa đơn CHƯA THANH TOÁN của bàn đó
+                    // 🔥 SỬA QUERY: Thêm hd.TrangThai vào danh sách lấy
                     string query = @"
                 SELECT 
+                    hd.MaBanAn, 
+                    hd.TrangThai, -- 🔥 Lấy thêm cột này
                     m.TenMon, 
                     ct.SoLuong, 
                     ct.DonGia, 
@@ -1514,13 +1517,15 @@ namespace RestaurantServer
                 FROM HOADON hd
                 JOIN CTHD ct ON hd.MaHD = ct.MaHD
                 JOIN MENUITEMS m ON ct.MaMon = m.MaMon
-                WHERE hd.MaBanAn = @MaBanAn 
-                  AND hd.TrangThai = N'ChuaThanhToan'
+                WHERE (@MaBanAn = 0 OR hd.MaBanAn = @MaBanAn) 
+                AND (@TrangThai = '' OR hd.TrangThai = @TrangThai)
+                  AND (@TrangThai = '' OR hd.TrangThai = @TrangThai)
                 ORDER BY hd.Ngay DESC";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        cmd.Parameters.AddWithValue("@TrangThai", trangThai ?? "");
 
                         using (SqlDataReader reader = cmd.ExecuteReader())
                         {
@@ -1528,6 +1533,11 @@ namespace RestaurantServer
                             {
                                 result.Orders.Add(new TableOrderDetailData
                                 {
+                                    MaBanAn = Convert.ToInt32(reader["MaBanAn"]),
+
+                                    // 🔥 Đọc trạng thái từ SQL bỏ vào hộp
+                                    TrangThai = reader["TrangThai"].ToString(),
+
                                     TenMon = reader["TenMon"].ToString(),
                                     SoLuong = Convert.ToInt32(reader["SoLuong"]),
                                     DonGia = Convert.ToDecimal(reader["DonGia"]),
@@ -1537,13 +1547,12 @@ namespace RestaurantServer
                         }
                     }
                     result.Success = true;
-                    result.Message = $"Lấy thành công {result.Orders.Count} món.";
                 }
             }
             catch (Exception ex)
             {
                 result.Success = false;
-                result.Message = "Lỗi Database: " + ex.Message;
+                result.Message = "Lỗi: " + ex.Message;
             }
             return result;
         }
