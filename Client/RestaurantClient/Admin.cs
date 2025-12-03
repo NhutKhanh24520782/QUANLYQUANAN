@@ -51,6 +51,7 @@ namespace RestaurantClient
             InitializeBillTab();
             InitializeControls();
             LoadAllData();
+            LoadAdminInfo();
         }
         private void InitializeBillTab()
         {
@@ -1623,6 +1624,91 @@ namespace RestaurantClient
         private void cb_position_SelectedIndexChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private void label20_Click(object sender, EventArgs e)
+        {
+
+        }
+        private void LoadAdminInfo()
+        {
+            try
+            {
+                textbox_usernameadmin.Text = CurrentUser.Username;
+                textbox_emailadmin.Text = CurrentUser.Email;
+                textbox_nameadmin.Text = CurrentUser.FullName;
+                textbox_role.Text = CurrentUser.Role;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi hiển thị thông tin Admin: " + ex.Message);
+            }
+        }
+
+        private async void button_DangxuatAdmin_Click(object sender, EventArgs e)
+        {
+            // Hỏi xác nhận
+            var dlg = MessageBox.Show("Bạn có chắc muốn đăng xuất?", "Xác nhận đăng xuất",
+                                      MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (dlg != DialogResult.Yes) return;
+
+            // Tùy chọn: gửi request logout tới server nếu bạn có API logout
+            // Uncomment / chỉnh sửa nếu server có endpoint LogoutRequest -> LogoutResponse
+            /*
+            try
+            {
+                var logoutReq = new LogoutRequest { MaNguoiDung = CurrentUser.Id }; // nếu cần
+                var logoutRes = await SendRequest<LogoutRequest, BaseResponse>(logoutReq);
+                if (logoutRes != null && !logoutRes.Success)
+                {
+                    // Nếu server trả lỗi, hiển thị nhưng vẫn cho phép logout local
+                    MessageBox.Show("Server logout trả về lỗi: " + logoutRes.Message, "Lưu ý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch
+            {
+                // Không block logout nếu server fail; chỉ log
+                Console.WriteLine("Không thể gọi API logout (bỏ qua).");
+            }
+            */
+
+            // Dọn dẹp ở client: reset CurrentUser
+            try
+            {
+                // Nếu bạn có timer hoặc resources nền thì dừng tại đây
+                // ví dụ: _autoRefreshTimer?.Stop();
+
+                CurrentUser.Id = 0;
+                CurrentUser.Username = "";
+                CurrentUser.Email = "";
+                CurrentUser.FullName = "";
+                CurrentUser.Role = "";
+
+                // Mở form đăng nhập mới rồi đóng form Admin hiện tại
+                var loginForm = new DangNhap();
+                // Khi đăng nhập form login đóng -> thoát app (nếu muốn)
+                loginForm.FormClosed += (s, args) =>
+                {
+                    // Nếu muốn đóng ứng dụng khi login form đóng:
+                    // Application.Exit();
+
+                    // Hoặc không làm gì để người dùng có thể mở lại.
+                };
+
+                // Hiển thị login và đóng Admin
+                loginForm.StartPosition = FormStartPosition.CenterScreen;
+                loginForm.Show();
+
+                // Nếu Admin là form chính (nếu đóng Admin sẽ thoát app), thì nên Hide thay vì Close:
+                // this.Hide();
+                // this.Close(); // nếu Close không làm app exit trong cấu trúc của bạn thì OK
+
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

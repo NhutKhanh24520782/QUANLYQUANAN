@@ -30,6 +30,7 @@
         {
             tc_nvbep = new TabControl();
             tp_quanlyvaxuly = new TabPage();
+            dataGridView1 = new DataGridView();
             btn_huydon = new Button();
             btn_hoanthanh = new Button();
             btn_dangchebien = new Button();
@@ -40,22 +41,24 @@
             btn_sendBep = new Button();
             tb_chatBep = new TextBox();
             dataGridView_chatBep = new DataGridView();
-            dataGridView1 = new DataGridView();
+            tabPage1 = new TabPage();
             tc_nvbep.SuspendLayout();
             tp_quanlyvaxuly.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             tb_chat.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView_chatBep).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             SuspendLayout();
             // 
             // tc_nvbep
             // 
             tc_nvbep.Controls.Add(tp_quanlyvaxuly);
             tc_nvbep.Controls.Add(tb_chat);
-            tc_nvbep.Location = new Point(4, 3);
+            tc_nvbep.Controls.Add(tabPage1);
+            tc_nvbep.Location = new Point(5, 4);
+            tc_nvbep.Margin = new Padding(4, 4, 4, 4);
             tc_nvbep.Name = "tc_nvbep";
             tc_nvbep.SelectedIndex = 0;
-            tc_nvbep.Size = new Size(1170, 549);
+            tc_nvbep.Size = new Size(1462, 686);
             tc_nvbep.TabIndex = 0;
             tc_nvbep.SelectedIndexChanged += tc_nvbep_SelectedIndexChanged;
             // 
@@ -68,21 +71,33 @@
             tp_quanlyvaxuly.Controls.Add(btn_choxacnhan);
             tp_quanlyvaxuly.Controls.Add(label7);
             tp_quanlyvaxuly.Controls.Add(label6);
-            tp_quanlyvaxuly.Location = new Point(4, 29);
+            tp_quanlyvaxuly.Location = new Point(4, 34);
+            tp_quanlyvaxuly.Margin = new Padding(4, 4, 4, 4);
             tp_quanlyvaxuly.Name = "tp_quanlyvaxuly";
-            tp_quanlyvaxuly.Padding = new Padding(3);
-            tp_quanlyvaxuly.Size = new Size(1162, 516);
+            tp_quanlyvaxuly.Padding = new Padding(4, 4, 4, 4);
+            tp_quanlyvaxuly.Size = new Size(1454, 648);
             tp_quanlyvaxuly.TabIndex = 0;
             tp_quanlyvaxuly.Text = "Quản lý & xử lý đơn";
             tp_quanlyvaxuly.UseVisualStyleBackColor = true;
+            // 
+            // dataGridView1
+            // 
+            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView1.Location = new Point(29, 81);
+            dataGridView1.Margin = new Padding(4, 4, 4, 4);
+            dataGridView1.Name = "dataGridView1";
+            dataGridView1.RowHeadersWidth = 51;
+            dataGridView1.Size = new Size(1380, 430);
+            dataGridView1.TabIndex = 27;
             // 
             // btn_huydon
             // 
             btn_huydon.AutoSize = true;
             btn_huydon.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_huydon.Location = new Point(854, 427);
+            btn_huydon.Location = new Point(1068, 534);
+            btn_huydon.Margin = new Padding(4, 4, 4, 4);
             btn_huydon.Name = "btn_huydon";
-            btn_huydon.Size = new Size(158, 51);
+            btn_huydon.Size = new Size(198, 64);
             btn_huydon.TabIndex = 26;
             btn_huydon.Text = "Hủy đơn";
             btn_huydon.UseVisualStyleBackColor = true;
@@ -91,9 +106,10 @@
             // 
             btn_hoanthanh.AutoSize = true;
             btn_hoanthanh.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_hoanthanh.Location = new Point(648, 427);
+            btn_hoanthanh.Location = new Point(810, 534);
+            btn_hoanthanh.Margin = new Padding(4, 4, 4, 4);
             btn_hoanthanh.Name = "btn_hoanthanh";
-            btn_hoanthanh.Size = new Size(158, 51);
+            btn_hoanthanh.Size = new Size(198, 64);
             btn_hoanthanh.TabIndex = 25;
             btn_hoanthanh.Text = "Hoàn thành";
             btn_hoanthanh.UseVisualStyleBackColor = true;
@@ -102,9 +118,10 @@
             // 
             btn_dangchebien.AutoSize = true;
             btn_dangchebien.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_dangchebien.Location = new Point(442, 427);
+            btn_dangchebien.Location = new Point(552, 534);
+            btn_dangchebien.Margin = new Padding(4, 4, 4, 4);
             btn_dangchebien.Name = "btn_dangchebien";
-            btn_dangchebien.Size = new Size(158, 51);
+            btn_dangchebien.Size = new Size(214, 64);
             btn_dangchebien.TabIndex = 24;
             btn_dangchebien.Text = "Đang chế biến";
             btn_dangchebien.UseVisualStyleBackColor = true;
@@ -113,9 +130,10 @@
             // 
             btn_choxacnhan.AutoSize = true;
             btn_choxacnhan.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_choxacnhan.Location = new Point(243, 427);
+            btn_choxacnhan.Location = new Point(304, 534);
+            btn_choxacnhan.Margin = new Padding(4, 4, 4, 4);
             btn_choxacnhan.Name = "btn_choxacnhan";
-            btn_choxacnhan.Size = new Size(150, 51);
+            btn_choxacnhan.Size = new Size(202, 64);
             btn_choxacnhan.TabIndex = 23;
             btn_choxacnhan.Text = "Chờ xác nhận";
             btn_choxacnhan.UseVisualStyleBackColor = true;
@@ -124,9 +142,10 @@
             // 
             label7.AutoSize = true;
             label7.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label7.Location = new Point(23, 438);
+            label7.Location = new Point(29, 548);
+            label7.Margin = new Padding(4, 0, 4, 0);
             label7.Name = "label7";
-            label7.Size = new Size(201, 28);
+            label7.Size = new Size(241, 32);
             label7.TabIndex = 22;
             label7.Text = "Cập nhật trạng thái:";
             // 
@@ -134,9 +153,10 @@
             // 
             label6.AutoSize = true;
             label6.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label6.Location = new Point(442, 18);
+            label6.Location = new Point(552, 22);
+            label6.Margin = new Padding(4, 0, 4, 0);
             label6.Name = "label6";
-            label6.Size = new Size(332, 28);
+            label6.Size = new Size(397, 32);
             label6.TabIndex = 21;
             label6.Text = "Danh sách đơn hàng cần chế biến";
             // 
@@ -145,10 +165,11 @@
             tb_chat.Controls.Add(btn_sendBep);
             tb_chat.Controls.Add(tb_chatBep);
             tb_chat.Controls.Add(dataGridView_chatBep);
-            tb_chat.Location = new Point(4, 29);
+            tb_chat.Location = new Point(4, 34);
+            tb_chat.Margin = new Padding(4, 4, 4, 4);
             tb_chat.Name = "tb_chat";
-            tb_chat.Padding = new Padding(3);
-            tb_chat.Size = new Size(1162, 519);
+            tb_chat.Padding = new Padding(4, 4, 4, 4);
+            tb_chat.Size = new Size(1454, 648);
             tb_chat.TabIndex = 1;
             tb_chat.Text = "Chat";
             tb_chat.UseVisualStyleBackColor = true;
@@ -156,54 +177,59 @@
             // btn_sendBep
             // 
             btn_sendBep.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_sendBep.Location = new Point(932, 426);
+            btn_sendBep.Location = new Point(1165, 532);
+            btn_sendBep.Margin = new Padding(4, 4, 4, 4);
             btn_sendBep.Name = "btn_sendBep";
-            btn_sendBep.Size = new Size(225, 65);
+            btn_sendBep.Size = new Size(281, 81);
             btn_sendBep.TabIndex = 8;
             btn_sendBep.Text = "Gửi";
             btn_sendBep.UseVisualStyleBackColor = true;
             // 
             // tb_chatBep
             // 
-            tb_chatBep.Location = new Point(1, 426);
+            tb_chatBep.Location = new Point(1, 532);
+            tb_chatBep.Margin = new Padding(4, 4, 4, 4);
             tb_chatBep.Multiline = true;
             tb_chatBep.Name = "tb_chatBep";
-            tb_chatBep.Size = new Size(925, 65);
+            tb_chatBep.Size = new Size(1155, 80);
             tb_chatBep.TabIndex = 7;
             // 
             // dataGridView_chatBep
             // 
             dataGridView_chatBep.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView_chatBep.Location = new Point(1, 23);
+            dataGridView_chatBep.Location = new Point(1, 29);
+            dataGridView_chatBep.Margin = new Padding(4, 4, 4, 4);
             dataGridView_chatBep.Name = "dataGridView_chatBep";
             dataGridView_chatBep.RowHeadersWidth = 51;
-            dataGridView_chatBep.Size = new Size(1161, 397);
+            dataGridView_chatBep.Size = new Size(1451, 496);
             dataGridView_chatBep.TabIndex = 6;
             // 
-            // dataGridView1
+            // tabPage1
             // 
-            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView1.Location = new Point(23, 65);
-            dataGridView1.Name = "dataGridView1";
-            dataGridView1.RowHeadersWidth = 51;
-            dataGridView1.Size = new Size(1104, 344);
-            dataGridView1.TabIndex = 27;
+            tabPage1.Location = new Point(4, 34);
+            tabPage1.Name = "tabPage1";
+            tabPage1.Padding = new Padding(3);
+            tabPage1.Size = new Size(1454, 648);
+            tabPage1.TabIndex = 2;
+            tabPage1.Text = "tabPage1";
+            tabPage1.UseVisualStyleBackColor = true;
             // 
             // NVBep
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1174, 552);
+            ClientSize = new Size(1468, 690);
             Controls.Add(tc_nvbep);
+            Margin = new Padding(4, 4, 4, 4);
             Name = "NVBep";
             Text = "NVBep";
             tc_nvbep.ResumeLayout(false);
             tp_quanlyvaxuly.ResumeLayout(false);
             tp_quanlyvaxuly.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             tb_chat.ResumeLayout(false);
             tb_chat.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView_chatBep).EndInit();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             ResumeLayout(false);
         }
 
@@ -222,5 +248,6 @@
         private TextBox tb_chatBep;
         private DataGridView dataGridView_chatBep;
         private DataGridView dataGridView1;
+        private TabPage tabPage1;
     }
 }
