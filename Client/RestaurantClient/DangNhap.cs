@@ -54,7 +54,7 @@ namespace RestaurantClient
                             new NVPhucVu(loginResponse.MaNguoiDung, loginResponse.HoTen).Show();
                             break;
                         case "Bep":
-                            new NVBep().Show();
+                            new NVBep(loginResponse.MaNguoiDung, loginResponse.HoTen).Show();
                             break;
                         default:
                             MessageBox.Show($"Vai trò không xác định: {loginResponse.Role}");

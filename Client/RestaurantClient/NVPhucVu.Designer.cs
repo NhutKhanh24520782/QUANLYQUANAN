@@ -30,6 +30,8 @@
         {
             tabControl1 = new TabControl();
             tp_phucvuqly = new TabPage();
+            lbl_userInfo = new Label();
+            lbl_title = new Label();
             gb_thucdonorder = new GroupBox();
             nm_soluong = new NumericUpDown();
             dataGridView_mon = new DataGridView();
@@ -51,6 +53,7 @@
             lbl_chonban = new Label();
             tp_thanhtoan = new TabPage();
             gb_thanhtoan = new GroupBox();
+            pb_QR = new PictureBox();
             panel8 = new Panel();
             btn_searchBill = new Button();
             tb_searchBill = new TextBox();
@@ -64,7 +67,6 @@
             tb_idBill = new TextBox();
             label6 = new Label();
             panel_qrthanhtoan = new Panel();
-            pb_QR = new PictureBox();
             dataGridView_thanhtoan = new DataGridView();
             checkBox_chuyenkhoan = new CheckBox();
             checkBox_tienmat = new CheckBox();
@@ -96,8 +98,8 @@
             ((System.ComponentModel.ISupportInitialize)dataGridView_giohang).BeginInit();
             tp_thanhtoan.SuspendLayout();
             gb_thanhtoan.SuspendLayout();
-            panel8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pb_QR).BeginInit();
+            panel8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView_thanhtoan).BeginInit();
             tb_chat.SuspendLayout();
             groupBox1.SuspendLayout();
@@ -119,6 +121,8 @@
             // 
             // tp_phucvuqly
             // 
+            tp_phucvuqly.Controls.Add(lbl_userInfo);
+            tp_phucvuqly.Controls.Add(lbl_title);
             tp_phucvuqly.Controls.Add(gb_thucdonorder);
             tp_phucvuqly.Controls.Add(gb_thongtinban);
             tp_phucvuqly.Location = new Point(4, 29);
@@ -128,6 +132,26 @@
             tp_phucvuqly.TabIndex = 0;
             tp_phucvuqly.Text = "Order món và đặt bàn";
             tp_phucvuqly.UseVisualStyleBackColor = true;
+            // 
+            // lbl_userInfo
+            // 
+            lbl_userInfo.AutoSize = true;
+            lbl_userInfo.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_userInfo.Location = new Point(154, 31);
+            lbl_userInfo.Name = "lbl_userInfo";
+            lbl_userInfo.Size = new Size(289, 23);
+            lbl_userInfo.TabIndex = 24;
+            lbl_userInfo.Text = "Chào, Trần Văn B • 14:30 02/12/2024";
+            // 
+            // lbl_title
+            // 
+            lbl_title.AutoSize = true;
+            lbl_title.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lbl_title.Location = new Point(140, 3);
+            lbl_title.Name = "lbl_title";
+            lbl_title.Size = new Size(343, 28);
+            lbl_title.TabIndex = 23;
+            lbl_title.Text = "ORDER MÓN & ĐẶT BÀN - PHỤC VỤ";
             // 
             // gb_thucdonorder
             // 
@@ -228,9 +252,9 @@
             gb_thongtinban.Controls.Add(cb_banOrder);
             gb_thongtinban.Controls.Add(lbl_chonban);
             gb_thongtinban.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            gb_thongtinban.Location = new Point(20, 3);
+            gb_thongtinban.Location = new Point(20, 62);
             gb_thongtinban.Name = "gb_thongtinban";
-            gb_thongtinban.Size = new Size(674, 590);
+            gb_thongtinban.Size = new Size(674, 547);
             gb_thongtinban.TabIndex = 3;
             gb_thongtinban.TabStop = false;
             gb_thongtinban.Text = "Thông tin bàn ăn";
@@ -239,7 +263,7 @@
             // 
             label11.AutoSize = true;
             label11.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label11.Location = new Point(0, 165);
+            label11.Location = new Point(0, 130);
             label11.Name = "label11";
             label11.Size = new Size(88, 25);
             label11.TabIndex = 9;
@@ -248,10 +272,10 @@
             // dataGridView_giohang
             // 
             dataGridView_giohang.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView_giohang.Location = new Point(0, 193);
+            dataGridView_giohang.Location = new Point(6, 160);
             dataGridView_giohang.Name = "dataGridView_giohang";
             dataGridView_giohang.RowHeadersWidth = 51;
-            dataGridView_giohang.Size = new Size(561, 371);
+            dataGridView_giohang.Size = new Size(645, 371);
             dataGridView_giohang.TabIndex = 8;
             // 
             // lbl_trangthaiban
@@ -370,6 +394,18 @@
             gb_thanhtoan.TabIndex = 1;
             gb_thanhtoan.TabStop = false;
             gb_thanhtoan.Text = "Thanh toán";
+            // 
+            // pb_QR
+            // 
+            pb_QR.Cursor = Cursors.Hand;
+            pb_QR.Location = new Point(501, 363);
+            pb_QR.Name = "pb_QR";
+            pb_QR.Size = new Size(398, 224);
+            pb_QR.SizeMode = PictureBoxSizeMode.Zoom;
+            pb_QR.TabIndex = 0;
+            pb_QR.TabStop = false;
+            pb_QR.Visible = false;
+            pb_QR.Click += pb_QR_Click;
             // 
             // panel8
             // 
@@ -490,18 +526,6 @@
             panel_qrthanhtoan.Name = "panel_qrthanhtoan";
             panel_qrthanhtoan.Size = new Size(445, 224);
             panel_qrthanhtoan.TabIndex = 19;
-            // 
-            // pb_QR
-            // 
-            pb_QR.Cursor = Cursors.Hand;
-            pb_QR.Location = new Point(501, 363);
-            pb_QR.Name = "pb_QR";
-            pb_QR.Size = new Size(398, 224);
-            pb_QR.SizeMode = PictureBoxSizeMode.Zoom;
-            pb_QR.TabIndex = 0;
-            pb_QR.TabStop = false;
-            pb_QR.Visible = false;
-            pb_QR.Click += pb_QR_Click;
             // 
             // dataGridView_thanhtoan
             // 
@@ -737,6 +761,7 @@
             Text = "NVPhucVu";
             tabControl1.ResumeLayout(false);
             tp_phucvuqly.ResumeLayout(false);
+            tp_phucvuqly.PerformLayout();
             gb_thucdonorder.ResumeLayout(false);
             gb_thucdonorder.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)nm_soluong).EndInit();
@@ -748,9 +773,9 @@
             tp_thanhtoan.PerformLayout();
             gb_thanhtoan.ResumeLayout(false);
             gb_thanhtoan.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pb_QR).EndInit();
             panel8.ResumeLayout(false);
             panel8.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)pb_QR).EndInit();
             ((System.ComponentModel.ISupportInitialize)dataGridView_thanhtoan).EndInit();
             tb_chat.ResumeLayout(false);
             groupBox1.ResumeLayout(false);
@@ -829,5 +854,7 @@
         private DataGridView dataGridView_giohang;
         private Button btn_xoahet;
         private PictureBox pb_QR;
+        private Label lbl_userInfo;
+        private Label lbl_title;
     }
 }

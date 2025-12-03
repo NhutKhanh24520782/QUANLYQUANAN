@@ -53,6 +53,7 @@ namespace RestaurantClient
             LoadMenuItems();
             InitializeCategoryComboBox();
             InitializeTableComboBox();
+            UpdateUserInfo();
         }
 
         private void InitializeGridViewManager()
@@ -761,7 +762,10 @@ namespace RestaurantClient
                 }
             }
         }
-
+        private void UpdateUserInfo()
+        {
+            lbl_userInfo.Text = $"Chào, {_currentUserName} • {DateTime.Now:HH:mm dd/MM/yyyy}";
+        }
         // ==================== EVENT HANDLERS ====================
         private void DataGridView_Bills_SelectionChanged(object sender, EventArgs e)
         {

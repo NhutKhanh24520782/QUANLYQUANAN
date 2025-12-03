@@ -371,5 +371,156 @@ namespace Models.Request
         public int MaBanAn { get; set; }        // Lọc theo bàn (0 = tất cả)
         public string TrangThai { get; set; } = ""; // Lọc theo trạng thái ("" = tất cả)
     }
+    // ==================== KITCHEN ORDER REQUESTS ====================
+
+    /// <summary>
+    /// Request lấy danh sách đơn hàng cho bếp
+    /// </summary>
+    public class GetKitchenOrdersRequest
+    {
+        public string Type => "GetKitchenOrders";
+        public string TrangThai { get; set; } = ""; // "TatCa", "ChoXacNhan", "DangCheBien", "HoanThanh", "Huy"
+        public string TimKiemBan { get; set; } = "";
+        public string SapXep { get; set; } = "ThoiGian"; // "ThoiGian", "UuTien", "Ban"
+        public int? MaNhanVienBep { get; set; } // Đầu bếp hiện tại (để lọc món đang xử lý)
+    }
+
+    /// <summary>
+    /// Request lấy chi tiết đơn hàng
+    /// </summary>
+    public class GetOrderDetailRequest
+    {
+        public string Type => "GetOrderDetail";
+        public int MaDonHang { get; set; }
+    }
+
+    /// <summary>
+    /// Request cập nhật trạng thái món ăn
+    /// </summary>
+    public class UpdateDishStatusRequest
+    {
+        public string Type => "UpdateDishStatus";
+        public int MaDonHang { get; set; }
+        public int MaChiTiet { get; set; }
+        public string TrangThaiMoi { get; set; } // "ChoXacNhan", "DangCheBien", "HoanThanh", "CoVanDe", "Huy"
+        public int? MaNhanVienBep { get; set; } // ID đầu bếp xử lý
+        public string GhiChuBep { get; set; } = "";
+        public DateTime? ThoiGianDuKienHoanThanh { get; set; }
+        public int UuTien { get; set; } = 1;
+        public bool GuiThongBao { get; set; } = true;
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaDonHang <= 0)
+                return (false, "Mã đơn hàng không hợp lệ");
+            if (MaChiTiet <= 0)
+                return (false, "Mã chi tiết không hợp lệ");
+            if (string.IsNullOrEmpty(TrangThaiMoi))
+                return (false, "Trạng thái mới không được để trống");
+
+            var validStatuses = new[] { "ChoXacNhan", "DangCheBien", "HoanThanh", "CoVanDe", "Huy" };
+            if (!validStatuses.Contains(TrangThaiMoi))
+                return (false, "Trạng thái không hợp lệ");
+
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Request cập nhật nhiều món cùng lúc
+    /// </summary>
+    public class UpdateMultipleDishesRequest
+    {
+        public string Type => "UpdateMultipleDishes";
+        public int MaDonHang { get; set; }
+        public List<DishUpdateItem> DanhSachMon { get; set; } = new List<DishUpdateItem>();
+        public bool GuiThongBao { get; set; } = true;
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaDonHang <= 0)
+                return (false, "Mã đơn hàng không hợp lệ");
+            if (DanhSachMon == null || DanhSachMon.Count == 0)
+                return (false, "Danh sách món không được để trống");
+
+            foreach (var mon in DanhSachMon)
+            {
+                var validStatuses = new[] { "ChoXacNhan", "DangCheBien", "HoanThanh", "CoVanDe", "Huy" };
+                if (!validStatuses.Contains(mon.TrangThaiMoi))
+                    return (false, $"Trạng thái không hợp lệ cho món {mon.MaChiTiet}");
+            }
+
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Item trong danh sách cập nhật nhiều món
+    /// </summary>
+    public class DishUpdateItem
+    {
+        public int MaChiTiet { get; set; }
+        public string TrangThaiMoi { get; set; } = "";
+        public string GhiChuBep { get; set; } = "";
+        public int? MaNhanVienBep { get; set; }
+        public DateTime? ThoiGianDuKien { get; set; }
+        public int UuTien { get; set; } = 1;
+    }
+
+    /// <summary>
+    /// Request gửi tin nhắn từ bếp đến phục vụ
+    /// </summary>
+    public class SendKitchenMessageRequest
+    {
+        public string Type => "SendKitchenMessage";
+        public int MaDonHang { get; set; }
+        public int MaNhanVienGui { get; set; } // ID đầu bếp
+        public int? MaNhanVienNhan { get; set; } // ID phục vụ (null = gửi cho tất cả phục vụ)
+        public string NoiDung { get; set; } = "";
+        public string LoaiTinNhan { get; set; } = "ThongBao"; // "ThongBao", "YeuCau", "CanhBao"
+        public bool HienPopup { get; set; } = true;
+        public bool PhatAmThanh { get; set; } = true;
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaDonHang <= 0)
+                return (false, "Mã đơn hàng không hợp lệ");
+            if (MaNhanVienGui <= 0)
+                return (false, "Mã người gửi không hợp lệ");
+            if (string.IsNullOrWhiteSpace(NoiDung))
+                return (false, "Nội dung không được để trống");
+
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Request lấy lịch sử tin nhắn
+    /// </summary>
+    public class GetKitchenMessagesRequest
+    {
+        public string Type => "GetKitchenMessages";
+        public int MaDonHang { get; set; }
+        public int? MaNhanVienBep { get; set; }
+    }
+
+    /// <summary>
+    /// Request thống kê công việc bếp
+    /// </summary>
+    public class GetKitchenStatisticsRequest
+    {
+        public string Type => "GetKitchenStatistics";
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+        public int? MaNhanVienBep { get; set; } // Thống kê theo đầu bếp
+
+        public (bool isValid, string error) Validate()
+        {
+            if (TuNgay > DenNgay)
+                return (false, "Từ ngày không được lớn hơn đến ngày");
+
+            return (true, string.Empty);
+        }
+    }
 }
 

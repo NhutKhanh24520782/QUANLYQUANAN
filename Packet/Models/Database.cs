@@ -317,5 +317,129 @@ namespace Models.Database
         public string Message { get; set; }
         public int MaHoaDon { get; set; }
     }
+
+    // ==================== KITCHEN DATABASE RESULTS ====================
+
+    /// <summary>
+    /// Kết quả lấy danh sách đơn hàng cho bếp
+    /// </summary>
+    public class KitchenOrdersResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<KitchenOrderData> DonHang { get; set; } = new List<KitchenOrderData>();
+        public ThongKeBep ThongKe { get; set; } = new ThongKeBep();
+    }
+
+    /// <summary>
+    /// Kết quả lấy chi tiết đơn hàng
+    /// </summary>
+    public class OrderDetailResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public KitchenOrderDetailData ChiTietDonHang { get; set; } = new KitchenOrderDetailData();
+    }
+
+    /// <summary>
+    /// Kết quả cập nhật trạng thái món
+    /// </summary>
+    public class UpdateDishStatusResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string TenMon { get; set; } = "";
+        public string TrangThaiCu { get; set; } = "";
+        public string TrangThaiMoi { get; set; } = "";
+        public int SoMonDaCapNhat { get; set; }
+        public object TenCacMon { get; set; }
+    }
+
+    /// <summary>
+    /// Kết quả thống kê bếp
+    /// </summary>
+    public class KitchenStatisticsResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public KitchenStatisticsData ThongKe { get; set; } = new KitchenStatisticsData();
+    }
+
+    /// <summary>
+    /// Kết quả lấy tin nhắn
+    /// </summary>
+    public class KitchenMessagesResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<KitchenMessageData> TinNhan { get; set; } = new List<KitchenMessageData>();
+    }
+
+    /// <summary>
+    /// Kết quả gửi tin nhắn
+    /// </summary>
+    public class SendMessageResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int MaTinNhan { get; set; }
+    }
+    /// <summary>
+    /// ĐƠN HÀNG - DONHANG table
+    /// </summary>
+    public class DonHang
+    {
+        public int MaDonHang { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNVOrder { get; set; }
+        public DateTime NgayOrder { get; set; } = DateTime.Now;
+        public string TrangThai { get; set; } = "ChoXacNhan"; // "ChoXacNhan", "DangCheBien", "HoanThanh", "Huy"
+    }
+
+    /// <summary>
+    /// CHI TIẾT ĐƠN HÀNG - CHITIET_DONHANG table (Quan trọng nhất cho bếp)
+    /// </summary>
+    public class ChiTietDonHang
+    {
+        public int MaChiTiet { get; set; }
+        public int MaDonHang { get; set; }
+        public int MaMon { get; set; }
+        public int SoLuong { get; set; }
+        public decimal DonGia { get; set; }
+        public string GhiChuKhach { get; set; } = string.Empty;
+        public string TrangThai { get; set; } = "ChoXacNhan"; // "ChoXacNhan", "DangCheBien", "HoanThanh", "CoVanDe", "Huy"
+        public string GhiChuBep { get; set; } = string.Empty;
+        public int? MaNhanVienCheBien { get; set; }
+        public int UuTien { get; set; } = 1; // 1-5
+        public DateTime? ThoiGianBatDau { get; set; }
+        public DateTime? ThoiGianHoanThanh { get; set; }
+        public DateTime? ThoiGianDuKien { get; set; }
+    }
+
+    /// <summary>
+    /// TIN NHẮN - TINNHAN table (cho chat bếp - phục vụ)
+    /// </summary>
+    public class TinNhan
+    {
+        public int MaTin { get; set; }
+        public int MaNguoiGui { get; set; }
+        public int MaNguoiNhan { get; set; }
+        public string NoiDung { get; set; } = string.Empty;
+        public DateTime ThoiGian { get; set; } = DateTime.Now;
+        public bool DaDoc { get; set; } = false;
+    }
+
+    /// <summary>
+    /// CHI TIẾT HÓA ĐƠN - CTHD table
+    /// </summary>
+    public class CTHD
+    {
+        public int MaHD { get; set; }
+        public int MaMon { get; set; }
+        public int SoLuong { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal Gia => SoLuong * DonGia;
+        public string GhiChu { get; set; } = string.Empty;
+    }
 }
 
