@@ -77,7 +77,7 @@
             tc_nvbep.Location = new Point(4, 3);
             tc_nvbep.Name = "tc_nvbep";
             tc_nvbep.SelectedIndex = 0;
-            tc_nvbep.Size = new Size(1291, 581);
+            tc_nvbep.Size = new Size(1225, 508);
             tc_nvbep.TabIndex = 0;
             tc_nvbep.SelectedIndexChanged += tc_nvbep_SelectedIndexChanged;
             // 
@@ -97,9 +97,10 @@
             tp_quanlyvaxuly.Controls.Add(lbl_userInfo);
             tp_quanlyvaxuly.Controls.Add(lbl_title);
             tp_quanlyvaxuly.Location = new Point(4, 29);
+            tp_quanlyvaxuly.Margin = new Padding(2);
             tp_quanlyvaxuly.Name = "tp_quanlyvaxuly";
-            tp_quanlyvaxuly.Padding = new Padding(3);
-            tp_quanlyvaxuly.Size = new Size(1283, 548);
+            tp_quanlyvaxuly.Padding = new Padding(2);
+            tp_quanlyvaxuly.Size = new Size(1217, 475);
             tp_quanlyvaxuly.TabIndex = 0;
             tp_quanlyvaxuly.Text = "Quản lý & xử lý đơn";
             tp_quanlyvaxuly.UseVisualStyleBackColor = true;
@@ -108,9 +109,10 @@
             // 
             btn_xemthongke.AutoSize = true;
             btn_xemthongke.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_xemthongke.Location = new Point(884, 491);
+            btn_xemthongke.Location = new Point(889, 411);
+            btn_xemthongke.Margin = new Padding(2);
             btn_xemthongke.Name = "btn_xemthongke";
-            btn_xemthongke.Size = new Size(133, 48);
+            btn_xemthongke.Size = new Size(133, 38);
             btn_xemthongke.TabIndex = 33;
             btn_xemthongke.Text = "Xem thống kê";
             btn_xemthongke.UseVisualStyleBackColor = true;
@@ -119,9 +121,10 @@
             // btn_caidat
             // 
             btn_caidat.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_caidat.Location = new Point(1074, 491);
+            btn_caidat.Location = new Point(1061, 411);
+            btn_caidat.Margin = new Padding(2);
             btn_caidat.Name = "btn_caidat";
-            btn_caidat.Size = new Size(118, 48);
+            btn_caidat.Size = new Size(94, 38);
             btn_caidat.TabIndex = 32;
             btn_caidat.Text = "Cài đặt";
             btn_caidat.UseVisualStyleBackColor = true;
@@ -130,9 +133,10 @@
             // btn_refresh
             // 
             btn_refresh.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_refresh.Location = new Point(697, 491);
+            btn_refresh.Location = new Point(760, 411);
+            btn_refresh.Margin = new Padding(2);
             btn_refresh.Name = "btn_refresh";
-            btn_refresh.Size = new Size(118, 48);
+            btn_refresh.Size = new Size(94, 38);
             btn_refresh.TabIndex = 31;
             btn_refresh.Text = "Làm mới";
             btn_refresh.UseVisualStyleBackColor = true;
@@ -142,7 +146,8 @@
             // 
             lbl_thongke.AutoSize = true;
             lbl_thongke.Font = new Font("Segoe UI", 13.2000008F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_thongke.Location = new Point(17, 457);
+            lbl_thongke.Location = new Point(14, 411);
+            lbl_thongke.Margin = new Padding(2, 0, 2, 0);
             lbl_thongke.Name = "lbl_thongke";
             lbl_thongke.Size = new Size(671, 31);
             lbl_thongke.TabIndex = 30;
@@ -151,25 +156,28 @@
             // dataGridView1
             // 
             dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView1.Location = new Point(17, 148);
+            dataGridView1.Location = new Point(14, 138);
+            dataGridView1.Margin = new Padding(2);
             dataGridView1.Name = "dataGridView1";
             dataGridView1.RowHeadersWidth = 51;
-            dataGridView1.Size = new Size(1257, 306);
+            dataGridView1.Size = new Size(1186, 269);
             dataGridView1.TabIndex = 29;
             // 
             // cb_sapxep
             // 
             cb_sapxep.FormattingEnabled = true;
-            cb_sapxep.Location = new Point(687, 103);
+            cb_sapxep.Location = new Point(563, 94);
+            cb_sapxep.Margin = new Padding(2);
             cb_sapxep.Name = "cb_sapxep";
-            cb_sapxep.Size = new Size(151, 28);
+            cb_sapxep.Size = new Size(122, 28);
             cb_sapxep.TabIndex = 28;
             // 
             // label1
             // 
             label1.AutoSize = true;
             label1.Font = new Font("Segoe UI", 13.2000008F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label1.Location = new Point(581, 100);
+            label1.Location = new Point(465, 92);
+            label1.Margin = new Padding(2, 0, 2, 0);
             label1.Name = "label1";
             label1.Size = new Size(100, 31);
             label1.TabIndex = 27;
@@ -177,17 +185,19 @@
             // 
             // tb_numberTable
             // 
-            tb_numberTable.Location = new Point(393, 105);
+            tb_numberTable.Location = new Point(334, 97);
+            tb_numberTable.Margin = new Padding(2);
             tb_numberTable.Name = "tb_numberTable";
             tb_numberTable.PlaceholderText = "Nhập số bàn...";
-            tb_numberTable.Size = new Size(141, 27);
+            tb_numberTable.Size = new Size(114, 27);
             tb_numberTable.TabIndex = 26;
             // 
             // lbl_findTable
             // 
             lbl_findTable.AutoSize = true;
             lbl_findTable.Font = new Font("Segoe UI", 13.2000008F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_findTable.Location = new Point(285, 100);
+            lbl_findTable.Location = new Point(228, 92);
+            lbl_findTable.Margin = new Padding(2, 0, 2, 0);
             lbl_findTable.Name = "lbl_findTable";
             lbl_findTable.Size = new Size(102, 31);
             lbl_findTable.TabIndex = 25;
@@ -197,7 +207,8 @@
             // 
             lbl_filterType.AutoSize = true;
             lbl_filterType.Font = new Font("Segoe UI", 13.2000008F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_filterType.Location = new Point(18, 100);
+            lbl_filterType.Location = new Point(14, 92);
+            lbl_filterType.Margin = new Padding(2, 0, 2, 0);
             lbl_filterType.Name = "lbl_filterType";
             lbl_filterType.Size = new Size(54, 31);
             lbl_filterType.TabIndex = 24;
@@ -206,16 +217,19 @@
             // comboBox1
             // 
             comboBox1.FormattingEnabled = true;
-            comboBox1.Location = new Point(78, 103);
+            comboBox1.Location = new Point(72, 94);
+            comboBox1.Margin = new Padding(2);
             comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(151, 28);
+            comboBox1.Size = new Size(122, 28);
             comboBox1.TabIndex = 23;
+            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
             // 
             // lbl_userInfo
             // 
             lbl_userInfo.AutoSize = true;
             lbl_userInfo.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_userInfo.Location = new Point(485, 53);
+            lbl_userInfo.Location = new Point(491, 46);
+            lbl_userInfo.Margin = new Padding(2, 0, 2, 0);
             lbl_userInfo.Name = "lbl_userInfo";
             lbl_userInfo.Size = new Size(330, 28);
             lbl_userInfo.TabIndex = 22;
@@ -225,7 +239,8 @@
             // 
             lbl_title.AutoSize = true;
             lbl_title.Font = new Font("Segoe UI", 13.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lbl_title.Location = new Point(468, 12);
+            lbl_title.Location = new Point(477, 14);
+            lbl_title.Margin = new Padding(2, 0, 2, 0);
             lbl_title.Name = "lbl_title";
             lbl_title.Size = new Size(347, 31);
             lbl_title.TabIndex = 21;
@@ -238,9 +253,10 @@
             tb_chat.Controls.Add(lbl_orderdetails);
             tb_chat.Controls.Add(lbl_orderinfo);
             tb_chat.Location = new Point(4, 29);
+            tb_chat.Margin = new Padding(2);
             tb_chat.Name = "tb_chat";
-            tb_chat.Padding = new Padding(3);
-            tb_chat.Size = new Size(1283, 548);
+            tb_chat.Padding = new Padding(2);
+            tb_chat.Size = new Size(1217, 475);
             tb_chat.TabIndex = 1;
             tb_chat.Text = "Chi tiết đơn & cập nhật";
             tb_chat.UseVisualStyleBackColor = true;
@@ -261,17 +277,19 @@
             panel_update.Controls.Add(cb_status);
             panel_update.Controls.Add(lbl_status);
             panel_update.Controls.Add(lbl_updateTitle);
-            panel_update.Location = new Point(741, 79);
+            panel_update.Location = new Point(731, 63);
+            panel_update.Margin = new Padding(2);
             panel_update.Name = "panel_update";
-            panel_update.Size = new Size(533, 466);
+            panel_update.Size = new Size(480, 405);
             panel_update.TabIndex = 3;
             // 
             // btn_huymon
             // 
             btn_huymon.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_huymon.Location = new Point(204, 400);
+            btn_huymon.Location = new Point(178, 320);
+            btn_huymon.Margin = new Padding(2);
             btn_huymon.Name = "btn_huymon";
-            btn_huymon.Size = new Size(114, 38);
+            btn_huymon.Size = new Size(91, 30);
             btn_huymon.TabIndex = 13;
             btn_huymon.Text = "Hủy món";
             btn_huymon.UseVisualStyleBackColor = true;
@@ -281,9 +299,10 @@
             // 
             btn_sendmess.AutoSize = true;
             btn_sendmess.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_sendmess.Location = new Point(378, 400);
+            btn_sendmess.Location = new Point(302, 320);
+            btn_sendmess.Margin = new Padding(2);
             btn_sendmess.Name = "btn_sendmess";
-            btn_sendmess.Size = new Size(119, 38);
+            btn_sendmess.Size = new Size(119, 33);
             btn_sendmess.TabIndex = 12;
             btn_sendmess.Text = "Gửi tin nhắn";
             btn_sendmess.UseVisualStyleBackColor = true;
@@ -292,9 +311,10 @@
             // 
             btn_luuthaydoi.AutoSize = true;
             btn_luuthaydoi.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_luuthaydoi.Location = new Point(23, 400);
+            btn_luuthaydoi.Location = new Point(18, 320);
+            btn_luuthaydoi.Margin = new Padding(2);
             btn_luuthaydoi.Name = "btn_luuthaydoi";
-            btn_luuthaydoi.Size = new Size(121, 38);
+            btn_luuthaydoi.Size = new Size(121, 33);
             btn_luuthaydoi.TabIndex = 11;
             btn_luuthaydoi.Text = "Lưu thay đổi";
             btn_luuthaydoi.UseVisualStyleBackColor = true;
@@ -302,16 +322,18 @@
             // 
             // tb_ghichu
             // 
-            tb_ghichu.Location = new Point(120, 311);
+            tb_ghichu.Location = new Point(117, 248);
+            tb_ghichu.Margin = new Padding(2);
             tb_ghichu.Name = "tb_ghichu";
-            tb_ghichu.Size = new Size(410, 27);
+            tb_ghichu.Size = new Size(329, 27);
             tb_ghichu.TabIndex = 10;
             // 
             // label5
             // 
             label5.AutoSize = true;
             label5.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label5.Location = new Point(7, 315);
+            label5.Location = new Point(6, 252);
+            label5.Margin = new Padding(2, 0, 2, 0);
             label5.Name = "label5";
             label5.Size = new Size(107, 23);
             label5.TabIndex = 9;
@@ -320,16 +342,18 @@
             // cb_timedukien
             // 
             cb_timedukien.FormattingEnabled = true;
-            cb_timedukien.Location = new Point(131, 205);
+            cb_timedukien.Location = new Point(128, 165);
+            cb_timedukien.Margin = new Padding(2);
             cb_timedukien.Name = "cb_timedukien";
-            cb_timedukien.Size = new Size(151, 28);
+            cb_timedukien.Size = new Size(126, 28);
             cb_timedukien.TabIndex = 8;
             // 
             // label4
             // 
             label4.AutoSize = true;
             label4.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label4.Location = new Point(3, 205);
+            label4.Location = new Point(2, 164);
+            label4.Margin = new Padding(2, 0, 2, 0);
             label4.Name = "label4";
             label4.Size = new Size(122, 25);
             label4.TabIndex = 7;
@@ -338,16 +362,18 @@
             // cb_daubep
             // 
             cb_daubep.FormattingEnabled = true;
-            cb_daubep.Location = new Point(108, 137);
+            cb_daubep.Location = new Point(96, 110);
+            cb_daubep.Margin = new Padding(2);
             cb_daubep.Name = "cb_daubep";
-            cb_daubep.Size = new Size(151, 28);
+            cb_daubep.Size = new Size(152, 28);
             cb_daubep.TabIndex = 6;
             // 
             // label3
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label3.Location = new Point(3, 136);
+            label3.Location = new Point(2, 109);
+            label3.Margin = new Padding(2, 0, 2, 0);
             label3.Name = "label3";
             label3.Size = new Size(84, 25);
             label3.TabIndex = 5;
@@ -356,16 +382,18 @@
             // cb_uutien
             // 
             cb_uutien.FormattingEnabled = true;
-            cb_uutien.Location = new Point(364, 65);
+            cb_uutien.Location = new Point(324, 52);
+            cb_uutien.Margin = new Padding(2);
             cb_uutien.Name = "cb_uutien";
-            cb_uutien.Size = new Size(151, 28);
+            cb_uutien.Size = new Size(154, 28);
             cb_uutien.TabIndex = 4;
             // 
             // label2
             // 
             label2.AutoSize = true;
             label2.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label2.Location = new Point(274, 65);
+            label2.Location = new Point(252, 52);
+            label2.Margin = new Padding(2, 0, 2, 0);
             label2.Name = "label2";
             label2.Size = new Size(73, 25);
             label2.TabIndex = 3;
@@ -374,16 +402,18 @@
             // cb_status
             // 
             cb_status.FormattingEnabled = true;
-            cb_status.Location = new Point(108, 66);
+            cb_status.Location = new Point(96, 53);
+            cb_status.Margin = new Padding(2);
             cb_status.Name = "cb_status";
-            cb_status.Size = new Size(151, 28);
+            cb_status.Size = new Size(152, 28);
             cb_status.TabIndex = 2;
             // 
             // lbl_status
             // 
             lbl_status.AutoSize = true;
             lbl_status.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_status.Location = new Point(3, 65);
+            lbl_status.Location = new Point(2, 52);
+            lbl_status.Margin = new Padding(2, 0, 2, 0);
             lbl_status.Name = "lbl_status";
             lbl_status.Size = new Size(98, 25);
             lbl_status.TabIndex = 1;
@@ -393,7 +423,8 @@
             // 
             lbl_updateTitle.AutoSize = true;
             lbl_updateTitle.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lbl_updateTitle.Location = new Point(120, 15);
+            lbl_updateTitle.Location = new Point(96, 12);
+            lbl_updateTitle.Margin = new Padding(2, 0, 2, 0);
             lbl_updateTitle.Name = "lbl_updateTitle";
             lbl_updateTitle.Size = new Size(333, 23);
             lbl_updateTitle.TabIndex = 0;
@@ -402,17 +433,19 @@
             // dataGridView_dishs
             // 
             dataGridView_dishs.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView_dishs.Location = new Point(6, 79);
+            dataGridView_dishs.Location = new Point(5, 63);
+            dataGridView_dishs.Margin = new Padding(2);
             dataGridView_dishs.Name = "dataGridView_dishs";
             dataGridView_dishs.RowHeadersWidth = 51;
-            dataGridView_dishs.Size = new Size(729, 460);
+            dataGridView_dishs.Size = new Size(724, 408);
             dataGridView_dishs.TabIndex = 2;
             // 
             // lbl_orderdetails
             // 
             lbl_orderdetails.AutoSize = true;
             lbl_orderdetails.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_orderdetails.Location = new Point(427, 37);
+            lbl_orderdetails.Location = new Point(342, 30);
+            lbl_orderdetails.Margin = new Padding(2, 0, 2, 0);
             lbl_orderdetails.Name = "lbl_orderdetails";
             lbl_orderdetails.Size = new Size(448, 25);
             lbl_orderdetails.TabIndex = 1;
@@ -422,7 +455,8 @@
             // 
             lbl_orderinfo.AutoSize = true;
             lbl_orderinfo.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_orderinfo.Location = new Point(449, 12);
+            lbl_orderinfo.Location = new Point(359, 10);
+            lbl_orderinfo.Margin = new Padding(2, 0, 2, 0);
             lbl_orderinfo.Name = "lbl_orderinfo";
             lbl_orderinfo.Size = new Size(381, 25);
             lbl_orderinfo.TabIndex = 0;
@@ -432,7 +466,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1294, 583);
+            ClientSize = new Size(1230, 511);
             Controls.Add(tc_nvbep);
             Name = "NVBep";
             Text = "NVBep";
@@ -484,5 +518,6 @@
         private Button btn_huymon;
         private Button btn_sendmess;
         private Button btn_luuthaydoi;
+
     }
 }

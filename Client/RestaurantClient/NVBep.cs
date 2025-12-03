@@ -340,7 +340,7 @@ namespace RestaurantClient
             }
         }
 
-     
+
 
         private async Task<List<KitchenDishData>> LoadOrderDishesFromServer()
         {
@@ -1210,7 +1210,10 @@ namespace RestaurantClient
                 _autoRefreshTimer.Dispose();
             }
         }
-      
 
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

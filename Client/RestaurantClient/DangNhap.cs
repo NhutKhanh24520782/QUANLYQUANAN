@@ -39,6 +39,12 @@ namespace RestaurantClient
 
                 if (loginResponse?.Success == true)
                 {
+                    CurrentUser.Id = loginResponse.MaNguoiDung;
+                    CurrentUser.Username = request.Username;
+                    CurrentUser.Email = loginResponse.Email ?? "";
+                    CurrentUser.FullName = loginResponse.HoTen ?? "";
+                    CurrentUser.Role = loginResponse.Role ?? "";
+
                     MessageBox.Show($"Đăng nhập thành công! Chào {loginResponse.HoTen}",
                         "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
