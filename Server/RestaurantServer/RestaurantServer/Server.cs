@@ -107,6 +107,22 @@ namespace RestaurantServer
                         "GetMon" => await HandleGetMonRequestAsync(rawRequest),
                         "CreateOrder" => await HandleCreateOrderRequestAsync(rawRequest),
                         "GetTableDetail" => await HandleGetTableDetailRequestAsync(rawRequest),
+
+                        "GetKitchenOrders" => HandleGetKitchenOrdersRequestAsync(rawRequest).Result,
+                        "GetOrderDetail" => HandleGetOrderDetailRequestAsync(rawRequest).Result,
+                        "UpdateDishStatus" => HandleUpdateDishStatusRequestAsync(rawRequest).Result,
+                        "UpdateMultipleDishes" => HandleUpdateMultipleDishesRequestAsync(rawRequest).Result,
+                        "SendKitchenMessage" => HandleSendKitchenMessageRequestAsync(rawRequest).Result,
+                        "GetKitchenMessages" => HandleGetKitchenMessagesRequestAsync(rawRequest).Result,
+                        "GetKitchenStatistics" => HandleGetKitchenStatisticsRequestAsync(rawRequest).Result,
+                        "GetThongKeBep" => await HandleGetThongKeBepRequestAsync(rawRequest),
+                        "GetDanhSachDauBep" => await HandleGetDanhSachDauBepRequestAsync(rawRequest),
+
+                        // Thống kê chi tiết đầu bếp
+                        //"GetThongKeDauBepChiTiet" => await HandleGetThongKeDauBepChiTietRequestAsync(rawRequest),
+
+                        //// Xuất báo cáo
+                        //"XuatBaoCaoThongKeBep" => await HandleXuatBaoCaoThongKeBepRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -809,7 +825,325 @@ namespace RestaurantServer
                 catch (Exception ex) { return CreateErrorResponse(ex.Message); }
             });
         }
+        // ==================== KITCHEN HANDLERS ====================
 
+        private async Task<string> HandleGetKitchenOrdersRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetKitchenOrdersRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetKitchenOrders(
+                        request.TrangThai,
+                        request.TimKiemBan,
+                        request.SapXep,
+                        request.MaNhanVienBep
+                    );
+
+                    var response = new GetKitchenOrdersResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        DonHang = result.DonHang,
+                        ThongKe = result.ThongKe
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy đơn hàng bếp: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleGetOrderDetailRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetOrderDetailRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    if (request.MaDonHang <= 0)
+                        return CreateErrorResponse("Mã đơn hàng không hợp lệ");
+
+                    var result = DatabaseAccess.GetOrderDetail(request.MaDonHang);
+
+                    var response = new GetOrderDetailResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ChiTietDonHang = result.ChiTietDonHang
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy chi tiết đơn: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleUpdateDishStatusRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<UpdateDishStatusRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // Validate
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.UpdateDishStatus(
+                        request.MaDonHang,
+                        request.MaChiTiet,
+                        request.TrangThaiMoi,
+                        request.MaNhanVienBep,
+                        request.GhiChuBep,
+                        request.ThoiGianDuKienHoanThanh,
+                        request.UuTien,
+                        request.GuiThongBao
+                    );
+
+                    var response = new UpdateDishStatusResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        TenMon = result.TenMon,
+                        TrangThaiCu = result.TrangThaiCu,
+                        TrangThaiMoi = result.TrangThaiMoi,
+                        ThoiGianCapNhat = DateTime.Now,
+                        MaChiTiet = request.MaChiTiet
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi cập nhật trạng thái: {ex.Message}");
+                }
+            });
+        }
+        private async Task<string> HandleUpdateMultipleDishesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<UpdateMultipleDishesRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // Validate
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.UpdateMultipleDishes(
+                        request.MaDonHang,
+                        request.DanhSachMon,
+                        request.GuiThongBao
+                    );
+
+                    var response = new UpdateMultipleDishesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        SoMonDaCapNhat = result.SoMonDaCapNhat,
+                        TenCacMon = !string.IsNullOrEmpty(result.TenMon)
+                            ? result.TenMon.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                         .Select(s => s.Trim())
+                                         .ToList()
+                            : new List<string>()
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi cập nhật nhiều món: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleSendKitchenMessageRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<SendKitchenMessageRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // Validate
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.SendKitchenMessage(
+                        request.MaDonHang,
+                        request.MaNhanVienGui,
+                        request.MaNhanVienNhan,
+                        request.NoiDung,
+                        request.LoaiTinNhan,
+                        request.HienPopup,
+                        request.PhatAmThanh
+                    );
+
+                    var response = new SendKitchenMessageResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaTinNhan = result.MaTinNhan,
+                        ThoiGianGui = DateTime.Now
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi gửi tin nhắn: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleGetKitchenMessagesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetKitchenMessagesRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetKitchenMessages(
+                        request.MaDonHang,
+                        request.MaNhanVienBep
+                    );
+
+                    var response = new GetKitchenMessagesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        TinNhan = result.TinNhan
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy tin nhắn: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleGetKitchenStatisticsRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetKitchenStatisticsRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // Validate
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.GetKitchenStatistics(
+                        request.TuNgay,
+                        request.DenNgay,
+                        request.MaNhanVienBep
+                    );
+
+                    var response = new GetKitchenStatisticsResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ThongKe = result.ThongKe
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy thống kê: {ex.Message}");
+                }
+            });
+        }
+    
+        private async Task<string> HandleGetThongKeBepRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetThongKeBepRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // Validate
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.GetThongKeBep(
+                        request.TuNgay,
+                        request.DenNgay,
+                        request.MaNhanVienBep
+                    );
+
+                    var response = new GetThongKeBepResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        TongQuan = result.TongQuan,
+                        DanhSachDauBep = result.DanhSachDauBep,
+                        TopMonAn = result.TopMonAn
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy thống kê bếp: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleGetDanhSachDauBepRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Request này không cần tham số
+                    var result = DatabaseAccess.GetDanhSachDauBep();
+
+                    var response = new GetDanhSachDauBepResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        DanhSachDauBep = result.DanhSachDauBep
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách đầu bếp: {ex.Message}");
+                }
+            });
+        }
     }
 
 }

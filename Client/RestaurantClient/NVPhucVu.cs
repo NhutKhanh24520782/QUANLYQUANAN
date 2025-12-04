@@ -53,6 +53,8 @@ namespace RestaurantClient
             LoadMenuItems();
             InitializeCategoryComboBox();
             InitializeTableComboBox();
+            UpdateUserInfo();
+            LoadNVInfo();
         }
 
         private void InitializeGridViewManager()
@@ -761,7 +763,10 @@ namespace RestaurantClient
                 }
             }
         }
-
+        private void UpdateUserInfo()
+        {
+            lbl_userInfo.Text = $"Chào, {_currentUserName} • {DateTime.Now:HH:mm dd/MM/yyyy}";
+        }
         // ==================== EVENT HANDLERS ====================
         private void DataGridView_Bills_SelectionChanged(object sender, EventArgs e)
         {
@@ -1856,6 +1861,58 @@ namespace RestaurantClient
         private void checkBox_chuyenkhoan_CheckedChanged(object sender, EventArgs e)
         {
 
+        }
+        private void LoadNVInfo()
+        {
+            try
+            {
+                // Gán dữ liệu từ CurrentUser
+                textbox_usernamephucvu.Text = CurrentUser.Username ?? "";
+                textbox_emailphucvu.Text = CurrentUser.Email ?? "";
+                textbox_tenphucvu.Text = CurrentUser.FullName ?? "";
+                textbox_rolepv.Text = CurrentUser.Role ?? "PhucVu";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi hiển thị thông tin tài khoản: " + ex.Message);
+            }
+        }
+
+        private void button_DangXuatPhucVu_Click(object sender, EventArgs e)
+        {
+            // Hộp thoại xác nhận
+            var confirm = MessageBox.Show(
+                "Bạn có chắc muốn đăng xuất?",
+                "Xác nhận",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (confirm != DialogResult.Yes)
+                return;
+
+            try
+            {
+                // Reset CurrentUser
+                CurrentUser.Id = 0;
+                CurrentUser.Username = "";
+                CurrentUser.Email = "";
+                CurrentUser.FullName = "";
+                CurrentUser.Role = "";
+
+                // Mở lại form đăng nhập
+                var loginForm = new DangNhap();
+                loginForm.StartPosition = FormStartPosition.CenterScreen;
+                loginForm.Show();
+
+                // Đóng form NVPhucVu
+                this.Close();   // Nếu app tắt luôn, đổi thành this.Hide()
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message,
+                                "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
