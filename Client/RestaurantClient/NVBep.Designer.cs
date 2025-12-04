@@ -89,6 +89,8 @@
             lbl_tungay = new Label();
             label6 = new Label();
             lbl_titlethongke = new Label();
+            tabPage_chat = new TabPage();
+            tabPage_taikhoan = new TabPage();
             tc_nvbep.SuspendLayout();
             tp_quanlyvaxuly.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
@@ -107,6 +109,8 @@
             tc_nvbep.Controls.Add(tp_quanlyvaxuly);
             tc_nvbep.Controls.Add(tb_chat);
             tc_nvbep.Controls.Add(tp_thongke);
+            tc_nvbep.Controls.Add(tabPage_chat);
+            tc_nvbep.Controls.Add(tabPage_taikhoan);
             tc_nvbep.Location = new Point(4, 3);
             tc_nvbep.Name = "tc_nvbep";
             tc_nvbep.SelectedIndex = 0;
@@ -771,6 +775,26 @@
             lbl_titlethongke.Size = new Size(0, 20);
             lbl_titlethongke.TabIndex = 0;
             // 
+            // tabPage_chat
+            // 
+            tabPage_chat.Location = new Point(4, 29);
+            tabPage_chat.Name = "tabPage_chat";
+            tabPage_chat.Padding = new Padding(3);
+            tabPage_chat.Size = new Size(1217, 475);
+            tabPage_chat.TabIndex = 3;
+            tabPage_chat.Text = "Chat";
+            tabPage_chat.UseVisualStyleBackColor = true;
+            // 
+            // tabPage_taikhoan
+            // 
+            tabPage_taikhoan.Location = new Point(4, 29);
+            tabPage_taikhoan.Name = "tabPage_taikhoan";
+            tabPage_taikhoan.Padding = new Padding(3);
+            tabPage_taikhoan.Size = new Size(1217, 475);
+            tabPage_taikhoan.TabIndex = 4;
+            tabPage_taikhoan.Text = "Tài Khoản";
+            tabPage_taikhoan.UseVisualStyleBackColor = true;
+            // 
             // NVBep
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
@@ -864,5 +888,7 @@
         private ListView listView_topmonphobien;
         private Button btn_xuatbaocao;
         private Button btn_lammoi;
+        private TabPage tabPage_chat;
+        private TabPage tabPage_taikhoan;
     }
 }
