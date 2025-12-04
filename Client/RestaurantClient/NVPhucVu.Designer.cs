@@ -76,8 +76,10 @@
             label4 = new Label();
             tb_chat = new TabPage();
             groupBox1 = new GroupBox();
+            splitContainer1 = new SplitContainer();
+            dgv_DonHangTongQuan = new DataGridView();
+            lv_ChiTietDon = new ListView();
             btn_xoahet = new Button();
-            listView1 = new ListView();
             cb_banan = new ComboBox();
             label10 = new Label();
             btn_lammoi = new Button();
@@ -114,6 +116,11 @@
             ((System.ComponentModel.ISupportInitialize)dataGridView_thanhtoan).BeginInit();
             tb_chat.SuspendLayout();
             groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
+            splitContainer1.Panel1.SuspendLayout();
+            splitContainer1.Panel2.SuspendLayout();
+            splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dgv_DonHangTongQuan).BeginInit();
             tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView2).BeginInit();
             tabPage2.SuspendLayout();
@@ -140,7 +147,7 @@
             tp_phucvuqly.Controls.Add(gb_thongtinban);
             tp_phucvuqly.Location = new Point(4, 29);
             tp_phucvuqly.Name = "tp_phucvuqly";
-            tp_phucvuqly.Padding = new Padding(3, 3, 3, 3);
+            tp_phucvuqly.Padding = new Padding(3);
             tp_phucvuqly.Size = new Size(1389, 605);
             tp_phucvuqly.TabIndex = 0;
             tp_phucvuqly.Text = "Order món và đặt bàn";
@@ -288,7 +295,7 @@
             // 
             dataGridView_giohang.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridView_giohang.Location = new Point(6, 166);
-            dataGridView_giohang.Margin = new Padding(2, 2, 2, 2);
+            dataGridView_giohang.Margin = new Padding(2);
             dataGridView_giohang.Name = "dataGridView_giohang";
             dataGridView_giohang.RowHeadersWidth = 51;
             dataGridView_giohang.Size = new Size(650, 354);
@@ -377,7 +384,7 @@
             tp_thanhtoan.Controls.Add(label4);
             tp_thanhtoan.Location = new Point(4, 29);
             tp_thanhtoan.Name = "tp_thanhtoan";
-            tp_thanhtoan.Padding = new Padding(3, 3, 3, 3);
+            tp_thanhtoan.Padding = new Padding(3);
             tp_thanhtoan.Size = new Size(1389, 605);
             tp_thanhtoan.TabIndex = 1;
             tp_thanhtoan.Text = "Thanh toán";
@@ -618,7 +625,7 @@
             tb_chat.Controls.Add(groupBox1);
             tb_chat.Location = new Point(4, 29);
             tb_chat.Name = "tb_chat";
-            tb_chat.Padding = new Padding(3, 3, 3, 3);
+            tb_chat.Padding = new Padding(3);
             tb_chat.Size = new Size(1389, 605);
             tb_chat.TabIndex = 2;
             tb_chat.Text = "Theo dõi đơn hàng";
@@ -626,8 +633,8 @@
             // 
             // groupBox1
             // 
+            groupBox1.Controls.Add(splitContainer1);
             groupBox1.Controls.Add(btn_xoahet);
-            groupBox1.Controls.Add(listView1);
             groupBox1.Controls.Add(cb_banan);
             groupBox1.Controls.Add(label10);
             groupBox1.Controls.Add(btn_lammoi);
@@ -643,6 +650,48 @@
             groupBox1.TabStop = false;
             groupBox1.Text = "Thông tin đơn hàng";
             // 
+            // splitContainer1
+            // 
+            splitContainer1.Location = new Point(1, 167);
+            splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            splitContainer1.Panel1.Controls.Add(dgv_DonHangTongQuan);
+            // 
+            // splitContainer1.Panel2
+            // 
+            splitContainer1.Panel2.Controls.Add(lv_ChiTietDon);
+            splitContainer1.Size = new Size(1379, 320);
+            splitContainer1.SplitterDistance = 557;
+            splitContainer1.TabIndex = 10;
+            // 
+            // dgv_DonHangTongQuan
+            // 
+            dgv_DonHangTongQuan.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgv_DonHangTongQuan.Dock = DockStyle.Fill;
+            dgv_DonHangTongQuan.Location = new Point(0, 0);
+            dgv_DonHangTongQuan.Name = "dgv_DonHangTongQuan";
+            dgv_DonHangTongQuan.ReadOnly = true;
+            dgv_DonHangTongQuan.RowHeadersVisible = false;
+            dgv_DonHangTongQuan.RowHeadersWidth = 51;
+            dgv_DonHangTongQuan.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgv_DonHangTongQuan.Size = new Size(557, 320);
+            dgv_DonHangTongQuan.TabIndex = 0;
+            dgv_DonHangTongQuan.CellContentClick += dgv_DonHangTongQuan_CellContentClick;
+            // 
+            // lv_ChiTietDon
+            // 
+            lv_ChiTietDon.Dock = DockStyle.Fill;
+            lv_ChiTietDon.FullRowSelect = true;
+            lv_ChiTietDon.GridLines = true;
+            lv_ChiTietDon.Location = new Point(0, 0);
+            lv_ChiTietDon.Name = "lv_ChiTietDon";
+            lv_ChiTietDon.Size = new Size(818, 320);
+            lv_ChiTietDon.TabIndex = 0;
+            lv_ChiTietDon.UseCompatibleStateImageBehavior = false;
+            lv_ChiTietDon.View = View.Details;
+            // 
             // btn_xoahet
             // 
             btn_xoahet.Location = new Point(1202, 50);
@@ -652,14 +701,6 @@
             btn_xoahet.Text = "Xóa hết";
             btn_xoahet.UseVisualStyleBackColor = true;
             btn_xoahet.Click += btn_xoahet_Click;
-            // 
-            // listView1
-            // 
-            listView1.Location = new Point(45, 161);
-            listView1.Name = "listView1";
-            listView1.Size = new Size(1290, 368);
-            listView1.TabIndex = 8;
-            listView1.UseCompatibleStateImageBehavior = false;
             // 
             // cb_banan
             // 
@@ -734,7 +775,7 @@
             tabPage1.Controls.Add(dataGridView2);
             tabPage1.Location = new Point(4, 29);
             tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3, 3, 3, 3);
+            tabPage1.Padding = new Padding(3);
             tabPage1.Size = new Size(1389, 605);
             tabPage1.TabIndex = 3;
             tabPage1.Text = "Chat";
@@ -780,9 +821,9 @@
             tabPage2.Controls.Add(label14);
             tabPage2.Controls.Add(label13);
             tabPage2.Location = new Point(4, 29);
-            tabPage2.Margin = new Padding(2, 2, 2, 2);
+            tabPage2.Margin = new Padding(2);
             tabPage2.Name = "tabPage2";
-            tabPage2.Padding = new Padding(2, 2, 2, 2);
+            tabPage2.Padding = new Padding(2);
             tabPage2.Size = new Size(1389, 605);
             tabPage2.TabIndex = 4;
             tabPage2.Text = "Tài khoản";
@@ -791,7 +832,7 @@
             // button_DangXuatPhucVu
             // 
             button_DangXuatPhucVu.Location = new Point(1113, 510);
-            button_DangXuatPhucVu.Margin = new Padding(2, 2, 2, 2);
+            button_DangXuatPhucVu.Margin = new Padding(2);
             button_DangXuatPhucVu.Name = "button_DangXuatPhucVu";
             button_DangXuatPhucVu.Size = new Size(143, 34);
             button_DangXuatPhucVu.TabIndex = 9;
@@ -802,7 +843,7 @@
             // textbox_rolepv
             // 
             textbox_rolepv.Location = new Point(569, 503);
-            textbox_rolepv.Margin = new Padding(2, 2, 2, 2);
+            textbox_rolepv.Margin = new Padding(2);
             textbox_rolepv.Name = "textbox_rolepv";
             textbox_rolepv.Size = new Size(235, 27);
             textbox_rolepv.TabIndex = 8;
@@ -810,7 +851,7 @@
             // textbox_tenphucvu
             // 
             textbox_tenphucvu.Location = new Point(569, 409);
-            textbox_tenphucvu.Margin = new Padding(2, 2, 2, 2);
+            textbox_tenphucvu.Margin = new Padding(2);
             textbox_tenphucvu.Name = "textbox_tenphucvu";
             textbox_tenphucvu.Size = new Size(235, 27);
             textbox_tenphucvu.TabIndex = 7;
@@ -818,7 +859,7 @@
             // textbox_emailphucvu
             // 
             textbox_emailphucvu.Location = new Point(569, 303);
-            textbox_emailphucvu.Margin = new Padding(2, 2, 2, 2);
+            textbox_emailphucvu.Margin = new Padding(2);
             textbox_emailphucvu.Name = "textbox_emailphucvu";
             textbox_emailphucvu.Size = new Size(235, 27);
             textbox_emailphucvu.TabIndex = 6;
@@ -826,7 +867,7 @@
             // textbox_usernamephucvu
             // 
             textbox_usernamephucvu.Location = new Point(569, 205);
-            textbox_usernamephucvu.Margin = new Padding(2, 2, 2, 2);
+            textbox_usernamephucvu.Margin = new Padding(2);
             textbox_usernamephucvu.Name = "textbox_usernamephucvu";
             textbox_usernamephucvu.Size = new Size(235, 27);
             textbox_usernamephucvu.TabIndex = 5;
@@ -915,6 +956,11 @@
             tb_chat.ResumeLayout(false);
             groupBox1.ResumeLayout(false);
             groupBox1.PerformLayout();
+            splitContainer1.Panel1.ResumeLayout(false);
+            splitContainer1.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
+            splitContainer1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dgv_DonHangTongQuan).EndInit();
             tabPage1.ResumeLayout(false);
             tabPage1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView2).EndInit();
@@ -972,7 +1018,6 @@
         private Button btn_ttoan;
         private Label label_tongtien;
         private Label label12;
-        private ListView listView1;
         private Panel panel_qrthanhtoan;
         private TextBox tb_dateBill;
         private Label label18;
@@ -1004,5 +1049,8 @@
         private TextBox textbox_rolepv;
         private TextBox textbox_tenphucvu;
         private Button button_DangXuatPhucVu;
+        private SplitContainer splitContainer1;
+        private DataGridView dgv_DonHangTongQuan;
+        private ListView lv_ChiTietDon;
     }
 }

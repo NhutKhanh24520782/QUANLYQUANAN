@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+//using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace RestaurantClient
 {
@@ -38,14 +39,16 @@ namespace RestaurantClient
             InitializeComponent();
             cb_trangthai.Items.Clear();
             cb_trangthai.DropDownStyle = ComboBoxStyle.DropDownList;
-            cb_trangthai.Items.AddRange(new string[] { "Chưa thanh toán", "Đã thanh toán", "Đã đặt trước" });
+            cb_trangthai.Items.AddRange(new string[] { "Tất cả", "Hoàn thành", "Đang chế biến" });
             //cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged;
             //cb_banan.SelectedIndexChanged += OnFilterChanged;
-            cb_trangthai.SelectedIndexChanged += OnFilterChanged;
+            //cb_trangthai.SelectedIndexChanged += OnFilterChanged;
             cb_banan.SelectedIndex = -1;
             cb_trangthai.SelectedIndex = -1;
             // Đăng ký sự kiện click cho PictureBox
             pb_QR.Click += pb_QR_Click;
+            cb_trangthai.SelectedIndexChanged += (s, e) => btn_lammoi_Click_1(null, null);
+            SetupMasterDetailView();
             InitializeGridViewManager();
             InitializePaymentControls();
             InitializeAutoRefreshTimer(); // 🔥 BỔ SUNG: Khởi tạo Timer
@@ -55,8 +58,156 @@ namespace RestaurantClient
             InitializeTableComboBox();
             UpdateUserInfo();
             LoadNVInfo();
+
+        }
+        // [NVPhucVu.cs]
+
+        private void SetupMasterDetailView()
+        {
+            // --- CẤU HÌNH BẢNG ĐƠN HÀNG (BÊN TRÁI) ---
+            dgv_DonHangTongQuan.AutoGenerateColumns = false;
+            dgv_DonHangTongQuan.Columns.Clear();
+            dgv_DonHangTongQuan.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            
+            // Đăng ký sự kiện tô màu (QUAN TRỌNG)
+            dgv_DonHangTongQuan.CellFormatting -= Dgv_DonHangTongQuan_CellFormatting; // Xóa cũ để tránh trùng
+            dgv_DonHangTongQuan.CellFormatting += Dgv_DonHangTongQuan_CellFormatting; // Thêm mới
+
+            // Thêm các cột (DataPropertyName phải khớp với KitchenOrderData)
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "MaDonHang", HeaderText = "Mã Đơn", Width = 80 });
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TenBan", HeaderText = "Bàn", Width = 70 });
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ThoiGianDisplay", HeaderText = "Giờ gọi", Width = 100 });
+
+            // Cột trạng thái (Width 140 để đủ chỗ hiển thị chữ)
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TrangThaiDon", HeaderText = "Trạng Thái", Width = 250 });
+
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TongSoMon", HeaderText = "Số Món", Width = 60 });
+
+            dgv_DonHangTongQuan.SelectionChanged += Dgv_DonHangTongQuan_SelectionChanged;
+
+            // --- CẤU HÌNH BẢNG CHI TIẾT (BÊN PHẢI) ---
+            lv_ChiTietDon.Columns.Clear();
+            lv_ChiTietDon.View = View.Details;
+            lv_ChiTietDon.GridLines = true;
+            lv_ChiTietDon.FullRowSelect = true;
+
+            lv_ChiTietDon.Columns.Add("Tên Món", 220);
+            lv_ChiTietDon.Columns.Add("SL", 40);
+            lv_ChiTietDon.Columns.Add("Ghi Chú", 400);
+            lv_ChiTietDon.Columns.Add("Trạng Thái", 120);
+
+            // Tạo Group
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("HoanThanh", "[1] MÓN ĐÃ HOÀN THÀNH"));
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("DangCheBien", "[2] MÓN ĐANG CHẾ BIẾN"));
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("ChoXacNhan", "[3] MÓN CHỜ XÁC NHẬN"));
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("CoVanDe", "[4] MÓN CÓ VẤN ĐỀ / HỦY"));
+        }
+        private async Task LoadMasterOrderList()
+        {
+            try
+            {
+                // Gọi API lấy danh sách đơn hàng (giống bên Bếp nhưng phục vụ xem hết)
+                var request = new GetKitchenOrdersRequest
+                {
+                    TrangThai = "TatCa",
+                    SapXep = "ThoiGian"
+                };
+
+                var response = await SendRequest<GetKitchenOrdersRequest, GetKitchenOrdersResponse>(request);
+
+                if (response != null && response.Success)
+                {
+                    dgv_DonHangTongQuan.DataSource = response.DonHang;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi tải danh sách đơn: " + ex.Message);
+            }
+        }
+        private async void Dgv_DonHangTongQuan_SelectionChanged(object sender, EventArgs e)
+        {
+            if (dgv_DonHangTongQuan.SelectedRows.Count == 0) return;
+
+            // Lấy object data từ dòng đang chọn
+            var selectedOrder = dgv_DonHangTongQuan.SelectedRows[0].DataBoundItem as KitchenOrderData;
+            if (selectedOrder == null) return;
+
+            await LoadOrderDetailToListView(selectedOrder.MaDonHang);
         }
 
+        private async Task LoadOrderDetailToListView(int maDonHang)
+        {
+            try
+            {
+                var request = new GetOrderDetailRequest { MaDonHang = maDonHang };
+                var response = await SendRequest<GetOrderDetailRequest, GetOrderDetailResponse>(request);
+
+                if (response != null && response.Success && response.ChiTietDonHang != null)
+                {
+                    lv_ChiTietDon.Items.Clear();
+                    var details = response.ChiTietDonHang.DanhSachMon;
+
+                    foreach (var item in details)
+                    {
+                        // Tạo dòng cho ListView
+                        ListViewItem row = new ListViewItem(item.TenMon);
+                        row.SubItems.Add(item.SoLuong.ToString());
+                        row.SubItems.Add(item.GhiChuKhach); // Hoặc GhiChuBep
+                        row.SubItems.Add(TranslateStatus(item.TrangThai));
+
+                        // 1. PHÂN NHÓM (GROUP)
+                        switch (item.TrangThai)
+                        {
+                            case "HoanThanh":
+                                row.Group = lv_ChiTietDon.Groups["HoanThanh"];
+                                row.ForeColor = Color.DarkGreen; // Chữ xanh
+                                row.BackColor = Color.LightGreen;   // Nền xanh nhạt
+                                row.ImageKey = "check"; // Nếu bạn có ImageList
+                                break;
+
+                            case "DangCheBien":
+                                row.Group = lv_ChiTietDon.Groups["DangCheBien"];
+                                row.ForeColor = Color.DarkGoldenrod; // Chữ vàng đậm
+                                row.BackColor = Color.LightYellow;   // Nền vàng nhạt
+                                break;
+
+                            case "ChoXacNhan":
+                                row.Group = lv_ChiTietDon.Groups["ChoXacNhan"];
+                                row.ForeColor = Color.Gray;
+                                break;
+
+                            case "CoVanDe":
+                            case "Huy":
+                                row.Group = lv_ChiTietDon.Groups["CoVanDe"];
+                                row.ForeColor = Color.DarkRed;
+                                row.BackColor = Color.LightCoral; // Nền đỏ nhạt
+                                row.Font = new Font(lv_ChiTietDon.Font, FontStyle.Strikeout); // Gạch ngang nếu hủy
+                                break;
+                        }
+
+                        lv_ChiTietDon.Items.Add(row);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi tải chi tiết: " + ex.Message);
+            }
+        }
+
+        private string TranslateStatus(string status)
+        {
+            return status switch
+            {
+                "HoanThanh" => "Đã xong",
+                "DangCheBien" => "Đang làm",
+                "ChoXacNhan" => "Chờ bếp",
+                "CoVanDe" => "Có sự cố",
+                "Huy" => "Đã hủy",
+                _ => status
+            };
+        }
         private void InitializeGridViewManager()
         {
             // Khởi tạo GridViewManager với PendingPaymentData
@@ -1195,7 +1346,7 @@ namespace RestaurantClient
             }
         }
 
-        private async Task ExecuteAsync(Button button, string loadingText, Func<Task> action)
+        private async Task ExecuteAsync(System.Windows.Forms.Button button, string loadingText, Func<Task> action)
         {
             string originalText = button.Text;
             button.Enabled = false;
@@ -1590,7 +1741,7 @@ namespace RestaurantClient
         {
 
         }
-        private async Task LoadTableDetailsToListView(int maBan, string trangThai)
+        /*private async Task LoadTableDetailsToListView(int maBan, string trangThai)
         {
             try
             {
@@ -1607,7 +1758,7 @@ namespace RestaurantClient
                     listView1.Columns.Add("Đơn Giá", 250);
                     listView1.Columns.Add("Thành Tiền", 250);
                     listView1.Columns.Add("Thời Gian", 150);
-                    listView1.Columns.Add("Trạng Thái Đơn", 350);
+                    listView1.Columns.Add("Trạng Thái Món", 350);
                 }
 
                 listView1.Items.Clear();
@@ -1655,26 +1806,26 @@ namespace RestaurantClient
                         string tenHienThi = "";
                         switch (item.TrangThai)
                         {
-                            case "ChuaThanhToan": tenHienThi = "Chưa thanh toán"; break;
-                            case "DaThanhToan": tenHienThi = "Đã thanh toán"; break;
-                            case "DaDat": tenHienThi = "Đã đặt trước"; break;
+                            case "ChuaLenMon": tenHienThi = "Chưa lên món"; break;
+                            case "HoanThanh": tenHienThi = "Đã lên món"; break;
+                            //case "DaDat": tenHienThi = "Đã đặt trước"; break;
                             default: tenHienThi = item.TrangThai; break; // Nếu lạ thì hiện nguyên gốc
                         }
                         row.SubItems.Add(tenHienThi);
-                        if (item.TrangThai == "DaThanhToan")
+                        if (item.TrangThai == "Đã lên món")
                         {
-                            // Màu xanh lá nhạt (cho dễ nhìn chữ đen)
+                            // Màu xanh lá (dùng LightGreen để chữ đen vẫn dễ đọc)
                             row.BackColor = Color.LightGreen;
                         }
-                        else if (item.TrangThai == "DaDat")
+                        else if (item.TrangThai == "Chưa lên món")
                         {
-                            // Màu vàng
-                            row.BackColor = Color.Yellow;
+                            // (Tùy chọn) Màu vàng nhạt cho món chưa lên để dễ phân biệt
+                            row.BackColor = Color.LightYellow;
                         }
                         else
                         {
-                            // Chưa thanh toán -> Màu trắng (mặc định)
-                            row.BackColor = Color.WhiteSmoke;
+                            // Màu trắng mặc định
+                            row.BackColor = Color.White;
                         }
                         listView1.Items.Add(row);
                     }
@@ -1687,7 +1838,7 @@ namespace RestaurantClient
             {
                 MessageBox.Show("Lỗi: " + ex.Message);
             }
-        }
+        }*/
         // 1. Thêm từ khóa 'async' vào trước 'void' 👇
         private async void cb_banan_SelectedIndexChanged_1(object sender, EventArgs e)
         {
@@ -1709,27 +1860,38 @@ namespace RestaurantClient
                 }
 
                 // 3. Gọi hàm (Đã sửa để truyền đủ 2 tham số: Mã Bàn + Trạng Thái)
-                await LoadTableDetailsToListView(maBan, trangThai);
+                //await LoadTableDetailsToListView(maBan, trangThai);
             }
         }
 
         // 1. Hàm quy đổi trạng thái
+        // [NVPhucVu.cs]
+        // [NVPhucVu.cs] - Tìm hàm GetTrangThaiTuComboBox
+
         private string GetTrangThaiTuComboBox()
         {
-            // 🔥 SỬA: Nếu chưa chọn thì trả về chuỗi rỗng
             if (cb_trangthai.SelectedItem == null) return "";
 
             string luaChon = cb_trangthai.SelectedItem.ToString();
             switch (luaChon)
             {
-                case "Chưa thanh toán": return "ChuaThanhToan";
-                case "Đã thanh toán": return "DaThanhToan";
-                case "Đã đặt trước": return "DaDat";
-                default: return "";
+                case "Tất cả":
+                    return ""; // Lấy hết
+
+                // 🔥 SỬA: Map chữ "Đang chế biến" trên giao diện thành mã "DangCheBien" trong SQL
+                case "Đang chế biến":
+                    return "DangCheBien";
+
+                // 🔥 SỬA: Map chữ "Hoàn thành" trên giao diện thành mã "HoanThanh" trong SQL
+                case "Hoàn thành":
+                    return "HoanThanh";
+
+                default:
+                    return "";
             }
         }
         // 2. Sự kiện bộ lọc chung (Dùng cho cả cb_banan và cb_trangthai)
-        private async void OnFilterChanged(object sender, EventArgs e)
+        /*private async void OnFilterChanged(object sender, EventArgs e)
         {
             // Lấy mã bàn
             int maBan = 0;
@@ -1749,38 +1911,173 @@ namespace RestaurantClient
             }
 
             // Nếu đã chọn bàn thì mới tải
-            await LoadTableDetailsToListView(maBan, trangThai);
-        }
+           // await LoadTableDetailsToListView(maBan, trangThai);
+        }*/
 
         private async void btn_lammoi_Click_1(object sender, EventArgs e)
         {
-            // 1. Lấy lại mã bàn đang chọn (giữ nguyên lựa chọn hiện tại)
-            int maBan = 0;
-            if (cb_banan.SelectedValue != null)
+            try
             {
-                int.TryParse(cb_banan.SelectedValue.ToString(), out maBan);
+                // 1. Lấy mã bàn đang được chọn (nếu có)
+                int maBan = 0;
+                if (cb_banan.SelectedValue != null)
+                {
+                    if (int.TryParse(cb_banan.SelectedValue.ToString(), out int id))
+                    {
+                        maBan = id;
+                    }
+                }
+
+                // 2. Lấy trạng thái lọc đang chọn (nếu có)
+                // Hàm GetTrangThaiTuComboBox() chúng ta đã viết ở các bước trước
+                string trangThai = GetTrangThaiTuComboBox();
+
+                // 3. Tải lại dữ liệu vào DataGridView
+                // (Đây là hàm hiển thị có ảnh và màu sắc bạn đã làm)
+                await LoadTableDetailsToGrid(maBan, trangThai);
+
+                // 4. (Tùy chọn) Cập nhật lại danh sách bàn để xem bàn nào mới có khách/trống
+                // LoadTables(); 
+
+                // Thông báo nhẹ dưới Console để biết đã chạy (hoặc dùng MessageBox nếu muốn)
+                Console.WriteLine($"Đã làm mới dữ liệu lúc {DateTime.Now:HH:mm:ss}");
             }
-
-            // 2. Lấy lại trạng thái đang chọn
-            string trangThai = GetTrangThaiTuComboBox();
-
-            // 3. Gọi lại hàm tải dữ liệu
-            await LoadTableDetailsToListView(maBan, trangThai);
-
-            // (Tùy chọn) Thông báo nhẹ để biết đã load xong
-            // MessageBox.Show("Dữ liệu đã được cập nhật!");
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi làm mới: " + ex.Message);
+            }
         }
+        // Hàm tải dữ liệu chi tiết món ăn lên DataGridView (hoặc ListView)
+        // Hàm này nằm trong class NVPhucVu
+        // [NVPhucVu.cs]
 
+        private async Task LoadTableDetailsToGrid(int maBan, string trangThai)
+        {
+            try
+            {
+                // 1. Lấy tên bàn để tìm kiếm (vì API GetKitchenOrders dùng tên bàn chứ không dùng ID)
+                string tenBanCanTim = "";
+
+                // Tìm object bàn trong danh sách đã tải để lấy tên
+                var banObj = _danhSachBan?.FirstOrDefault(b => b.MaBanAn == maBan);
+                if (banObj != null)
+                {
+                    tenBanCanTim = banObj.TenBan;
+                }
+
+                // 2. Tạo request lấy danh sách ĐƠN HÀNG (đúng chuẩn cho dgv_DonHangTongQuan)
+                var request = new GetKitchenOrdersRequest
+                {
+                    TrangThai = string.IsNullOrEmpty(trangThai) ? "TatCa" : trangThai,
+                    TimKiemBan = tenBanCanTim, // Server sẽ tìm theo tên bàn (LIKE query)
+                    SapXep = "ThoiGian"
+                };
+
+                // 3. Gọi Server
+                var response = await SendRequest<GetKitchenOrdersRequest, GetKitchenOrdersResponse>(request);
+
+                if (response != null && response.Success)
+                {
+                    dgv_DonHangTongQuan.AutoGenerateColumns = false; // Giữ nguyên cột đã design
+
+                    // Đổ đúng dữ liệu KitchenOrderData vào Grid
+                    dgv_DonHangTongQuan.DataSource = response.DonHang;
+                }
+                else
+                {
+                    dgv_DonHangTongQuan.DataSource = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi tải dữ liệu: " + ex.Message);
+            }
+        }
+        // [NVPhucVu.cs] - Thêm hàm này vào trong class
+
+        // [NVPhucVu.cs]
+
+        private void Dgv_DonHangTongQuan_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            // Chỉ xử lý khi có dữ liệu và đúng cột cần thiết
+            if (e.RowIndex < 0 || e.Value == null) return;
+
+            // Lấy dòng hiện tại
+            DataGridViewRow row = dgv_DonHangTongQuan.Rows[e.RowIndex];
+
+            // --- XỬ LÝ CỘT TRẠNG THÁI (Hiển thị chữ Tiếng Việt) ---
+            if (dgv_DonHangTongQuan.Columns[e.ColumnIndex].DataPropertyName == "TrangThaiDon")
+            {
+                string rawStatus = e.Value.ToString();
+
+                switch (rawStatus)
+                {
+                    case "DangCheBien":
+                        e.Value = "Đang chế biến";
+                        e.CellStyle.ForeColor = Color.Blue;
+                        // Tô màu nền VÀNG NHẠT cho dòng đang chế biến
+                        row.DefaultCellStyle.BackColor = Color.LightYellow;
+                        break;
+
+                    case "HoanThanh":
+                        e.Value = "Hoàn thành";
+                        e.CellStyle.ForeColor = Color.DarkGreen;
+                        // Tô màu nền XANH LÁ NHẠT cho dòng đã xong
+                        row.DefaultCellStyle.BackColor = Color.LightGreen;
+                        break;
+
+                    case "ChoXacNhan":
+                        e.Value = "Chờ xác nhận";
+                        e.CellStyle.ForeColor = Color.DarkOrange;
+                        row.DefaultCellStyle.BackColor = Color.White;
+                        break;
+
+                    case "Huy":
+                        e.Value = "Đã hủy";
+                        e.CellStyle.ForeColor = Color.Gray;
+                        row.DefaultCellStyle.BackColor = Color.WhiteSmoke;
+                        break;
+                }
+
+                // In đậm chữ trạng thái
+                e.CellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+                e.FormattingApplied = true;
+            }
+        }
         private void btn_xoahet_Click(object sender, EventArgs e)
         {
-            // 1. Xóa sạch dữ liệu trong bảng danh sách
-            listView1.Items.Clear();
-
-            // 2. Đưa ô chọn Bàn về trạng thái chưa chọn (Rỗng)
+            // 1. Đưa các bộ lọc về mặc định (Rỗng)
+            // Việc này sẽ tự động kích hoạt sự kiện SelectedIndexChanged
+            // và code xử lý của chúng ta đã có check null nên nó sẽ tự dừng tải dữ liệu.
             cb_banan.SelectedIndex = -1;
-
-            // 3. Đưa ô Trạng thái về trạng thái chưa chọn (Rỗng)
             cb_trangthai.SelectedIndex = -1;
+
+            // 2. Xóa dữ liệu trong bảng danh sách đơn hàng (Bảng bên trái)
+            // Lưu ý: Thay 'dgv_DonHangTongQuan' bằng tên DataGridView thực tế của bạn
+            if (dgv_DonHangTongQuan.DataSource != null)
+            {
+                dgv_DonHangTongQuan.DataSource = null;
+            }
+            else
+            {
+                dgv_DonHangTongQuan.Rows.Clear();
+            }
+
+            // 3. Xóa dữ liệu phần Chi tiết (Bên phải)
+            // --- NẾU BẠN DÙNG LISTVIEW (Master-Detail) ---
+            if (lv_ChiTietDon != null)
+            {
+                lv_ChiTietDon.Items.Clear();
+            }
+
+            // --- NẾU BẠN DÙNG PANEL ẢNH (Cách cũ) ---
+            // (Bỏ comment phần này nếu bạn dùng Panel ảnh)
+            /*
+            if (lbl_TenMonCT != null) lbl_TenMonCT.Text = "";
+            if (lbl_GiaCT != null) lbl_GiaCT.Text = "";
+            if (lbl_TrangThaiCT != null) lbl_TrangThaiCT.Text = "";
+            if (pb_MonAn != null) pb_MonAn.Image = null;
+            */
         }
         //=============== QR =============================
         // Hàm hiển thị QR Code sử dụng API VietQR
@@ -1913,6 +2210,11 @@ namespace RestaurantClient
                 MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message,
                                 "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void dgv_DonHangTongQuan_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
         }
     }
 }

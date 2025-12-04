@@ -1467,6 +1467,7 @@ namespace RestaurantServer
                                 cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
                                 cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
                                 cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
+                                cmd.Parameters.AddWithValue("@GhiChuKhach", item.GhiChu ?? (object)DBNull.Value);
                                 cmd.ExecuteNonQuery();
                             }
                         }
@@ -1501,6 +1502,7 @@ namespace RestaurantServer
             }
         }
         // 1. Thêm tham số string trangThai vào hàm
+        // [DatabaseAccess.cs]
         public static GetTableDetailResponse GetTableDetails(int maBanAn, string trangThai)
         {
             var result = new GetTableDetailResponse();
@@ -1509,39 +1511,67 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    // 🔥 SỬA QUERY: Thêm hd.TrangThai vào danh sách lấy
+
+                    // SỬA QUERY: Truy vấn từ DONHANG và CHITIET_DONHANG để lấy được TrangThai món ăn
+                    // Logic: 
+                    // - ChuaLenMon: Lấy các món ChoXacNhan, DangCheBien
+                    // - HoanThanh: Lấy món HoanThanh
+                    // - Rỗng: Lấy tất cả (trừ món Hủy)
+
                     string query = @"
                 SELECT 
-                    hd.MaBanAn, 
-                    hd.TrangThai, -- 🔥 Lấy thêm cột này
+                    dh.MaBanAn, 
+                    ct.TrangThai,
                     m.TenMon, 
                     ct.SoLuong, 
                     ct.DonGia, 
-                    hd.Ngay
-                FROM HOADON hd
-                JOIN CTHD ct ON hd.MaHD = ct.MaHD
+                    dh.NgayOrder as Ngay
+                FROM DONHANG dh
+                JOIN CHITIET_DONHANG ct ON dh.MaDonHang = ct.MaDonHang
                 JOIN MENUITEMS m ON ct.MaMon = m.MaMon
-                WHERE (@MaBanAn = 0 OR hd.MaBanAn = @MaBanAn) 
-                AND (@TrangThai = '' OR hd.TrangThai = @TrangThai)
-                  AND (@TrangThai = '' OR hd.TrangThai = @TrangThai)
-                ORDER BY hd.Ngay DESC";
+                WHERE (@MaBanAn = 0 OR dh.MaBanAn = @MaBanAn)
+                  AND dh.TrangThai != 'Huy' 
+                  AND ct.TrangThai != 'Huy' ";
+
+                    // Xử lý logic lọc theo trạng thái món
+                    if (!string.IsNullOrEmpty(trangThai))
+                    {
+                        if (trangThai == "ChuaLenMon")
+                        {
+                            // Chưa lên món bao gồm: Chờ xác nhận và Đang chế biến
+                            query += " AND ct.TrangThai IN ('ChoXacNhan', 'DangCheBien') ";
+                        }
+                        else if (trangThai == "HoanThanh")
+                        {
+                            // Đã lên món
+                            query += " AND ct.TrangThai = 'HoanThanh' ";
+                        }
+                    }
+
+                    query += " ORDER BY dh.NgayOrder DESC";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
-                        cmd.Parameters.AddWithValue("@TrangThai", trangThai ?? "");
+                        // Lưu ý: Không cần truyền tham số @TrangThai vào SQL nữa vì ta đã nối chuỗi ở trên
 
                         using (SqlDataReader reader = cmd.ExecuteReader())
                         {
                             while (reader.Read())
                             {
+                                // Xử lý hiển thị trạng thái tiếng Việt
+                                string rawStatus = reader["TrangThai"].ToString();
+                                string displayStatus = rawStatus;
+
+                                if (rawStatus == "ChoXacNhan" || rawStatus == "DangCheBien")
+                                    displayStatus = "Chưa lên món";
+                                else if (rawStatus == "HoanThanh")
+                                    displayStatus = "Đã lên món";
+
                                 result.Orders.Add(new TableOrderDetailData
                                 {
                                     MaBanAn = Convert.ToInt32(reader["MaBanAn"]),
-
-                                    // 🔥 Đọc trạng thái từ SQL bỏ vào hộp
-                                    TrangThai = reader["TrangThai"].ToString(),
-
+                                    TrangThai = displayStatus, // Hiển thị trạng thái đã xử lý
                                     TenMon = reader["TenMon"].ToString(),
                                     SoLuong = Convert.ToInt32(reader["SoLuong"]),
                                     DonGia = Convert.ToDecimal(reader["DonGia"]),

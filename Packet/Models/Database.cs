@@ -297,6 +297,7 @@ namespace Models.Database
         public int MaNhanVien { get; set; }
         public decimal TongTien { get; set; }
         public List<ChiTietOrder> ChiTietOrder { get; set; }
+        public string GhiChu { get; set; } = string.Empty;
     }
 
     public class ChiTietOrder
@@ -304,6 +305,7 @@ namespace Models.Database
         public int MaMon { get; set; }
         public int SoLuong { get; set; }
         public decimal DonGia { get; set; }
+        public string GhiChu { get; set; } = "";
     }
 
     public class CreateOrderResponse
