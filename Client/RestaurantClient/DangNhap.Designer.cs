@@ -28,80 +28,57 @@
         /// </summary>
         private void InitializeComponent()
         {
-            groupBox_dangnhap = new GroupBox();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DangNhap));
             tb_passwd = new TextBox();
-            tb_username = new TextBox();
-            lbl_passwd = new Label();
-            lbl_username = new Label();
             label1 = new Label();
             label2 = new Label();
             linkLabel_dangky = new LinkLabel();
             btn_dangnhap = new Button();
             linkLabel_forgetpasswd = new LinkLabel();
-            groupBox_dangnhap.SuspendLayout();
+            panel1 = new Panel();
+            panel4 = new Panel();
+            pictureBox3 = new PictureBox();
+            panel3 = new Panel();
+            pictureBox2 = new PictureBox();
+            tb_username = new TextBox();
+            pictureBox1 = new PictureBox();
+            panel2 = new Panel();
+            panel1.SuspendLayout();
+            panel4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox3).BeginInit();
+            panel3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
-            // 
-            // groupBox_dangnhap
-            // 
-            groupBox_dangnhap.Controls.Add(tb_passwd);
-            groupBox_dangnhap.Controls.Add(tb_username);
-            groupBox_dangnhap.Controls.Add(lbl_passwd);
-            groupBox_dangnhap.Controls.Add(lbl_username);
-            groupBox_dangnhap.Location = new Point(12, 161);
-            groupBox_dangnhap.Name = "groupBox_dangnhap";
-            groupBox_dangnhap.Size = new Size(668, 172);
-            groupBox_dangnhap.TabIndex = 0;
-            groupBox_dangnhap.TabStop = false;
-            groupBox_dangnhap.Text = "Thông tin đăng nhập";
             // 
             // tb_passwd
             // 
-            tb_passwd.Location = new Point(183, 88);
+            tb_passwd.BorderStyle = BorderStyle.None;
+            tb_passwd.Location = new Point(41, 6);
             tb_passwd.Name = "tb_passwd";
-            tb_passwd.Size = new Size(281, 27);
+            tb_passwd.Size = new Size(392, 20);
             tb_passwd.TabIndex = 3;
-            // 
-            // tb_username
-            // 
-            tb_username.Location = new Point(183, 39);
-            tb_username.Name = "tb_username";
-            tb_username.Size = new Size(281, 27);
-            tb_username.TabIndex = 2;
-            // 
-            // lbl_passwd
-            // 
-            lbl_passwd.AutoSize = true;
-            lbl_passwd.Location = new Point(43, 95);
-            lbl_passwd.Name = "lbl_passwd";
-            lbl_passwd.Size = new Size(70, 20);
-            lbl_passwd.TabIndex = 1;
-            lbl_passwd.Text = "Password";
-            // 
-            // lbl_username
-            // 
-            lbl_username.AutoSize = true;
-            lbl_username.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            lbl_username.Location = new Point(43, 39);
-            lbl_username.Name = "lbl_username";
-            lbl_username.Size = new Size(91, 23);
-            lbl_username.TabIndex = 0;
-            lbl_username.Text = "Username:";
+            tb_passwd.TextChanged += tb_passwd_TextChanged;
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 13.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label1.Location = new Point(259, 30);
+            label1.BackColor = Color.Transparent;
+            label1.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label1.ForeColor = Color.Gray;
+            label1.Location = new Point(40, 155);
             label1.Name = "label1";
-            label1.Size = new Size(153, 31);
+            label1.Size = new Size(134, 28);
             label1.TabIndex = 1;
             label1.Text = "ĐĂNG NHẬP";
             // 
             // label2
             // 
             label2.AutoSize = true;
+            label2.BackColor = Color.Transparent;
             label2.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label2.Location = new Point(195, 415);
+            label2.ForeColor = Color.FromArgb(128, 64, 64);
+            label2.Location = new Point(40, 403);
             label2.Name = "label2";
             label2.Size = new Size(267, 20);
             label2.TabIndex = 2;
@@ -110,7 +87,9 @@
             // linkLabel_dangky
             // 
             linkLabel_dangky.AutoSize = true;
-            linkLabel_dangky.Location = new Point(287, 448);
+            linkLabel_dangky.BackColor = Color.Transparent;
+            linkLabel_dangky.LinkColor = Color.FromArgb(64, 64, 64);
+            linkLabel_dangky.Location = new Point(40, 433);
             linkLabel_dangky.Name = "linkLabel_dangky";
             linkLabel_dangky.Size = new Size(63, 20);
             linkLabel_dangky.TabIndex = 3;
@@ -121,19 +100,23 @@
             // btn_dangnhap
             // 
             btn_dangnhap.AutoSize = true;
+            btn_dangnhap.BackColor = Color.FromArgb(128, 64, 64);
             btn_dangnhap.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            btn_dangnhap.Location = new Point(259, 364);
+            btn_dangnhap.ForeColor = Color.White;
+            btn_dangnhap.Location = new Point(40, 315);
             btn_dangnhap.Name = "btn_dangnhap";
-            btn_dangnhap.Size = new Size(105, 33);
+            btn_dangnhap.Size = new Size(445, 42);
             btn_dangnhap.TabIndex = 4;
             btn_dangnhap.Text = "Đăng nhập";
-            btn_dangnhap.UseVisualStyleBackColor = true;
+            btn_dangnhap.UseVisualStyleBackColor = false;
             btn_dangnhap.Click += btn_dangnhap_Click;
             // 
             // linkLabel_forgetpasswd
             // 
             linkLabel_forgetpasswd.AutoSize = true;
-            linkLabel_forgetpasswd.Location = new Point(100, 371);
+            linkLabel_forgetpasswd.BackColor = Color.Transparent;
+            linkLabel_forgetpasswd.LinkColor = Color.FromArgb(64, 64, 64);
+            linkLabel_forgetpasswd.Location = new Point(40, 371);
             linkLabel_forgetpasswd.Name = "linkLabel_forgetpasswd";
             linkLabel_forgetpasswd.Size = new Size(116, 20);
             linkLabel_forgetpasswd.TabIndex = 5;
@@ -141,38 +124,130 @@
             linkLabel_forgetpasswd.Text = "Quên mật khẩu?";
             linkLabel_forgetpasswd.LinkClicked += linkLabel_forgetpasswd_LinkClicked;
             // 
+            // panel1
+            // 
+            panel1.BackColor = Color.White;
+            panel1.Controls.Add(panel4);
+            panel1.Controls.Add(panel3);
+            panel1.Controls.Add(pictureBox1);
+            panel1.Controls.Add(label1);
+            panel1.Controls.Add(label2);
+            panel1.Controls.Add(linkLabel_dangky);
+            panel1.Controls.Add(linkLabel_forgetpasswd);
+            panel1.Controls.Add(btn_dangnhap);
+            panel1.Location = new Point(-3, -2);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(567, 503);
+            panel1.TabIndex = 6;
+            // 
+            // panel4
+            // 
+            panel4.BorderStyle = BorderStyle.FixedSingle;
+            panel4.Controls.Add(pictureBox3);
+            panel4.Controls.Add(tb_passwd);
+            panel4.Location = new Point(47, 257);
+            panel4.Name = "panel4";
+            panel4.Size = new Size(438, 38);
+            panel4.TabIndex = 11;
+            // 
+            // pictureBox3
+            // 
+            pictureBox3.Image = (Image)resources.GetObject("pictureBox3.Image");
+            pictureBox3.Location = new Point(-1, -2);
+            pictureBox3.Name = "pictureBox3";
+            pictureBox3.Size = new Size(39, 39);
+            pictureBox3.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox3.TabIndex = 10;
+            pictureBox3.TabStop = false;
+            // 
+            // panel3
+            // 
+            panel3.BorderStyle = BorderStyle.FixedSingle;
+            panel3.Controls.Add(pictureBox2);
+            panel3.Controls.Add(tb_username);
+            panel3.Location = new Point(47, 196);
+            panel3.Name = "panel3";
+            panel3.Size = new Size(438, 38);
+            panel3.TabIndex = 9;
+            // 
+            // pictureBox2
+            // 
+            pictureBox2.Image = (Image)resources.GetObject("pictureBox2.Image");
+            pictureBox2.Location = new Point(-1, -2);
+            pictureBox2.Name = "pictureBox2";
+            pictureBox2.Size = new Size(39, 39);
+            pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox2.TabIndex = 10;
+            pictureBox2.TabStop = false;
+            // 
+            // tb_username
+            // 
+            tb_username.BorderStyle = BorderStyle.None;
+            tb_username.Location = new Point(41, 6);
+            tb_username.Name = "tb_username";
+            tb_username.Size = new Size(392, 20);
+            tb_username.TabIndex = 2;
+            tb_username.TextChanged += tb_username_TextChanged;
+            // 
+            // pictureBox1
+            // 
+            pictureBox1.BackColor = Color.White;
+            pictureBox1.BackgroundImageLayout = ImageLayout.Zoom;
+            pictureBox1.Image = (Image)resources.GetObject("pictureBox1.Image");
+            pictureBox1.Location = new Point(40, 37);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(91, 97);
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox1.TabIndex = 8;
+            pictureBox1.TabStop = false;
+            // 
+            // panel2
+            // 
+            panel2.BackgroundImage = (Image)resources.GetObject("panel2.BackgroundImage");
+            panel2.BackgroundImageLayout = ImageLayout.None;
+            panel2.Location = new Point(560, 3);
+            panel2.Name = "panel2";
+            panel2.Size = new Size(474, 498);
+            panel2.TabIndex = 9;
+            // 
             // DangNhap
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.Cornsilk;
-            ClientSize = new Size(701, 506);
-            Controls.Add(linkLabel_forgetpasswd);
-            Controls.Add(btn_dangnhap);
-            Controls.Add(linkLabel_dangky);
-            Controls.Add(label2);
-            Controls.Add(label1);
-            Controls.Add(groupBox_dangnhap);
+            BackColor = Color.LightCyan;
+            BackgroundImageLayout = ImageLayout.Stretch;
+            ClientSize = new Size(1036, 503);
+            Controls.Add(panel2);
+            Controls.Add(panel1);
             ForeColor = Color.DarkBlue;
             Name = "DangNhap";
             Text = "DangNhap";
-            groupBox_dangnhap.ResumeLayout(false);
-            groupBox_dangnhap.PerformLayout();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
+            panel4.ResumeLayout(false);
+            panel4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox3).EndInit();
+            panel3.ResumeLayout(false);
+            panel3.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion
-
-        private GroupBox groupBox_dangnhap;
-        private Label lbl_passwd;
-        private Label lbl_username;
         private TextBox tb_passwd;
-        private TextBox tb_username;
         private Label label1;
         private Label label2;
         private LinkLabel linkLabel_dangky;
         private Button btn_dangnhap;
         private LinkLabel linkLabel_forgetpasswd;
+        private Panel panel1;
+        private PictureBox pictureBox1;
+        private Panel panel2;
+        private TextBox tb_username;
+        private Panel panel3;
+        private PictureBox pictureBox2;
+        private Panel panel4;
+        private PictureBox pictureBox3;
     }
 }

@@ -115,5 +115,15 @@ namespace RestaurantClient
             nhapEmail.FormClosed += (s, args) => this.Show();
             nhapEmail.Show();
         }
+
+        private void tb_username_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void tb_passwd_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
