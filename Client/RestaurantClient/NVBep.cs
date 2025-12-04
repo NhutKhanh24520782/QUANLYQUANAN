@@ -45,6 +45,7 @@ namespace RestaurantClient
             InitializeAutoRefreshTimer();
             UpdateUserInfo();
             InitializeEmptyDataGridView(); // THÊM DÒNG NÀY
+            LoadKitchenUserInfo();
 
             // Thiết lập ngày mặc định (7 ngày gần nhất)
             dateTimePicker_tungay.Value = DateTime.Now.AddDays(-7);
@@ -2043,6 +2044,138 @@ namespace RestaurantClient
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi xuất Excel: {ex.Message}", ex);
+            }
+        }
+        private void LoadKitchenUserInfo()
+        {
+            try
+            {
+                // Nếu form được khởi tạo trong thread khác thì invoke
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(LoadKitchenUserInfo));
+                    return;
+                }
+
+                // Nếu bạn có 1 class tĩnh lưu current user, ví dụ CurrentUser hoặc Program.CurrentUser
+                // Mình đưa 2 phương án: ưu tiên CurrentUser (nếu có), nếu không thì dùng _currentUserName/_currentUserId
+
+                // PHƯƠNG ÁN A: nếu có lớp CurrentUser (static) chứa thông tin
+                try
+                {
+                    // Thay thế tên thuộc tính theo cách bạn lưu (Username, Email, FullName, Role)
+                    if (typeof(CurrentUser) != null) // guard chỉ để đọc code dễ hiểu
+                    {
+                        // Nếu CurrentUser có properties public
+                        textbox_usernamebep.Text = CurrentUser.Username ?? "";
+                        textbox_emailbep.Text = CurrentUser.Email ?? "";
+                        textbox_tenbep.Text = CurrentUser.FullName ?? "";
+                        textbox_chucvubep.Text = CurrentUser.Role ?? "";
+                        return;
+                    }
+                }
+                catch { /* nếu không có CurrentUser thì fallback bên dưới */ }
+
+                // PHƯƠNG ÁN B: fallback dùng biến nội bộ đã có trong form
+                textbox_usernamebep.Text = _currentUserName ?? "";
+                // Nếu không có email/fullname trong form, giữ trống hoặc gán từ server khi có API
+                textbox_emailbep.Text = ""; // gán nếu bạn có biến chứa email
+                textbox_tenbep.Text = "";   // gán nếu bạn có biến chứa full name
+                textbox_chucvubep.Text = ""; // gán vai trò (role) nếu biết
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi hiển thị thông tin tài khoản: " + ex.Message,
+                                "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async void button_dangxuatnvbep_Click(object sender, EventArgs e)
+        {
+            // Hỏi xác nhận
+            var confirm = MessageBox.Show("Bạn có chắc muốn đăng xuất?",
+                                          "Xác nhận",
+                                          MessageBoxButtons.YesNo,
+                                          MessageBoxIcon.Question);
+            if (confirm != DialogResult.Yes) return;
+
+            try
+            {
+                // Nếu có timer tự động refresh thì stop lại
+                try
+                {
+                    if (_autoRefreshTimer != null)
+                    {
+                        _autoRefreshTimer.Stop();
+                        _autoRefreshTimer.Tick -= null; // không bắt buộc nhưng cố gắng remove handlers nếu cần
+                        _autoRefreshTimer.Dispose();
+                        _autoRefreshTimer = null;
+                    }
+                }
+                catch { /* ignore */ }
+
+                // Nếu có GridViewManager hoặc resource cần dispose thì xử lý (nếu class hỗ trợ Dispose)
+                try
+                {
+                    // Nếu GridViewManager implements IDisposable, dispose nó.
+                    // Nếu không, bạn có thể gán về null để GC thu dọn.
+                    (_ordersManager as IDisposable)?.Dispose();
+                    (_dishesManager as IDisposable)?.Dispose();
+                }
+                catch { /* ignore */ }
+
+                // Reset thông tin người dùng (nếu bạn có class CurrentUser tĩnh)
+                try
+                {
+                    // Nếu project bạn có class CurrentUser, reset các thuộc tính
+                    CurrentUser.Id = 0;
+                    CurrentUser.Username = "";
+                    CurrentUser.Email = "";
+                    CurrentUser.FullName = "";
+                    CurrentUser.Role = "";
+                }
+                catch { /* nếu không có CurrentUser thì bỏ qua */ }
+
+                // --- TUỲ CHỌN: gọi API logout tới server ---
+                // Nếu server cần biết user logout, bạn có thể gửi request logout ở đây.
+                // Mình để ví dụ comment (bạn cần có model LogoutRequest/LogoutResponse):
+                /*
+                try
+                {
+                    var logoutRequest = new LogoutRequest { MaNguoiDung = _currentUserId };
+                    var logoutResp = await SendRequest<LogoutRequest, LogoutResponse>(logoutRequest);
+                    // xử lý logoutResp nếu cần
+                }
+                catch (Exception ex)
+                {
+                    // không bắt buộc phải fail nếu logout server lỗi
+                    Console.WriteLine("Lỗi gửi logout lên server: " + ex.Message);
+                }
+                */
+
+                // Mở form đăng nhập lại (tên form của bạn có thể khác: DangNhap, FormLogin, ...)
+                try
+                {
+                    var loginForm = new DangNhap(); // đổi tên nếu form đăng nhập của bạn khác
+                    loginForm.StartPosition = FormStartPosition.CenterScreen;
+                    loginForm.Show();
+                }
+                catch (Exception ex)
+                {
+                    // Nếu không thể mở lại form login, ít nhất thoát app
+                    Console.WriteLine("Không mở được form đăng nhập: " + ex.Message);
+                }
+
+                // Đóng form NVBep hiện tại (sẽ trở về login hoặc đóng app)
+                this.Close();
+
+                // Nếu bạn muốn restart app hoàn toàn thay vì show login, dùng:
+                // Application.Restart();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message,
+                                "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
