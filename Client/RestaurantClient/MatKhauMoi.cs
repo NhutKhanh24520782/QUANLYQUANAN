@@ -160,5 +160,10 @@ namespace RestaurantClient
             this.Close();
             new DangNhap().Show();
         }
+
+        private void panel2_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
     }
 }

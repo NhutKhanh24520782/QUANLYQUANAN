@@ -57,7 +57,7 @@
             tb_passwd.Location = new Point(41, 6);
             tb_passwd.Name = "tb_passwd";
             tb_passwd.Size = new Size(392, 20);
-            tb_passwd.TabIndex = 3;
+            tb_passwd.TabIndex = 1;
             tb_passwd.TextChanged += tb_passwd_TextChanged;
             // 
             // label1
@@ -101,12 +101,13 @@
             // 
             btn_dangnhap.AutoSize = true;
             btn_dangnhap.BackColor = Color.FromArgb(128, 64, 64);
+            btn_dangnhap.FlatStyle = FlatStyle.Flat;
             btn_dangnhap.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
             btn_dangnhap.ForeColor = Color.White;
             btn_dangnhap.Location = new Point(40, 315);
             btn_dangnhap.Name = "btn_dangnhap";
             btn_dangnhap.Size = new Size(445, 42);
-            btn_dangnhap.TabIndex = 4;
+            btn_dangnhap.TabIndex = 2;
             btn_dangnhap.Text = "Đăng nhập";
             btn_dangnhap.UseVisualStyleBackColor = false;
             btn_dangnhap.Click += btn_dangnhap_Click;
@@ -186,7 +187,7 @@
             tb_username.Location = new Point(41, 6);
             tb_username.Name = "tb_username";
             tb_username.Size = new Size(392, 20);
-            tb_username.TabIndex = 2;
+            tb_username.TabIndex = 0;
             tb_username.TextChanged += tb_username_TextChanged;
             // 
             // pictureBox1
@@ -196,7 +197,7 @@
             pictureBox1.Image = (Image)resources.GetObject("pictureBox1.Image");
             pictureBox1.Location = new Point(40, 37);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(91, 97);
+            pictureBox1.Size = new Size(97, 97);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 8;
             pictureBox1.TabStop = false;
@@ -212,6 +213,7 @@
             // 
             // DangNhap
             // 
+            AcceptButton = btn_dangnhap;
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.LightCyan;
