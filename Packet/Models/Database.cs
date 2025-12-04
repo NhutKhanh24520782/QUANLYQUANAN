@@ -1,4 +1,5 @@
-﻿using Models.Response;
+﻿using Models.Database;
+using Models.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,25 +52,25 @@ namespace Models.Database
 
     // ==================== ENTITIES (MAP VỚI DATABASE TABLES) ====================
 
-        /// <summary>
-        /// Entity người dùng - map với table NGUOIDUNG
-        /// </summary>
-        public class NguoiDung
-        {
-            public int MaNguoiDung { get; set; }
-            public string TenDangNhap { get; set; } = string.Empty;
-            public string MatKhau { get; set; } = string.Empty;
-            public string VaiTro { get; set; } = string.Empty;
-            public string HoTen { get; set; } = string.Empty;
-            public string SDT { get; set; } = string.Empty;
-            public string Email { get; set; } = string.Empty;
-            public bool TrangThai { get; set; } = true;
-            public DateTime NgayTao { get; set; } = DateTime.Now;
-        }
+    /// <summary>
+    /// Entity người dùng - map với table NGUOIDUNG
+    /// </summary>
+    public class NguoiDung
+    {
+        public int MaNguoiDung { get; set; }
+        public string TenDangNhap { get; set; } = string.Empty;
+        public string MatKhau { get; set; } = string.Empty;
+        public string VaiTro { get; set; } = string.Empty;
+        public string HoTen { get; set; } = string.Empty;
+        public string SDT { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public bool TrangThai { get; set; } = true;
+        public DateTime NgayTao { get; set; } = DateTime.Now;
+    }
     public class DoanhThuTheoBan
     {
         public string TenBan { get; set; } = string.Empty;
-        public int MaBanAn {  get; set; } 
+        public int MaBanAn { get; set; }
         public int SoLuongHoaDon { get; set; }
         public decimal DoanhThu { get; set; }
         public decimal HoaDonLonNhat { get; set; }
@@ -100,17 +101,17 @@ namespace Models.Database
         public List<DoanhThuTheoBan> DoanhThuTheoBan { get; set; } = new List<DoanhThuTheoBan>();
     }
 
-        public class HoaDon
-        {
-            public int MaHoaDon { get; set; }
-            public int MaBanAn { get; set; } 
-            public int MaNhanVien { get; set; }
-            public DateTime NgayXuatHoaDon { get; set; }
-            public string TrangThai { get; set; } = string.Empty;
-            public string PhuongThucThanhToan { get; set; } = string.Empty;
-            public int TongTien { get; set; }
-            public string GhiChu { get; set; } = string.Empty;
-        }
+    public class HoaDon
+    {
+        public int MaHoaDon { get; set; }
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public DateTime NgayXuatHoaDon { get; set; }
+        public string TrangThai { get; set; } = string.Empty;
+        public string PhuongThucThanhToan { get; set; } = string.Empty;
+        public int TongTien { get; set; }
+        public string GhiChu { get; set; } = string.Empty;
+    }
     public class BillData
     {
         public int MaHoaDon { get; set; }
@@ -144,7 +145,7 @@ namespace Models.Database
     }
     public class BanAnData
     {
-        public int MaBanAn { get; set; }  
+        public int MaBanAn { get; set; }
         public string TenBan { get; set; } = string.Empty;
         public string TrangThai { get; set; } = "Trong";
         public int? SoChoNgoi { get; set; } // Thêm theo database
@@ -441,5 +442,127 @@ namespace Models.Database
         public decimal Gia => SoLuong * DonGia;
         public string GhiChu { get; set; } = string.Empty;
     }
+
+    public class ThongKeDauBepSPResult
+    {
+        public int MaNguoiDung { get; set; }
+        public string HoTen { get; set; } = string.Empty;
+        public int TongDon { get; set; }
+        public int DonHoanThanh { get; set; }
+        public decimal TyLeHoanThanh => TongDon > 0 ? (decimal)DonHoanThanh / TongDon * 100 : 0;
+        public int TongMon { get; set; }
+        public int MonHoanThanh { get; set; }
+        public decimal TyLeMonHoanThanh => TongMon > 0 ? (decimal)MonHoanThanh / TongMon * 100 : 0;
+        public decimal? ThoiGianTrungBinh { get; set; }
+        public string DanhGiaHieuSuat
+        {
+            get
+            {
+                if (ThoiGianTrungBinh == null || TyLeHoanThanh == 0)
+                    return "⭐☆☆☆☆";
+
+                double diem = ((double)TyLeHoanThanh / 100.0 * 0.7) +
+                              ((30.0 - Math.Min((double)ThoiGianTrungBinh.Value, 30.0)) / 30.0 * 0.3);
+                if (diem >= 0.8) return "⭐⭐⭐⭐⭐";
+                else if (diem >= 0.6) return "⭐⭐⭐⭐☆";
+                else if (diem >= 0.4) return "⭐⭐⭐☆☆";
+                else if (diem >= 0.2) return "⭐⭐☆☆☆";
+                else return "⭐☆☆☆☆";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Kết quả top món phổ biến
+    /// </summary>
+    public class TopMonPhobienResult
+    {
+        public int MaMon { get; set; }
+        public string TenMon { get; set; } = string.Empty;
+        public int SoLuong { get; set; }
+        public int SoDon { get; set; }
+        public string TenLoai { get; set; } = string.Empty;
+        public decimal TyLe { get; set; }
+    }
+
+    /// <summary>
+    /// Kết quả thống kê tổng quan
+    /// </summary>
+    public class ThongKeTongQuanResult
+    {
+        public int TongDon { get; set; }
+        public int DonHoanThanh { get; set; }
+        public decimal TyLeHoanThanh => TongDon > 0 ? (decimal)DonHoanThanh / TongDon * 100 : 0;
+        public int TongMon { get; set; }
+        public decimal? ThoiGianTrungBinh { get; set; }
+    }
+
+    /// <summary>
+    /// Kết quả lấy danh sách đầu bếp
+    /// </summary>
+    public class GetDanhSachDauBepResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<NguoiDung> DanhSachDauBep { get; set; } = new List<NguoiDung>();
+    }
+
+    /// <summary>
+    /// Kết quả lấy thống kê chi tiết đầu bếp
+    /// </summary>
+    public class GetThongKeDauBepChiTietResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public ThongKeDauBepSPResult ThongKe { get; set; } = new ThongKeDauBepSPResult();
+        public List<ChiTietDonHang> DanhSachMonDaCheBien { get; set; } = new List<ChiTietDonHang>();
+    }
+
+
+    public class ThongKeBepTongQuan
+    {
+        public int TongDon { get; set; }
+        public decimal TyLeHoanThanh { get; set; }
+        public int TongMon { get; set; }
+        public decimal? ThoiGianTrungBinh { get; set; }
+        public int DonHoanThanh { get; set; }
+    }
+    public class ThongKeDauBep
+    {
+        public int MaNguoiDung { get; set; }
+        public string HoTen { get; set; } = string.Empty;
+        public int TongDon { get; set; }
+        public int DonHoanThanh { get; set; }
+        public int TongMon { get; set; }
+        public int MonHoanThanh { get; set; }
+        public decimal? ThoiGianTrungBinh { get; set; }
+
+        // Có setter để có thể gán từ bên ngoài
+        public decimal TyLeHoanThanh { get; set; }
+
+        // Có setter để có thể gán từ bên ngoài
+        public string DanhGiaHieuSuat { get; set; } = string.Empty;
+
+        public decimal TyLeMonHoanThanh => TongMon > 0 ? (decimal)MonHoanThanh / TongMon * 100 : 0;
+    }
+    public class TopMonAnThongKe
+    {
+        public int MaMon { get; set; }
+        public string TenMon { get; set; } = string.Empty;
+        public int SoLuong { get; set; }
+        public int SoDon { get; set; }
+        public string TenLoai { get; set; } = string.Empty;
+        public decimal TyLe { get; set; }
+    }
+    public class ThongKeBepDayDuResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public ThongKeBepTongQuan TongQuan { get; set; } = new ThongKeBepTongQuan();
+        public List<ThongKeDauBep> DanhSachDauBep { get; set; } = new List<ThongKeDauBep>(); // Đổi thành ThongKeDauBep
+        public List<TopMonAnThongKe> TopMonAn { get; set; } = new List<TopMonAnThongKe>();
+    }
+
+
 }
 

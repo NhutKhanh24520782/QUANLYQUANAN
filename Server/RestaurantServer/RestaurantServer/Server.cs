@@ -115,6 +115,14 @@ namespace RestaurantServer
                         "SendKitchenMessage" => HandleSendKitchenMessageRequestAsync(rawRequest).Result,
                         "GetKitchenMessages" => HandleGetKitchenMessagesRequestAsync(rawRequest).Result,
                         "GetKitchenStatistics" => HandleGetKitchenStatisticsRequestAsync(rawRequest).Result,
+                        "GetThongKeBep" => await HandleGetThongKeBepRequestAsync(rawRequest),
+                        "GetDanhSachDauBep" => await HandleGetDanhSachDauBepRequestAsync(rawRequest),
+
+                        // Thống kê chi tiết đầu bếp
+                        //"GetThongKeDauBepChiTiet" => await HandleGetThongKeDauBepChiTietRequestAsync(rawRequest),
+
+                        //// Xuất báo cáo
+                        //"XuatBaoCaoThongKeBep" => await HandleXuatBaoCaoThongKeBepRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -1070,6 +1078,69 @@ namespace RestaurantServer
                 catch (Exception ex)
                 {
                     return CreateErrorResponse($"Lỗi lấy thống kê: {ex.Message}");
+                }
+            });
+        }
+    
+        private async Task<string> HandleGetThongKeBepRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetThongKeBepRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    // Validate
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.GetThongKeBep(
+                        request.TuNgay,
+                        request.DenNgay,
+                        request.MaNhanVienBep
+                    );
+
+                    var response = new GetThongKeBepResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        TongQuan = result.TongQuan,
+                        DanhSachDauBep = result.DanhSachDauBep,
+                        TopMonAn = result.TopMonAn
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy thống kê bếp: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleGetDanhSachDauBepRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Request này không cần tham số
+                    var result = DatabaseAccess.GetDanhSachDauBep();
+
+                    var response = new GetDanhSachDauBepResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        DanhSachDauBep = result.DanhSachDauBep
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách đầu bếp: {ex.Message}");
                 }
             });
         }

@@ -7,6 +7,7 @@ using System.Windows.Forms;
 
 public class GridViewManager<T>
 {
+    private List<T> _data = new List<T>();
     private readonly DataGridView _gridView;
     private readonly Func<Task<List<T>>> _defaultLoadFunc;
     private readonly Func<T, object> _mapToDisplayModel;
@@ -192,9 +193,11 @@ public class GridViewManager<T>
         RefreshGridView();
     }
 
+
     /// <summary>
     /// Refresh grid view từ cached data
     /// </summary>
+    /// 
     private void RefreshGridView()
     {
         if (_gridView == null) return;
@@ -568,6 +571,18 @@ public class GridViewManager<T>
     /// <summary>
     /// Ẩn/Hiện cột
     /// </summary>
+    ///  // THÊM: Phương thức để set dữ liệu trực tiếp
+    public void SetData(List<T> data)
+    {
+        if (_gridView.InvokeRequired)
+        {
+            _gridView.Invoke(new Action<List<T>>(SetData), data);
+            return;
+        }
+
+        _data = data ?? new List<T>();
+        RefreshGridView();
+    }
     public void SetColumnVisibility(string columnName, bool visible)
     {
         if (_gridView.Columns.Contains(columnName))
@@ -575,7 +590,60 @@ public class GridViewManager<T>
             _gridView.Columns[columnName].Visible = visible;
         }
     }
+    // THÊM METHOD NÀY VÀO GridViewManager
+    public List<T> GetAllData()
+    {
+        return _cachedSourceList ?? new List<T>();
+    }
+    // THÊM METHOD NÀY VÀO GridViewManager
+    public void BindToGridView()
+    {
+        if (_gridView == null) return;
 
+        if (_cachedSourceList != null && _cachedSourceList.Count > 0)
+        {
+            try
+            {
+                Console.WriteLine($"BindToGridView: Có {_cachedSourceList.Count} items");
+
+                var displayData = _cachedSourceList.Select(_mapToDisplayModel).ToList();
+
+                Action updateAction = () =>
+                {
+                    _gridView.SuspendLayout();
+                    try
+                    {
+                        _gridView.DataSource = null;
+                        _gridView.DataSource = displayData;
+                        _gridView.Refresh();
+
+                        Console.WriteLine($"✅ Đã bind {displayData.Count} items vào DataGridView");
+                    }
+                    finally
+                    {
+                        _gridView.ResumeLayout();
+                    }
+                };
+
+                if (_gridView.InvokeRequired)
+                {
+                    _gridView.Invoke(updateAction);
+                }
+                else
+                {
+                    updateAction();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi BindToGridView: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("⚠️ BindToGridView: Không có dữ liệu để bind");
+        }
+    }
     /// <summary>
     /// Đặt độ rộng cột
     /// </summary>

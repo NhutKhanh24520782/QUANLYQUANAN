@@ -492,6 +492,8 @@ namespace Models.Response
             }
         }
 
+        public string trangThaiDon { get; set; }
+
         public string TrangThaiDisplay
         {
             get
@@ -800,5 +802,32 @@ namespace Models.Response
         public TimeSpan ThoiGianTrungBinh { get; set; }
         public string ThoiGianTrungBinhDisplay => $"{(int)ThoiGianTrungBinh.TotalMinutes} phút/món";
         public int HieuSuatPhanTram { get; set; } // 0-100
+    }
+
+
+    public class GetThongKeBepResponse : BaseResponse
+    {
+        public GetThongKeBepResponse() => Type = "GetThongKeBepResponse";
+
+        public ThongKeBepTongQuan TongQuan { get; set; } = new ThongKeBepTongQuan();
+        public List<ThongKeDauBep> DanhSachDauBep { get; set; } = new List<ThongKeDauBep>(); // Đổi thành ThongKeDauBep
+        public List<TopMonAnThongKe> TopMonAn { get; set; } = new List<TopMonAnThongKe>(); // Đổi thành TopMonAnThongKe
+    }
+    /// Response danh sách đầu bếp
+    /// </summary>
+    public class GetDanhSachDauBepResponse : BaseResponse
+    {
+        public GetDanhSachDauBepResponse() => Type = "GetDanhSachDauBepResponse";
+        public List<NguoiDung> DanhSachDauBep { get; set; } = new List<NguoiDung>();
+    }
+    /// Response xuất báo cáo
+    /// </summary>
+    public class XuatBaoCaoThongKeBepResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public byte[] FileData { get; set; } = Array.Empty<byte>();
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = "application/pdf";
     }
 }

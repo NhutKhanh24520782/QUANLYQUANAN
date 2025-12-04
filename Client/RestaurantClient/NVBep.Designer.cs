@@ -62,18 +62,51 @@
             dataGridView_dishs = new DataGridView();
             lbl_orderdetails = new Label();
             lbl_orderinfo = new Label();
+            tp_thongke = new TabPage();
+            panel1 = new Panel();
+            listView_topmonphobien = new ListView();
+            label7 = new Label();
+            panel_topdaubep = new Panel();
+            listView1 = new ListView();
+            lbl_topdaubep = new Label();
+            panel_tongquan = new Panel();
+            lbl_DonTB = new Label();
+            lbl_TongMon = new Label();
+            lbl_ThoiGianTB = new Label();
+            lbl_HoanThanh = new Label();
+            lbl_HieuSuat = new Label();
+            lbl_tongdon = new Label();
+            lbl_tongquan = new Label();
+            gb_fillterthongke = new GroupBox();
+            btn_xuatbaocao = new Button();
+            btn_lammoi = new Button();
+            btn_taithongke = new Button();
+            cb_thongkedaubep = new ComboBox();
+            lbl_daubep = new Label();
+            dateTimePicker_denngay = new DateTimePicker();
+            dateTimePicker_tungay = new DateTimePicker();
+            lbl_denngay = new Label();
+            lbl_tungay = new Label();
+            label6 = new Label();
+            lbl_titlethongke = new Label();
             tc_nvbep.SuspendLayout();
             tp_quanlyvaxuly.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             tb_chat.SuspendLayout();
             panel_update.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView_dishs).BeginInit();
+            tp_thongke.SuspendLayout();
+            panel1.SuspendLayout();
+            panel_topdaubep.SuspendLayout();
+            panel_tongquan.SuspendLayout();
+            gb_fillterthongke.SuspendLayout();
             SuspendLayout();
             // 
             // tc_nvbep
             // 
             tc_nvbep.Controls.Add(tp_quanlyvaxuly);
             tc_nvbep.Controls.Add(tb_chat);
+            tc_nvbep.Controls.Add(tp_thongke);
             tc_nvbep.Location = new Point(4, 3);
             tc_nvbep.Name = "tc_nvbep";
             tc_nvbep.SelectedIndex = 0;
@@ -222,7 +255,6 @@
             comboBox1.Name = "comboBox1";
             comboBox1.Size = new Size(122, 28);
             comboBox1.TabIndex = 23;
-            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
             // 
             // lbl_userInfo
             // 
@@ -462,6 +494,283 @@
             lbl_orderinfo.TabIndex = 0;
             lbl_orderinfo.Text = "ĐƠN #012 - BÀN 1 • 14:25 • Ước tính: 15 phút";
             // 
+            // tp_thongke
+            // 
+            tp_thongke.Controls.Add(panel1);
+            tp_thongke.Controls.Add(panel_topdaubep);
+            tp_thongke.Controls.Add(panel_tongquan);
+            tp_thongke.Controls.Add(gb_fillterthongke);
+            tp_thongke.Controls.Add(label6);
+            tp_thongke.Controls.Add(lbl_titlethongke);
+            tp_thongke.Location = new Point(4, 29);
+            tp_thongke.Name = "tp_thongke";
+            tp_thongke.Padding = new Padding(3);
+            tp_thongke.Size = new Size(1217, 475);
+            tp_thongke.TabIndex = 2;
+            tp_thongke.Text = "Thống kê";
+            tp_thongke.UseVisualStyleBackColor = true;
+            // 
+            // panel1
+            // 
+            panel1.Controls.Add(listView_topmonphobien);
+            panel1.Controls.Add(label7);
+            panel1.Location = new Point(562, 260);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(652, 207);
+            panel1.TabIndex = 26;
+            // 
+            // listView_topmonphobien
+            // 
+            listView_topmonphobien.Location = new Point(9, 42);
+            listView_topmonphobien.Name = "listView_topmonphobien";
+            listView_topmonphobien.Size = new Size(646, 158);
+            listView_topmonphobien.TabIndex = 15;
+            listView_topmonphobien.UseCompatibleStateImageBehavior = false;
+            // 
+            // label7
+            // 
+            label7.AutoSize = true;
+            label7.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label7.Location = new Point(13, 14);
+            label7.Name = "label7";
+            label7.Size = new Size(188, 25);
+            label7.TabIndex = 15;
+            label7.Text = "TOP MÓN PHỔ BIẾN";
+            // 
+            // panel_topdaubep
+            // 
+            panel_topdaubep.Controls.Add(listView1);
+            panel_topdaubep.Controls.Add(lbl_topdaubep);
+            panel_topdaubep.Location = new Point(562, 63);
+            panel_topdaubep.Name = "panel_topdaubep";
+            panel_topdaubep.Size = new Size(652, 191);
+            panel_topdaubep.TabIndex = 25;
+            // 
+            // listView1
+            // 
+            listView1.Location = new Point(3, 37);
+            listView1.Name = "listView1";
+            listView1.Size = new Size(646, 150);
+            listView1.TabIndex = 14;
+            listView1.UseCompatibleStateImageBehavior = false;
+            // 
+            // lbl_topdaubep
+            // 
+            lbl_topdaubep.AutoSize = true;
+            lbl_topdaubep.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lbl_topdaubep.Location = new Point(13, 9);
+            lbl_topdaubep.Name = "lbl_topdaubep";
+            lbl_topdaubep.Size = new Size(129, 25);
+            lbl_topdaubep.TabIndex = 13;
+            lbl_topdaubep.Text = "TOP ĐẦU BẾP";
+            // 
+            // panel_tongquan
+            // 
+            panel_tongquan.Controls.Add(lbl_DonTB);
+            panel_tongquan.Controls.Add(lbl_TongMon);
+            panel_tongquan.Controls.Add(lbl_ThoiGianTB);
+            panel_tongquan.Controls.Add(lbl_HoanThanh);
+            panel_tongquan.Controls.Add(lbl_HieuSuat);
+            panel_tongquan.Controls.Add(lbl_tongdon);
+            panel_tongquan.Controls.Add(lbl_tongquan);
+            panel_tongquan.Location = new Point(4, 260);
+            panel_tongquan.Name = "panel_tongquan";
+            panel_tongquan.Size = new Size(555, 207);
+            panel_tongquan.TabIndex = 24;
+            // 
+            // lbl_DonTB
+            // 
+            lbl_DonTB.AutoSize = true;
+            lbl_DonTB.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_DonTB.Location = new Point(285, 107);
+            lbl_DonTB.Name = "lbl_DonTB";
+            lbl_DonTB.Size = new Size(179, 25);
+            lbl_DonTB.TabIndex = 12;
+            lbl_DonTB.Text = "Đơn TB/ngày: 0.0 📈";
+            // 
+            // lbl_TongMon
+            // 
+            lbl_TongMon.AutoSize = true;
+            lbl_TongMon.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_TongMon.Location = new Point(44, 107);
+            lbl_TongMon.Name = "lbl_TongMon";
+            lbl_TongMon.Size = new Size(154, 25);
+            lbl_TongMon.TabIndex = 11;
+            lbl_TongMon.Text = "Tổng món:   0 🍽️";
+            // 
+            // lbl_ThoiGianTB
+            // 
+            lbl_ThoiGianTB.AutoSize = true;
+            lbl_ThoiGianTB.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_ThoiGianTB.Location = new Point(44, 162);
+            lbl_ThoiGianTB.Name = "lbl_ThoiGianTB";
+            lbl_ThoiGianTB.Size = new Size(169, 25);
+            lbl_ThoiGianTB.TabIndex = 10;
+            lbl_ThoiGianTB.Text = "Thời gian TB: 0p ⏱️";
+            // 
+            // lbl_HoanThanh
+            // 
+            lbl_HoanThanh.AutoSize = true;
+            lbl_HoanThanh.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_HoanThanh.Location = new Point(285, 54);
+            lbl_HoanThanh.Name = "lbl_HoanThanh";
+            lbl_HoanThanh.Size = new Size(169, 25);
+            lbl_HoanThanh.TabIndex = 9;
+            lbl_HoanThanh.Text = "Hoàn thành: 0% ✅";
+            // 
+            // lbl_HieuSuat
+            // 
+            lbl_HieuSuat.AutoSize = true;
+            lbl_HieuSuat.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_HieuSuat.Location = new Point(285, 162);
+            lbl_HieuSuat.Name = "lbl_HieuSuat";
+            lbl_HieuSuat.Size = new Size(171, 25);
+            lbl_HieuSuat.TabIndex = 8;
+            lbl_HieuSuat.Text = "Hiệu suất: ⭐☆☆☆☆";
+            // 
+            // lbl_tongdon
+            // 
+            lbl_tongdon.AutoSize = true;
+            lbl_tongdon.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_tongdon.Location = new Point(44, 54);
+            lbl_tongdon.Name = "lbl_tongdon";
+            lbl_tongdon.Size = new Size(149, 25);
+            lbl_tongdon.TabIndex = 7;
+            lbl_tongdon.Text = "Tổng đơn:   0 📋";
+            // 
+            // lbl_tongquan
+            // 
+            lbl_tongquan.AutoSize = true;
+            lbl_tongquan.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lbl_tongquan.Location = new Point(6, 14);
+            lbl_tongquan.Name = "lbl_tongquan";
+            lbl_tongquan.Size = new Size(113, 28);
+            lbl_tongquan.TabIndex = 7;
+            lbl_tongquan.Text = "Tổng quan";
+            // 
+            // gb_fillterthongke
+            // 
+            gb_fillterthongke.Controls.Add(btn_xuatbaocao);
+            gb_fillterthongke.Controls.Add(btn_lammoi);
+            gb_fillterthongke.Controls.Add(btn_taithongke);
+            gb_fillterthongke.Controls.Add(cb_thongkedaubep);
+            gb_fillterthongke.Controls.Add(lbl_daubep);
+            gb_fillterthongke.Controls.Add(dateTimePicker_denngay);
+            gb_fillterthongke.Controls.Add(dateTimePicker_tungay);
+            gb_fillterthongke.Controls.Add(lbl_denngay);
+            gb_fillterthongke.Controls.Add(lbl_tungay);
+            gb_fillterthongke.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            gb_fillterthongke.Location = new Point(4, 52);
+            gb_fillterthongke.Name = "gb_fillterthongke";
+            gb_fillterthongke.Size = new Size(555, 202);
+            gb_fillterthongke.TabIndex = 23;
+            gb_fillterthongke.TabStop = false;
+            gb_fillterthongke.Text = "Lọc thống kê";
+            // 
+            // btn_xuatbaocao
+            // 
+            btn_xuatbaocao.AutoSize = true;
+            btn_xuatbaocao.Location = new Point(374, 162);
+            btn_xuatbaocao.Name = "btn_xuatbaocao";
+            btn_xuatbaocao.Size = new Size(134, 36);
+            btn_xuatbaocao.TabIndex = 8;
+            btn_xuatbaocao.Text = "Xuất báo cáo";
+            btn_xuatbaocao.UseVisualStyleBackColor = true;
+            btn_xuatbaocao.Click += btn_xuatbaocao_Click;
+            // 
+            // btn_lammoi
+            // 
+            btn_lammoi.Location = new Point(225, 162);
+            btn_lammoi.Name = "btn_lammoi";
+            btn_lammoi.Size = new Size(115, 36);
+            btn_lammoi.TabIndex = 7;
+            btn_lammoi.Text = "Làm mới";
+            btn_lammoi.UseVisualStyleBackColor = true;
+            btn_lammoi.Click += btn_refresh_Click;
+            // 
+            // btn_taithongke
+            // 
+            btn_taithongke.Location = new Point(374, 106);
+            btn_taithongke.Name = "btn_taithongke";
+            btn_taithongke.Size = new Size(115, 36);
+            btn_taithongke.TabIndex = 6;
+            btn_taithongke.Text = "📊 TẢI";
+            btn_taithongke.UseVisualStyleBackColor = true;
+            btn_taithongke.Click += btn_taithongke_Click;
+            // 
+            // cb_thongkedaubep
+            // 
+            cb_thongkedaubep.FormattingEnabled = true;
+            cb_thongkedaubep.Location = new Point(104, 109);
+            cb_thongkedaubep.Name = "cb_thongkedaubep";
+            cb_thongkedaubep.Size = new Size(151, 33);
+            cb_thongkedaubep.TabIndex = 5;
+            // 
+            // lbl_daubep
+            // 
+            lbl_daubep.AutoSize = true;
+            lbl_daubep.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_daubep.Location = new Point(6, 109);
+            lbl_daubep.Name = "lbl_daubep";
+            lbl_daubep.Size = new Size(84, 25);
+            lbl_daubep.TabIndex = 4;
+            lbl_daubep.Text = "Đầu bếp:";
+            // 
+            // dateTimePicker_denngay
+            // 
+            dateTimePicker_denngay.Format = DateTimePickerFormat.Short;
+            dateTimePicker_denngay.Location = new Point(374, 36);
+            dateTimePicker_denngay.Name = "dateTimePicker_denngay";
+            dateTimePicker_denngay.Size = new Size(150, 31);
+            dateTimePicker_denngay.TabIndex = 3;
+            // 
+            // dateTimePicker_tungay
+            // 
+            dateTimePicker_tungay.Format = DateTimePickerFormat.Short;
+            dateTimePicker_tungay.Location = new Point(104, 36);
+            dateTimePicker_tungay.Name = "dateTimePicker_tungay";
+            dateTimePicker_tungay.Size = new Size(151, 31);
+            dateTimePicker_tungay.TabIndex = 2;
+            // 
+            // lbl_denngay
+            // 
+            lbl_denngay.AutoSize = true;
+            lbl_denngay.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_denngay.Location = new Point(268, 36);
+            lbl_denngay.Name = "lbl_denngay";
+            lbl_denngay.Size = new Size(92, 25);
+            lbl_denngay.TabIndex = 1;
+            lbl_denngay.Text = "Đến ngày:";
+            // 
+            // lbl_tungay
+            // 
+            lbl_tungay.AutoSize = true;
+            lbl_tungay.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_tungay.Location = new Point(6, 36);
+            lbl_tungay.Name = "lbl_tungay";
+            lbl_tungay.Size = new Size(80, 25);
+            lbl_tungay.TabIndex = 0;
+            lbl_tungay.Text = "Từ ngày:";
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Font = new Font("Segoe UI", 13.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label6.Location = new Point(440, 14);
+            label6.Margin = new Padding(2, 0, 2, 0);
+            label6.Name = "label6";
+            label6.Size = new Size(340, 31);
+            label6.TabIndex = 22;
+            label6.Text = "👨‍🍳 THỐNG KÊ HIỆU SUẤT BẾP";
+            // 
+            // lbl_titlethongke
+            // 
+            lbl_titlethongke.AutoSize = true;
+            lbl_titlethongke.Location = new Point(378, 39);
+            lbl_titlethongke.Name = "lbl_titlethongke";
+            lbl_titlethongke.Size = new Size(0, 20);
+            lbl_titlethongke.TabIndex = 0;
+            // 
             // NVBep
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
@@ -479,6 +788,16 @@
             panel_update.ResumeLayout(false);
             panel_update.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView_dishs).EndInit();
+            tp_thongke.ResumeLayout(false);
+            tp_thongke.PerformLayout();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
+            panel_topdaubep.ResumeLayout(false);
+            panel_topdaubep.PerformLayout();
+            panel_tongquan.ResumeLayout(false);
+            panel_tongquan.PerformLayout();
+            gb_fillterthongke.ResumeLayout(false);
+            gb_fillterthongke.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -518,6 +837,32 @@
         private Button btn_huymon;
         private Button btn_sendmess;
         private Button btn_luuthaydoi;
-
+        private TabPage tp_thongke;
+        private Label label6;
+        private Label lbl_titlethongke;
+        private GroupBox gb_fillterthongke;
+        private DateTimePicker dateTimePicker_denngay;
+        private DateTimePicker dateTimePicker_tungay;
+        private Label lbl_denngay;
+        private Label lbl_tungay;
+        private Panel panel_tongquan;
+        private Label lbl_tongquan;
+        private Button btn_taithongke;
+        private ComboBox cb_thongkedaubep;
+        private Label lbl_daubep;
+        private Label lbl_DonTB;
+        private Label lbl_TongMon;
+        private Label lbl_ThoiGianTB;
+        private Label lbl_HoanThanh;
+        private Label lbl_HieuSuat;
+        private Label lbl_tongdon;
+        private Panel panel_topdaubep;
+        private Label lbl_topdaubep;
+        private ListView listView1;
+        private Panel panel1;
+        private Label label7;
+        private ListView listView_topmonphobien;
+        private Button btn_xuatbaocao;
+        private Button btn_lammoi;
     }
 }

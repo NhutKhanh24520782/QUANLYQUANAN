@@ -522,5 +522,71 @@ namespace Models.Request
             return (true, string.Empty);
         }
     }
+    public class GetThongKeBepRequest
+    {
+        public string Type => "GetThongKeBep";
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+        public int? MaNhanVienBep { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (TuNgay > DenNgay)
+                return (false, "Từ ngày không được lớn hơn đến ngày");
+
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Request lấy danh sách đầu bếp
+    /// </summary>
+    public class GetDanhSachDauBepRequest
+    {
+        public string Type => "GetDanhSachDauBep";
+        // Không cần tham số vì lấy tất cả đầu bếp
+    }
+
+    /// <summary>
+    /// Request lấy thống kê chi tiết đầu bếp
+    /// </summary>
+    public class GetThongKeDauBepChiTietRequest
+    {
+        public string Type => "GetThongKeDauBepChiTiet";
+        public int MaNhanVien { get; set; }
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaNhanVien <= 0)
+                return (false, "Mã nhân viên không hợp lệ");
+            if (TuNgay > DenNgay)
+                return (false, "Từ ngày không được lớn hơn đến ngày");
+
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Request xuất báo cáo thống kê bếp
+    /// </summary>
+    public class XuatBaoCaoThongKeBepRequest
+    {
+        public string Type => "XuatBaoCaoThongKeBep";
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+        public int? MaNhanVienBep { get; set; }
+        public string LoaiBaoCao { get; set; } = "TongHop"; // "TongHop", "ChiTiet", "TheoDauBep"
+        public string DinhDang { get; set; } = "PDF"; // "PDF", "Excel", "Word"
+
+        public (bool isValid, string error) Validate()
+        {
+            if (TuNgay > DenNgay)
+                return (false, "Từ ngày không được lớn hơn đến ngày");
+
+            return (true, string.Empty);
+        }
+    }
 }
 

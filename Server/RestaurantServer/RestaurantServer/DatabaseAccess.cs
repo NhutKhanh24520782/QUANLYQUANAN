@@ -3,6 +3,7 @@ using Models;
 using Models.Database;
 using Models.Request;
 using Models.Response;
+using Newtonsoft.Json;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
@@ -1561,9 +1562,8 @@ namespace RestaurantServer
         }
 
         // ==================== KITCHEN ORDER FUNCTIONS ====================
-
         public static KitchenOrdersResult GetKitchenOrders(string trangThai = "", string timKiemBan = "",
-     string sapXep = "ThoiGian", int? maNhanVienBep = null)
+            string sapXep = "ThoiGian", int? maNhanVienBep = null)
         {
             try
             {
@@ -1571,7 +1571,6 @@ namespace RestaurantServer
                 {
                     conn.Open();
 
-                    // Query tổng hợp TẤT CẢ trong 1 lần
                     string query = @"
                 SELECT TOP 50
                     dh.MaDonHang,
@@ -1584,7 +1583,7 @@ namespace RestaurantServer
                     -- Thống kê món
                     (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang) as TongSoMon,
                     
-                    -- Số món theo trạng thái (SUBQUERY hiệu quả hơn)
+                    -- Số món theo trạng thái
                     (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
                      WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'ChoXacNhan') as SoMonChoXacNhan,
                     (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
@@ -1610,15 +1609,20 @@ namespace RestaurantServer
                 LEFT JOIN NGUOIDUNG nv ON dh.MaNVOrder = nv.MaNguoiDung
                 WHERE 1=1";
 
-                    // Thêm điều kiện WHERE
+                    // ✅ FIX: Thêm điều kiện lọc theo trạng thái MÓN ĂN
                     if (!string.IsNullOrEmpty(timKiemBan))
                     {
                         query += " AND b.TenBan LIKE '%' + @TimKiemBan + '%'";
                     }
 
+                    // ✅ FIX: LỌC THEO TRẠNG THÁI MÓN ĂN thay vì trạng thái đơn hàng
                     if (!string.IsNullOrEmpty(trangThai) && trangThai != "TatCa")
                     {
-                        query += " AND dh.TrangThai = @TrangThai";
+                        query += @" AND EXISTS (
+                    SELECT 1 FROM CHITIET_DONHANG ctdh 
+                    WHERE ctdh.MaDonHang = dh.MaDonHang 
+                    AND ctdh.TrangThai = @TrangThai
+                )";
                     }
 
                     // Sắp xếp
@@ -1669,14 +1673,17 @@ namespace RestaurantServer
                                 SoMonHoanThanh = r["SoMonHoanThanh"] != DBNull.Value ? Convert.ToInt32(r["SoMonHoanThanh"]) : 0,
                                 SoMonCoVanDe = r["SoMonCoVanDe"] != DBNull.Value ? Convert.ToInt32(r["SoMonCoVanDe"]) : 0,
                                 SoMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0,
-                                UuTienCaoNhat = r["UuTienCaoNhat"] != DBNull.Value ? Convert.ToInt32(r["UuTienCaoNhat"]) : 1
+                                UuTienCaoNhat = r["UuTienCaoNhat"] != DBNull.Value ? Convert.ToInt32(r["UuTienCaoNhat"]) : 1,
+
+                                // ✅ THÊM: Xác định trạng thái đơn dựa trên món
+                                trangThaiDon = r["TrangThaiDon"]?.ToString() ?? "ChoXacNhan"
                             };
 
                             orders.Add(order);
                         }
                     }
 
-                    // Tính thống kê (không cần query thêm)
+                    // Tính thống kê
                     var thongKe = new ThongKeBep
                     {
                         TongSoDon = orders.Count,
@@ -2396,8 +2403,6 @@ namespace RestaurantServer
             }
         }
 
-        /// <summary>
-        /// Lấy lịch sử tin nhắn
         /// </summary>
         public static KitchenMessagesResult GetKitchenMessages(int maDonHang, int? maNhanVienBep)
         {
@@ -2426,31 +2431,36 @@ namespace RestaurantServer
 
                     // Lấy tin nhắn liên quan đến bàn này
                     string messagesQuery = @"
-                        SELECT 
-                            tn.MaTin,
-                            tn.MaNguoiGui,
-                            gui.HoTen as TenNguoiGui,
-                            gui.VaiTro as VaiTroNguoiGui,
-                            tn.MaNguoiNhan,
-                            nhan.HoTen as TenNguoiNhan,
-                            tn.NoiDung,
-                            tn.ThoiGian,
-                            tn.DaDoc
-                        FROM TINNHAN tn
-                        INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
-                        INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
-                        WHERE (tn.MaNguoiGui = @MaNhanVienBep OR tn.MaNguoiNhan = @MaNhanVienBep)
-                        AND EXISTS (
-                            SELECT 1 FROM DONHANG dh 
-                            WHERE dh.MaBanAn = @MaBanAn
-                            AND (dh.MaDonHang = @MaDonHang OR tn.NoiDung LIKE '%' + CAST(@MaDonHang AS NVARCHAR) + '%')
-                        )
-                        ORDER BY tn.ThoiGian DESC";
+                SELECT 
+                    tn.MaTin,
+                    tn.MaNguoiGui,
+                    gui.HoTen as TenNguoiGui,
+                    gui.VaiTro as VaiTroNguoiGui,
+                    tn.MaNguoiNhan,
+                    nhan.HoTen as TenNguoiNhan,
+                    tn.NoiDung,
+                    tn.ThoiGian,
+                    tn.DaDoc
+                FROM TINNHAN tn
+                INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+                INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+                WHERE (tn.MaNguoiGui = @MaNhanVienBep OR tn.MaNguoiNhan = @MaNhanVienBep)
+                AND EXISTS (
+                    SELECT 1 FROM DONHANG dh 
+                    WHERE dh.MaBanAn = @MaBanAn
+                    AND (dh.MaDonHang = @MaDonHang OR tn.NoiDung LIKE '%' + CAST(@MaDonHang AS NVARCHAR) + '%')
+                )
+                ORDER BY tn.ThoiGian DESC";
 
                     cmd = new SqlCommand(messagesQuery, conn);
                     cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
                     cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
-                    cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep ?? (object)DBNull.Value);
+
+                    // Xử lý giá trị NULL cho MaNhanVienBep
+                    if (maNhanVienBep.HasValue)
+                        cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                    else
+                        cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
 
                     List<KitchenMessageData> tinNhan = new List<KitchenMessageData>();
 
@@ -2479,14 +2489,14 @@ namespace RestaurantServer
                     if (maNhanVienBep.HasValue)
                     {
                         string markReadQuery = @"
-                            UPDATE TINNHAN SET DaDoc = 1 
-                            WHERE MaNguoiNhan = @MaNhanVienBep 
-                            AND DaDoc = 0
-                            AND EXISTS (
-                                SELECT 1 FROM DONHANG dh 
-                                WHERE dh.MaBanAn = @MaBanAn
-                                AND dh.MaDonHang = @MaDonHang
-                            )";
+                    UPDATE TINNHAN SET DaDoc = 1 
+                    WHERE MaNguoiNhan = @MaNhanVienBep 
+                    AND DaDoc = 0
+                    AND EXISTS (
+                        SELECT 1 FROM DONHANG dh 
+                        WHERE dh.MaBanAn = @MaBanAn
+                        AND dh.MaDonHang = @MaDonHang
+                    )";
 
                         cmd = new SqlCommand(markReadQuery, conn);
                         cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
@@ -2511,6 +2521,273 @@ namespace RestaurantServer
                     Message = $"Lỗi lấy tin nhắn: {ex.Message}"
                 };
             }
+        }
+
+        public static GetThongKeDauBepChiTietResult GetThongKeDauBepChiTiet(int maNhanVien, DateTime tuNgay, DateTime denNgay)
+        {
+            var result = new GetThongKeDauBepChiTietResult();
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // Lấy thông tin chi tiết đầu bếp từ stored procedure
+                    using (var cmd = new SqlCommand("sp_ThongKeHieuSuatDauBep", connection))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgay);
+                        cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                result.ThongKe = new ThongKeDauBepSPResult
+                                {
+                                    MaNguoiDung = Convert.ToInt32(reader["MaNguoiDung"]),
+                                    HoTen = reader["HoTen"].ToString(),
+                                    TongDon = reader["TongDon"] != DBNull.Value ? Convert.ToInt32(reader["TongDon"]) : 0,
+                                    DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0,
+                                    TongMon = reader["TongMon"] != DBNull.Value ? Convert.ToInt32(reader["TongMon"]) : 0,
+                                    MonHoanThanh = reader["MonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["MonHoanThanh"]) : 0,
+                                    ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null
+                                };
+                            }
+                        }
+                    }
+
+                    // Lấy danh sách món đã chế biến
+                    var query = @"
+                SELECT ct.*, mi.TenMon, dh.NgayOrder
+                FROM CHITIET_DONHANG ct
+                JOIN DONHANG dh ON ct.MaDonHang = dh.MaDonHang
+                JOIN MENUITEMS mi ON ct.MaMon = mi.MaMon
+                WHERE ct.MaNhanVienCheBien = @MaNhanVien
+                    AND dh.NgayOrder BETWEEN @TuNgay AND DATEADD(DAY, 1, @DenNgay)
+                    AND ct.TrangThai = N'HoanThanh'
+                ORDER BY dh.NgayOrder DESC";
+
+                    using (var cmd = new SqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien);
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                result.DanhSachMonDaCheBien.Add(new ChiTietDonHang
+                                {
+                                    MaChiTiet = Convert.ToInt32(reader["MaChiTiet"]),
+                                    MaDonHang = Convert.ToInt32(reader["MaDonHang"]),
+                                    MaMon = Convert.ToInt32(reader["MaMon"]),
+                                    SoLuong = Convert.ToInt32(reader["SoLuong"]),
+                                    DonGia = Convert.ToDecimal(reader["DonGia"]),
+                                    GhiChuBep = reader["GhiChuBep"]?.ToString() ?? "",
+                                    UuTien = Convert.ToInt32(reader["UuTien"]),
+                                    ThoiGianHoanThanh = reader["ThoiGianHoanThanh"] != DBNull.Value ?
+                                        Convert.ToDateTime(reader["ThoiGianHoanThanh"]) : (DateTime?)null
+                                });
+                            }
+                        }
+                    }
+
+                    result.Success = true;
+                    result.Message = "Lấy thống kê chi tiết thành công";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Lỗi khi lấy thống kê chi tiết: {ex.Message}";
+                Console.WriteLine($"Error in GetThongKeDauBepChiTiet: {ex}");
+            }
+
+            return result;
+        }
+
+        public static ThongKeBepDayDuResult GetThongKeBep(DateTime tuNgay, DateTime denNgay, int? MaNhanVienBep = null)
+        {
+            var result = new ThongKeBepDayDuResult();
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // 1. Lấy thống kê tổng quan
+                    using (var cmdTongQuan = new SqlCommand("sp_ThongKeTongQuanBep", connection))
+                    {
+                        cmdTongQuan.CommandType = CommandType.StoredProcedure;
+                        cmdTongQuan.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmdTongQuan.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                        using (var reader = cmdTongQuan.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                result.TongQuan.TongDon = reader["TongDon"] != DBNull.Value ? Convert.ToInt32(reader["TongDon"]) : 0;
+                                result.TongQuan.DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0;
+                                result.TongQuan.TongMon = reader["TongMon"] != DBNull.Value ? Convert.ToInt32(reader["TongMon"]) : 0;
+                                result.TongQuan.ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null;
+                            }
+                        }
+                    }
+
+                    // 2. Lấy thống kê đầu bếp
+                    using (var cmdDauBep = new SqlCommand("sp_ThongKeHieuSuatDauBep", connection))
+                    {
+                        cmdDauBep.CommandType = CommandType.StoredProcedure;
+                        cmdDauBep.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmdDauBep.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                        if (MaNhanVienBep.HasValue)
+                            cmdDauBep.Parameters.AddWithValue("@MaNhanVien", MaNhanVienBep.Value);
+                        else
+                            cmdDauBep.Parameters.AddWithValue("@MaNhanVien", DBNull.Value);
+
+                        using (var reader = cmdDauBep.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                // Tạo đối tượng ThongKeDauBep thay vì ThongKeDauBepSPResult
+                                var dauBep = new ThongKeDauBep
+                                {
+                                    MaNguoiDung = Convert.ToInt32(reader["MaNguoiDung"]),
+                                    HoTen = reader["HoTen"].ToString(),
+                                    TongDon = reader["TongDon"] != DBNull.Value ? Convert.ToInt32(reader["TongDon"]) : 0,
+                                    DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0,
+                                    ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null
+                                };
+
+                                // Tính tỷ lệ hoàn thành
+                                dauBep.TyLeHoanThanh = dauBep.TongDon > 0 ?
+                                    (decimal)dauBep.DonHoanThanh / dauBep.TongDon * 100 : 0;
+
+                                // Tính đánh giá hiệu suất
+                                dauBep.DanhGiaHieuSuat = CalculateHieuSuat(dauBep.TyLeHoanThanh, dauBep.ThoiGianTrungBinh);
+
+                                result.DanhSachDauBep.Add(dauBep);
+                            }
+                        }
+                    }
+
+                    // 3. Lấy top món phổ biến
+                    using (var cmdTopMon = new SqlCommand("sp_TopMonPhobien", connection))
+                    {
+                        cmdTopMon.CommandType = CommandType.StoredProcedure;
+                        cmdTopMon.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmdTopMon.Parameters.AddWithValue("@DenNgay", denNgay);
+                        cmdTopMon.Parameters.AddWithValue("@Top", 10);
+
+                        using (var reader = cmdTopMon.ExecuteReader())
+                        {
+                            int totalQuantity = 0;
+                            var topMonList = new List<TopMonAnThongKe>(); // Sửa thành TopMonAnThongKe
+
+                            while (reader.Read())
+                            {
+                                var mon = new TopMonAnThongKe // Sửa thành TopMonAnThongKe
+                                {
+                                    MaMon = Convert.ToInt32(reader["MaMon"]),
+                                    TenMon = reader["TenMon"].ToString(),
+                                    SoLuong = reader["SoLuong"] != DBNull.Value ? Convert.ToInt32(reader["SoLuong"]) : 0,
+                                    SoDon = reader["SoDon"] != DBNull.Value ? Convert.ToInt32(reader["SoDon"]) : 0,
+                                    TenLoai = reader["TenLoai"]?.ToString() ?? "Không phân loại"
+                                };
+
+                                topMonList.Add(mon);
+                                totalQuantity += mon.SoLuong;
+                            }
+
+                            // Tính tỷ lệ
+                            foreach (var mon in topMonList)
+                            {
+                                mon.TyLe = totalQuantity > 0 ? (decimal)mon.SoLuong / totalQuantity * 100 : 0;
+                            }
+
+                            result.TopMonAn = topMonList;
+                        }
+                    }
+
+                    result.Success = true;
+                    result.Message = "Lấy thống kê thành công";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Lỗi khi lấy thống kê: {ex.Message}";
+                Console.WriteLine($"Error in GetThongKeBep: {ex}");
+            }
+
+            return result;
+        }
+
+        // Phương thức tính hiệu suất
+        private static string CalculateHieuSuat(decimal tyLeHoanThanh, decimal? thoiGianTrungBinh)
+        {
+            if (thoiGianTrungBinh == null || tyLeHoanThanh == 0)
+                return "⭐☆☆☆☆";
+
+            double diem = (((double)tyLeHoanThanh / 100.0) * 0.7) +
+                          ((30.0 - Math.Min((double)thoiGianTrungBinh, 30.0)) / 30.0 * 0.3);
+            if (diem >= 0.8) return "⭐⭐⭐⭐⭐";
+            else if (diem >= 0.6) return "⭐⭐⭐⭐☆";
+            else if (diem >= 0.4) return "⭐⭐⭐☆☆";
+            else if (diem >= 0.2) return "⭐⭐☆☆☆";
+            else return "⭐☆☆☆☆";
+        }
+
+        public static GetDanhSachDauBepResult GetDanhSachDauBep()
+        {
+            var result = new GetDanhSachDauBepResult();
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    var query = @"
+                SELECT MaNguoiDung, HoTen, TenDangNhap, Email, SDT
+                FROM NGUOIDUNG 
+                WHERE VaiTro = N'Bep' AND TrangThai = 1
+                ORDER BY HoTen";
+
+                    using (var cmd = new SqlCommand(query, connection))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            result.DanhSachDauBep.Add(new NguoiDung
+                            {
+                                MaNguoiDung = Convert.ToInt32(reader["MaNguoiDung"]),
+                                HoTen = reader["HoTen"].ToString(),
+                                TenDangNhap = reader["TenDangNhap"].ToString(),
+                                Email = reader["Email"]?.ToString() ?? "",
+                                SDT = reader["SDT"]?.ToString() ?? ""
+                            });
+                        }
+                    }
+
+                    result.Success = true;
+                    result.Message = "Lấy danh sách đầu bếp thành công";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Lỗi khi lấy danh sách đầu bếp: {ex.Message}";
+                Console.WriteLine($"Error in GetDanhSachDauBep: {ex}");
+            }
+
+            return result;
         }
     }
 }
