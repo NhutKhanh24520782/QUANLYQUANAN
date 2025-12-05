@@ -313,10 +313,13 @@ namespace Models.Database
         public bool Success { get; set; }
         public string Message { get; set; }
         public int MaHoaDon { get; set; }
+        public int MaDonHang { get; set; } // ✅ THÊM
+
     }
     public class CreateOrderResult
     {
         public bool Success { get; set; }
+        public int MaDonHang { get; set; } // ✅ THÊM
         public string Message { get; set; }
         public int MaHoaDon { get; set; }
     }

@@ -1307,7 +1307,7 @@ namespace RestaurantServer
                                     MaMon = (int)reader["MaMon"],
                                     TenMon = reader["TenMon"].ToString(),
                                     Gia = (int)reader["Gia"],
-                                    MoTa = reader["Gia"].ToString(),
+                                    MoTa = reader["MoTa"].ToString(),
                                     TrangThai = reader["TrangThai"]?.ToString() ?? ""
                                 });
                             }
@@ -1439,31 +1439,36 @@ namespace RestaurantServer
                 {
                     try
                     {
-                        // 1. Thêm hóa đơn
-                        string insertHoaDon = @"
-                    INSERT INTO HOADON (MaBanAn, MaNV, Ngay, TongTien, TrangThai)
-                    OUTPUT INSERTED.MaHD
-                    VALUES (@MaBanAn, @MaNV, GETDATE(), @TongTien, N'ChuaThanhToan')";
+                        // ✅ 1. TẠO ĐƠN HÀNG (cho bếp)
+                        string insertDonHang = @"
+                    INSERT INTO DONHANG (MaBanAn, MaNVOrder, NgayOrder, TrangThai)
+                    OUTPUT INSERTED.MaDonHang
+                    VALUES (@MaBanAn, @MaNVOrder, GETDATE(), N'ChoXacNhan')";
 
-                        int maHoaDon;
-                        using (SqlCommand cmd = new SqlCommand(insertHoaDon, conn, transaction))
+                        int maDonHang;
+                        using (SqlCommand cmd = new SqlCommand(insertDonHang, conn, transaction))
                         {
                             cmd.Parameters.AddWithValue("@MaBanAn", maBan);
-                            cmd.Parameters.AddWithValue("@MaNV", maNhanVien);
-                            cmd.Parameters.AddWithValue("@TongTien", tongTien);
-                            maHoaDon = (int)cmd.ExecuteScalar();
+                            cmd.Parameters.AddWithValue("@MaNVOrder", maNhanVien);
+                            maDonHang = (int)cmd.ExecuteScalar();
                         }
 
-                        // 2. Thêm chi tiết hóa đơn
-                        string insertChiTiet = @"
-                    INSERT INTO CTHD (MaHD, MaMon, SoLuong, DonGia)
-                    VALUES (@MaHD, @MaMon, @SoLuong, @DonGia)";
+                        // ✅ 2. THÊM CHI TIẾT ĐƠN HÀNG (cho bếp xử lý)
+                        string insertChiTietDonHang = @"
+                    INSERT INTO CHITIET_DONHANG (
+                        MaDonHang, MaMon, SoLuong, DonGia, GhiChuKhach, 
+                        TrangThai, UuTien
+                    )
+                    VALUES (
+                        @MaDonHang, @MaMon, @SoLuong, @DonGia, @GhiChuKhach,
+                        N'ChoXacNhan', 2
+                    )";
 
                         foreach (var item in chiTiet)
                         {
-                            using (SqlCommand cmd = new SqlCommand(insertChiTiet, conn, transaction))
+                            using (SqlCommand cmd = new SqlCommand(insertChiTietDonHang, conn, transaction))
                             {
-                                cmd.Parameters.AddWithValue("@MaHD", maHoaDon);
+                                cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
                                 cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
                                 cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
                                 cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
@@ -1472,8 +1477,42 @@ namespace RestaurantServer
                             }
                         }
 
-                        // 3. Cập nhật trạng thái bàn
-                        string updateBan = "UPDATE BAN SET TrangThai = 'DangSuDung' WHERE MaBanAn = @MaBanAn";
+                        // ✅ 3. TẠO HÓA ĐƠN (cho thanh toán sau)
+                        string insertHoaDon = @"
+                    INSERT INTO HOADON (MaBanAn, MaNV, MaDonHang, Ngay, TongTien, TrangThai)
+                    OUTPUT INSERTED.MaHD
+                    VALUES (@MaBanAn, @MaNV, @MaDonHang, GETDATE(), @TongTien, N'ChuaThanhToan')";
+
+                        int maHoaDon;
+                        using (SqlCommand cmd = new SqlCommand(insertHoaDon, conn, transaction))
+                        {
+                            cmd.Parameters.AddWithValue("@MaBanAn", maBan);
+                            cmd.Parameters.AddWithValue("@MaNV", maNhanVien);
+                            cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                            cmd.Parameters.AddWithValue("@TongTien", tongTien);
+                            maHoaDon = (int)cmd.ExecuteScalar();
+                        }
+
+                        // ✅ 4. THÊM CHI TIẾT HÓA ĐƠN (cho thanh toán)
+                        string insertCTHD = @"
+                    INSERT INTO CTHD (MaHD, MaMon, SoLuong, DonGia, GhiChu)
+                    VALUES (@MaHD, @MaMon, @SoLuong, @DonGia, @GhiChu)";
+
+                        foreach (var item in chiTiet)
+                        {
+                            using (SqlCommand cmd = new SqlCommand(insertCTHD, conn, transaction))
+                            {
+                                cmd.Parameters.AddWithValue("@MaHD", maHoaDon);
+                                cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
+                                cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
+                                cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
+                                cmd.Parameters.AddWithValue("@GhiChu", item.GhiChu ?? (object)DBNull.Value);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        // ✅ 5. CẬP NHẬT TRẠNG THÁI BÀN
+                        string updateBan = "UPDATE BAN SET TrangThai = N'DangSuDung' WHERE MaBanAn = @MaBanAn";
                         using (SqlCommand cmd = new SqlCommand(updateBan, conn, transaction))
                         {
                             cmd.Parameters.AddWithValue("@MaBanAn", maBan);
@@ -1486,7 +1525,8 @@ namespace RestaurantServer
                         {
                             Success = true,
                             Message = "Tạo order thành công",
-                            MaHoaDon = maHoaDon
+                            MaHoaDon = maHoaDon,
+                            MaDonHang = maDonHang
                         };
                     }
                     catch (Exception ex)
@@ -1501,8 +1541,6 @@ namespace RestaurantServer
                 }
             }
         }
-        // 1. Thêm tham số string trangThai vào hàm
-        // [DatabaseAccess.cs]
         public static GetTableDetailResponse GetTableDetails(int maBanAn, string trangThai)
         {
             var result = new GetTableDetailResponse();
