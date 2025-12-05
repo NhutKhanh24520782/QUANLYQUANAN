@@ -414,6 +414,7 @@ namespace Models.Response
         public string TrangThaiCu { get; set; } = "";
         public string TrangThaiMoi { get; set; } = "";
         public DateTime ThoiGianCapNhat { get; set; }
+        public DateTime? ThoiGianHoanThanh { get; set; } // THÊM DÒNG NÀY
         public int MaChiTiet { get; set; }
     }
 

@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using static RestaurantServer.DatabaseAccess;
 
 namespace RestaurantServer
 {
@@ -889,7 +890,6 @@ namespace RestaurantServer
                 }
             });
         }
-
         private async Task<string> HandleUpdateDishStatusRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
@@ -922,7 +922,8 @@ namespace RestaurantServer
                         TenMon = result.TenMon,
                         TrangThaiCu = result.TrangThaiCu,
                         TrangThaiMoi = result.TrangThaiMoi,
-                        ThoiGianCapNhat = DateTime.Now,
+                        // ✅ SỬA: Dùng giờ Việt Nam thay vì DateTime.Now
+                        ThoiGianCapNhat = result.ThoiGianHoanThanh ?? GetVietnamTime(),
                         MaChiTiet = request.MaChiTiet
                     };
 
@@ -933,6 +934,38 @@ namespace RestaurantServer
                     return CreateErrorResponse($"Lỗi cập nhật trạng thái: {ex.Message}");
                 }
             });
+        }
+
+        // ✅ THÊM HÀM LẤY GIỜ VIỆT NAM TRONG SERVER
+        private DateTime GetVietnamTime()
+        {
+            try
+            {
+                TimeZoneInfo vietnamTimeZone;
+                try
+                {
+                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    try
+                    {
+                        vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    }
+                    catch (TimeZoneNotFoundException)
+                    {
+                        // Fallback: UTC+7
+                        return DateTime.UtcNow.AddHours(7);
+                    }
+                }
+
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
+            }
+            catch
+            {
+                // Fallback: UTC+7
+                return DateTime.UtcNow.AddHours(7);
+            }
         }
         private async Task<string> HandleUpdateMultipleDishesRequestAsync(JObject rawRequest)
         {
@@ -974,7 +1007,6 @@ namespace RestaurantServer
                 }
             });
         }
-
         private async Task<string> HandleSendKitchenMessageRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
@@ -1004,7 +1036,8 @@ namespace RestaurantServer
                         Success = result.Success,
                         Message = result.Message,
                         MaTinNhan = result.MaTinNhan,
-                        ThoiGianGui = DateTime.Now
+                        // ✅ SỬA: Dùng giờ Việt Nam
+                        ThoiGianGui = GetVietnamTime()
                     };
 
                     return JsonConvert.SerializeObject(response);
@@ -1015,7 +1048,6 @@ namespace RestaurantServer
                 }
             });
         }
-
         private async Task<string> HandleGetKitchenMessagesRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
@@ -1144,6 +1176,7 @@ namespace RestaurantServer
                 }
             });
         }
+      
     }
 
 }
