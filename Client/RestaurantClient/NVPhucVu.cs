@@ -196,6 +196,7 @@ namespace RestaurantClient
                             case "ChoXacNhan":
                                 row.Group = lv_ChiTietDon.Groups["ChoXacNhan"];
                                 row.ForeColor = Color.Gray;
+                                row.BackColor = Color.LightGray; // Nền xám nhạt
                                 break;
 
                             case "CoVanDe":
