@@ -558,6 +558,7 @@
             dataGridView_thanhtoan.RowHeadersWidth = 51;
             dataGridView_thanhtoan.Size = new Size(1020, 324);
             dataGridView_thanhtoan.TabIndex = 18;
+            dataGridView_thanhtoan.CellContentClick += dataGridView_thanhtoan_CellContentClick;
             // 
             // checkBox_chuyenkhoan
             // 

@@ -290,16 +290,7 @@ namespace Models.Database
         public decimal Gia { get; set; }
         public int SoLuong { get; set; }
     }
-    public class CreateOrderRequest
-    {
-        public string Type => "CreateOrder";
-        public int MaBanAn { get; set; }
-        public int MaNhanVien { get; set; }
-        public decimal TongTien { get; set; }
-        public List<ChiTietOrder> ChiTietOrder { get; set; }
-        public string GhiChu { get; set; } = string.Empty;
-    }
-
+ 
     public class ChiTietOrder
     {
         public int MaMon { get; set; }
@@ -359,6 +350,8 @@ namespace Models.Database
         public string TrangThaiMoi { get; set; } = "";
         public int SoMonDaCapNhat { get; set; }
         public object TenCacMon { get; set; }
+        public DateTime? ThoiGianHoanThanh { get; set; } // THÊM DÒNG NÀY
+
     }
 
     /// <summary>

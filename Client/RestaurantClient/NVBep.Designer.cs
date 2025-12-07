@@ -181,7 +181,7 @@
             // btn_refresh
             // 
             btn_refresh.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_refresh.Location = new Point(760, 411);
+            btn_refresh.Location = new Point(778, 413);
             btn_refresh.Margin = new Padding(2);
             btn_refresh.Name = "btn_refresh";
             btn_refresh.Size = new Size(94, 38);
@@ -333,10 +333,10 @@
             // btn_huymon
             // 
             btn_huymon.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_huymon.Location = new Point(178, 320);
+            btn_huymon.Location = new Point(182, 320);
             btn_huymon.Margin = new Padding(2);
             btn_huymon.Name = "btn_huymon";
-            btn_huymon.Size = new Size(91, 30);
+            btn_huymon.Size = new Size(105, 40);
             btn_huymon.TabIndex = 13;
             btn_huymon.Text = "Hủy món";
             btn_huymon.UseVisualStyleBackColor = true;
@@ -519,11 +519,12 @@
             tp_thongke.Controls.Add(lbl_titlethongke);
             tp_thongke.Location = new Point(4, 29);
             tp_thongke.Name = "tp_thongke";
-            tp_thongke.Padding = new Padding(3, 3, 3, 3);
+            tp_thongke.Padding = new Padding(3);
             tp_thongke.Size = new Size(1217, 475);
             tp_thongke.TabIndex = 2;
             tp_thongke.Text = "Thống kê";
             tp_thongke.UseVisualStyleBackColor = true;
+            tp_thongke.Click += tp_thongke_Click;
             // 
             // panel1
             // 
@@ -790,7 +791,7 @@
             // 
             tabPage_chat.Location = new Point(4, 29);
             tabPage_chat.Name = "tabPage_chat";
-            tabPage_chat.Padding = new Padding(3, 3, 3, 3);
+            tabPage_chat.Padding = new Padding(3);
             tabPage_chat.Size = new Size(1217, 475);
             tabPage_chat.TabIndex = 3;
             tabPage_chat.Text = "Chat";
@@ -810,7 +811,7 @@
             tabPage_taikhoan.Controls.Add(label8);
             tabPage_taikhoan.Location = new Point(4, 29);
             tabPage_taikhoan.Name = "tabPage_taikhoan";
-            tabPage_taikhoan.Padding = new Padding(3, 3, 3, 3);
+            tabPage_taikhoan.Padding = new Padding(3);
             tabPage_taikhoan.Size = new Size(1217, 475);
             tabPage_taikhoan.TabIndex = 4;
             tabPage_taikhoan.Text = "Tài Khoản";
@@ -819,7 +820,7 @@
             // button_dangxuatnvbep
             // 
             button_dangxuatnvbep.Location = new Point(1018, 402);
-            button_dangxuatnvbep.Margin = new Padding(2, 2, 2, 2);
+            button_dangxuatnvbep.Margin = new Padding(2);
             button_dangxuatnvbep.Name = "button_dangxuatnvbep";
             button_dangxuatnvbep.Size = new Size(123, 42);
             button_dangxuatnvbep.TabIndex = 9;
@@ -830,7 +831,7 @@
             // textbox_chucvubep
             // 
             textbox_chucvubep.Location = new Point(510, 402);
-            textbox_chucvubep.Margin = new Padding(2, 2, 2, 2);
+            textbox_chucvubep.Margin = new Padding(2);
             textbox_chucvubep.Name = "textbox_chucvubep";
             textbox_chucvubep.Size = new Size(241, 27);
             textbox_chucvubep.TabIndex = 8;
@@ -838,7 +839,7 @@
             // textbox_tenbep
             // 
             textbox_tenbep.Location = new Point(510, 315);
-            textbox_tenbep.Margin = new Padding(2, 2, 2, 2);
+            textbox_tenbep.Margin = new Padding(2);
             textbox_tenbep.Name = "textbox_tenbep";
             textbox_tenbep.Size = new Size(241, 27);
             textbox_tenbep.TabIndex = 7;
@@ -846,7 +847,7 @@
             // textbox_emailbep
             // 
             textbox_emailbep.Location = new Point(510, 226);
-            textbox_emailbep.Margin = new Padding(2, 2, 2, 2);
+            textbox_emailbep.Margin = new Padding(2);
             textbox_emailbep.Name = "textbox_emailbep";
             textbox_emailbep.Size = new Size(241, 27);
             textbox_emailbep.TabIndex = 6;
@@ -854,7 +855,7 @@
             // textbox_usernamebep
             // 
             textbox_usernamebep.Location = new Point(510, 134);
-            textbox_usernamebep.Margin = new Padding(2, 2, 2, 2);
+            textbox_usernamebep.Margin = new Padding(2);
             textbox_usernamebep.Name = "textbox_usernamebep";
             textbox_usernamebep.Size = new Size(241, 27);
             textbox_usernamebep.TabIndex = 5;

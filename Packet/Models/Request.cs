@@ -325,6 +325,17 @@ namespace Models.Request
         }
     }
     // ==================== ORDER REQUESTS ====================
+    public class CreateOrderRequest
+    {
+        public string Type => "CreateOrder";
+        public int MaBanAn { get; set; }
+        public int MaNhanVien { get; set; }
+        public decimal TongTien { get; set; }
+        public DateTime NgayOrder { get; set; } = DateTime.Now; // 🔥 THÊM
+        public List<ChiTietOrder> ChiTietOrder { get; set; }
+        public string GhiChu { get; set; } = string.Empty;
+    }
+
     public class GetMonRequest
     {
         public string Type => "GetMon";
@@ -343,19 +354,7 @@ namespace Models.Request
         public string MoTa { get; set; } = "";
         public string TrangThai { get; set; } = "";
     }
-    public class DeleteMonRequest
-    {
-        public string Type => "DeleteMon";
-        public string TenMon { get; set; } = "";
-    }
-    public class SendOrderRequest
-    {
-        public string Type => "SendOrder";
-        public string TenMon { get; set; } = "";
-        public int Gia { get; set; }
-        public string MoTa { get; set; } = "";
-        public string TrangThai { get; set; } = "";
-    }
+
     public class GetMenuByCategoryRequest
     {
         public string Type => "GetMenuByCategory";

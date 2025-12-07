@@ -30,6 +30,7 @@ namespace RestaurantClient
         private GridViewManager<KitchenOrderData>? _ordersManager;
         private GridViewManager<KitchenDishData>? _dishesManager;
         private System.Windows.Forms.Timer? _autoRefreshTimer;
+        private System.Windows.Forms.Timer? _clockTimer; // ✅ THÊM DÒNG NÀY
         private KitchenOrderDetailData? _currentOrderDetail;
         private KitchenDishData? _selectedDish;
 
@@ -42,7 +43,8 @@ namespace RestaurantClient
             InitializeComponent();
             InitializeGridViewManagers();
             InitializeComboBoxes();
-            InitializeAutoRefreshTimer();
+            InitializeAutoRefreshTimer(); 
+            InitializeClockTimer(); // ✅ THÊM DÒNG NÀY
             UpdateUserInfo();
             InitializeEmptyDataGridView(); // THÊM DÒNG NÀY
             LoadKitchenUserInfo();
@@ -63,14 +65,88 @@ namespace RestaurantClient
             // Load orders ngay sau khi khởi tạo xong
             _ = LoadOrdersOnStartup();
         }
+        // ✅ THÊM HÀM MỚI: Khởi tạo timer cập nhật đồng hồ
+        private void InitializeClockTimer()
+        {
+            _clockTimer = new System.Windows.Forms.Timer();
+            _clockTimer.Interval = 1000; // Cập nhật mỗi giây
+            _clockTimer.Tick += (s, e) =>
+            {
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(UpdateUserInfo));
+                }
+                else
+                {
+                    UpdateUserInfo();
+                }
+            };
+            _clockTimer.Start();
+        }
+        private DateTime GetVietnamTime()
+        {
+            // Azure SQL lưu UTC, nên chúng ta cần chuyển đổi
+            try
+            {
+                TimeZoneInfo vietnamTimeZone;
+                try
+                {
+                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch
+                {
+                    vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+                        "Vietnam",
+                        TimeSpan.FromHours(7),
+                        "Vietnam Time",
+                        "Vietnam Time");
+                }
+
+                // Chuyển từ UTC sang Việt Nam
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
+            }
+            catch
+            {
+                // Fallback
+                return DateTime.Now;
+            }
+        }
+
+        // Thêm hàm chuyển đổi khi gửi request
+        private DateTime ConvertToUtcForAzure(DateTime vietnamTime)
+        {
+            try
+            {
+                TimeZoneInfo vietnamTimeZone;
+                try
+                {
+                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch
+                {
+                    vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+                        "Vietnam",
+                        TimeSpan.FromHours(7),
+                        "Vietnam Time",
+                        "Vietnam Time");
+                }
+
+                // Chuyển từ Việt Nam sang UTC
+                return TimeZoneInfo.ConvertTimeToUtc(vietnamTime, vietnamTimeZone);
+            }
+            catch
+            {
+                // Fallback: trừ 7 giờ
+                return vietnamTime.AddHours(-7);
+            }
+        }
 
         private void NVBep_Load(object sender, EventArgs e)
         {
             this.StartPosition = FormStartPosition.CenterScreen;
             cb_thongkedaubep.DisplayMember = "HoTen";
         }
-        // Thêm phương thức mới để load đơn hàng khi khởi động
-        // Thêm phương thức khởi tạo DataGridView với dữ liệu rỗng
+
         private void InitializeEmptyDataGridView()
         {
             if (dataGridView1.InvokeRequired)
@@ -771,31 +847,31 @@ namespace RestaurantClient
                 }
             }
         }
-
         private void InitializeTimeComboBox()
         {
             cb_timedukien.Items.Clear();
 
-            // Tạo danh sách giờ từ hiện tại đến 2 giờ sau
-            var now = DateTime.Now;
+            // DÙNG GIỜ VIỆT NAM
+            var now = GetVietnamTime();
+
+            // Làm tròn lên 15 phút gần nhất
+            int minutes = now.Minute;
+            int roundedMinutes = ((minutes / 15) + 1) * 15;
+            var startTime = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0).AddMinutes(roundedMinutes);
+
+            // Tạo danh sách từ thời gian làm tròn đến 2 giờ sau
             for (int i = 0; i <= 8; i++) // 2 giờ * 4 (mỗi 15 phút)
             {
-                var time = now.AddMinutes(i * 15);
+                var time = startTime.AddMinutes(i * 15);
                 cb_timedukien.Items.Add(time.ToString("HH:mm"));
             }
 
-            // Mặc định chọn thời gian sau 30 phút
-            var defaultTime = now.AddMinutes(30).ToString("HH:mm");
-            if (cb_timedukien.Items.Contains(defaultTime))
-            {
-                cb_timedukien.SelectedItem = defaultTime;
-            }
-            else
+            // Mặc định chọn slot đầu tiên (gần nhất)
+            if (cb_timedukien.Items.Count > 0)
             {
                 cb_timedukien.SelectedIndex = 0;
             }
         }
-
         private void InitializeAutoRefreshTimer()
         {
             _autoRefreshTimer = new System.Windows.Forms.Timer();
@@ -815,9 +891,17 @@ namespace RestaurantClient
 
         private void UpdateUserInfo()
         {
-            lbl_userInfo.Text = $"Chào, {_currentUserName} • {DateTime.Now:HH:mm dd/MM/yyyy}";
-        }
+            if (lbl_userInfo.InvokeRequired)
+            {
+                lbl_userInfo.Invoke(new Action(UpdateUserInfo));
+                return;
+            }
 
+            DateTime vietnamTime = GetVietnamTime();
+
+            // Hiển thị đầy đủ thông tin
+            lbl_userInfo.Text = $"👨‍🍳 {_currentUserName} • {vietnamTime:HH:mm:ss dd/MM/yyyy} (UTC+7)";
+        }
         private async Task<ThongKeBepDayDuResult> GetThongKeBepFromServer(DateTime tuNgay, DateTime denNgay, int? maNhanVien = null)
         {
             var request = new GetThongKeBepRequest
@@ -1001,7 +1085,7 @@ namespace RestaurantClient
             // Cập nhật tiêu đề
             lbl_updateTitle.Text = $"⚙️ CẬP NHẬT TRẠNG THÁI: {dish.TenMon} ×{dish.SoLuong}";
 
-            // Cập nhật trạng thái hiện tại - FIX: Sử dụng GetStatusDisplayItem
+            // Cập nhật trạng thái hiện tại
             string statusDisplay = GetStatusDisplayItem(dish.TrangThai);
             int statusIndex = -1;
             for (int i = 0; i < cb_status.Items.Count; i++)
@@ -1017,7 +1101,7 @@ namespace RestaurantClient
                 cb_status.SelectedIndex = statusIndex;
             }
 
-            // Cập nhật độ ưu tiên - FIX: UuTien từ 1-5, SelectedIndex từ 0-4
+            // Cập nhật độ ưu tiên
             cb_uutien.SelectedIndex = Math.Clamp(dish.UuTien - 1, 0, 4);
 
             // Cập nhật đầu bếp
@@ -1040,7 +1124,6 @@ namespace RestaurantClient
             }
             else
             {
-                // Tìm tên của _currentUserName trong combobox
                 bool found = false;
                 for (int i = 0; i < cb_daubep.Items.Count; i++)
                 {
@@ -1057,10 +1140,16 @@ namespace RestaurantClient
                 }
             }
 
-            // Cập nhật thời gian dự kiến
+            // Làm mới danh sách thời gian dự kiến với giờ Việt Nam
+            InitializeTimeComboBox();
+
+            // ✅ SỬA: Cập nhật thời gian dự kiến (nếu có) - CHUYỂN ĐỔI TỪ UTC SANG VIỆT NAM
             if (dish.ThoiGianDuKien.HasValue)
             {
-                string timeString = dish.ThoiGianDuKien.Value.ToString("HH:mm");
+                // Giả sử ThoiGianDuKien trong database là UTC, chuyển sang Việt Nam
+                DateTime thoiGianVietnam = ConvertFromUtcToVietnamTime(dish.ThoiGianDuKien.Value);
+                string timeString = thoiGianVietnam.ToString("HH:mm");
+
                 bool found = false;
                 for (int i = 0; i < cb_timedukien.Items.Count; i++)
                 {
@@ -1089,6 +1178,41 @@ namespace RestaurantClient
             panel_update.BringToFront();
         }
 
+        // THÊM HÀM CHUYỂN ĐỔI TỪ UTC SANG GIỜ VIỆT NAM
+        private DateTime ConvertFromUtcToVietnamTime(DateTime utcTime)
+        {
+            try
+            {
+                TimeZoneInfo vietnamTimeZone;
+                try
+                {
+                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    try
+                    {
+                        vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    }
+                    catch (TimeZoneNotFoundException)
+                    {
+                        // Fallback: tạo múi giờ UTC+7
+                        vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+                            "Vietnam",
+                            TimeSpan.FromHours(7),
+                            "Vietnam Time",
+                            "Vietnam Time");
+                    }
+                }
+
+                return TimeZoneInfo.ConvertTimeFromUtc(utcTime, vietnamTimeZone);
+            }
+            catch
+            {
+                // Fallback: cộng 7 giờ
+                return utcTime.AddHours(7);
+            }
+        }
         // ==================== EVENT HANDLERS ====================
         private void DataGridView_Orders_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
@@ -1356,7 +1480,6 @@ namespace RestaurantClient
             MessageBox.Show("Tính năng cài đặt đang được phát triển", "Thông báo",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-
         private async void btn_luuthaydoi_Click(object sender, EventArgs e)
         {
             if (_selectedDish == null || _currentOrderDetail == null)
@@ -1366,7 +1489,7 @@ namespace RestaurantClient
             }
 
             string? trangThaiMoi = ConvertDisplayToStatus(cb_status.SelectedItem?.ToString());
-            int uuTienMoi = cb_uutien.SelectedIndex + 1; // 1-5
+            int uuTienMoi = cb_uutien.SelectedIndex + 1;
             string? tenDauBep = cb_daubep.SelectedItem?.ToString();
             int maDauBep = GetMaDauBep(tenDauBep);
 
@@ -1376,29 +1499,34 @@ namespace RestaurantClient
                 return;
             }
 
-            DateTime? thoiGianDuKien = null;
+            DateTime? thoiGianDuKienUtc = null;
             string? timeString = cb_timedukien.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(timeString))
             {
                 try
                 {
-                    // Parse time từ string HH:mm
                     if (TimeSpan.TryParse(timeString, out TimeSpan timeOfDay))
                     {
-                        // Kết hợp với ngày hiện tại
-                        thoiGianDuKien = DateTime.Today.Add(timeOfDay);
+                        // Lấy giờ Việt Nam hiện tại
+                        DateTime vietnamNow = GetVietnamTime();
 
-                        // Nếu thời gian đã qua trong ngày, cộng thêm 1 ngày
-                        if (thoiGianDuKien < DateTime.Now)
+                        // Tạo thời gian Việt Nam
+                        DateTime vietnamTime = vietnamNow.Date.Add(timeOfDay);
+
+                        // Nếu đã qua trong ngày, cộng thêm 1 ngày
+                        if (vietnamTime < vietnamNow)
                         {
-                            thoiGianDuKien = thoiGianDuKien.Value.AddDays(1);
+                            vietnamTime = vietnamTime.AddDays(1);
                         }
+
+                        // ✅ QUAN TRỌNG: Chuyển sang UTC trước khi gửi lên Azure
+                        thoiGianDuKienUtc = ConvertToUtcForAzure(vietnamTime);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Nếu parse lỗi, để null
-                    thoiGianDuKien = null;
+                    Console.WriteLine($"Lỗi parse thời gian: {ex.Message}");
+                    thoiGianDuKienUtc = null;
                 }
             }
 
@@ -1413,7 +1541,7 @@ namespace RestaurantClient
                         TrangThaiMoi = trangThaiMoi,
                         MaNhanVienBep = maDauBep,
                         GhiChuBep = tb_ghichu.Text.Trim(),
-                        ThoiGianDuKienHoanThanh = thoiGianDuKien,
+                        ThoiGianDuKienHoanThanh = thoiGianDuKienUtc, // Đã là UTC
                         UuTien = uuTienMoi,
                         GuiThongBao = true
                     };
@@ -1424,19 +1552,10 @@ namespace RestaurantClient
                     {
                         ShowSuccess($"Đã cập nhật trạng thái '{_selectedDish.TenMon}' thành '{response.TrangThaiMoi}'");
 
-                        // Refresh danh sách món
-                        if (_dishesManager != null)
-                        {
-                            await _dishesManager.RefreshAsync();
-                        }
+                        // Refresh
+                        if (_dishesManager != null) await _dishesManager.RefreshAsync();
+                        if (_ordersManager != null) await _ordersManager.RefreshAsync();
 
-                        // Cập nhật lại danh sách đơn hàng
-                        if (_ordersManager != null)
-                        {
-                            await _ordersManager.RefreshAsync();
-                        }
-
-                        // Ẩn panel cập nhật
                         panel_update.Visible = false;
                     }
                     else
@@ -1450,7 +1569,39 @@ namespace RestaurantClient
                 }
             });
         }
+        private DateTime ConvertToUtc(DateTime vietnamTime)
+        {
+            try
+            {
+                TimeZoneInfo vietnamTimeZone;
+                try
+                {
+                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    try
+                    {
+                        vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    }
+                    catch (TimeZoneNotFoundException)
+                    {
+                        vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+                            "Vietnam",
+                            TimeSpan.FromHours(7),
+                            "Vietnam Time",
+                            "Vietnam Time");
+                    }
+                }
 
+                return TimeZoneInfo.ConvertTimeToUtc(vietnamTime, vietnamTimeZone);
+            }
+            catch
+            {
+                // Fallback: trừ 7 giờ
+                return vietnamTime.AddHours(-7);
+            }
+        }
         private async void btn_huymon_Click(object sender, EventArgs e)
         {
             if (_selectedDish == null || _currentOrderDetail == null)
@@ -1911,11 +2062,18 @@ namespace RestaurantClient
         // ==================== FORM EVENTS ====================
         private void NVBep_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // Stop the timer
+            // Stop the auto refresh timer
             if (_autoRefreshTimer != null)
             {
                 _autoRefreshTimer.Stop();
                 _autoRefreshTimer.Dispose();
+            }
+
+            // ✅ THÊM: Stop the clock timer
+            if (_clockTimer != null)
+            {
+                _clockTimer.Stop();
+                _clockTimer.Dispose();
             }
         }
 
@@ -2177,6 +2335,11 @@ namespace RestaurantClient
                 MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message,
                                 "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void tp_thongke_Click(object sender, EventArgs e)
+        {
+
         }
     }
 

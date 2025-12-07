@@ -32,6 +32,8 @@ namespace RestaurantClient
         private System.Windows.Forms.Timer _checkPaymentTimer;
         private int _pendingMaHD = 0; // Lưu mã HD đang chờ
         private System.Windows.Forms.Timer _autoRefreshTimer; // 🔥 ĐÃ ĐƯỢC SỬ DỤNG
+        private System.Windows.Forms.Timer? _clockTimer; // ✅ THÊM DÒNG NÀY
+
 
         // ==================== INITIALIZATION ====================
         public NVPhucVu(int userId, string userName)
@@ -61,19 +63,60 @@ namespace RestaurantClient
             LoadMenuItems();
             InitializeCategoryComboBox();
             InitializeTableComboBox();
+            InitializeClockTimer(); // ✅ THÊM DÒNG NÀY
             UpdateUserInfo();
             LoadNVInfo();
 
         }
-        // [NVPhucVu.cs]
+        // 🔥 THÊM HÀM CHUYỂN ĐỔI MÚI GIỜ
+        private DateTime ConvertToVietnamTime(DateTime dateTime)
+        {
+            try
+            {
+                // Nếu là UTC, chuyển sang GMT+7 (Vietnam)
+                if (dateTime.Kind == DateTimeKind.Utc)
+                {
+                    return dateTime.AddHours(7);
+                }
 
+                // Nếu là Local time (máy tính), giữ nguyên
+                if (dateTime.Kind == DateTimeKind.Local)
+                {
+                    return dateTime;
+                }
+
+                // Nếu không xác định, giả sử là UTC và chuyển đổi
+                return dateTime.AddHours(7);
+            }
+            catch
+            {
+                return dateTime;
+            }
+        }
+        private void InitializeClockTimer()
+        {
+            _clockTimer = new System.Windows.Forms.Timer();
+            _clockTimer.Interval = 1000; // Cập nhật mỗi giây
+            _clockTimer.Tick += (s, e) =>
+            {
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(UpdateUserInfo));
+                }
+                else
+                {
+                    UpdateUserInfo();
+                }
+            };
+            _clockTimer.Start();
+        }
         private void SetupMasterDetailView()
         {
             // --- CẤU HÌNH BẢNG ĐƠN HÀNG (BÊN TRÁI) ---
             dgv_DonHangTongQuan.AutoGenerateColumns = false;
             dgv_DonHangTongQuan.Columns.Clear();
             dgv_DonHangTongQuan.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            
+
             // Đăng ký sự kiện tô màu (QUAN TRỌNG)
             dgv_DonHangTongQuan.CellFormatting -= Dgv_DonHangTongQuan_CellFormatting; // Xóa cũ để tránh trùng
             dgv_DonHangTongQuan.CellFormatting += Dgv_DonHangTongQuan_CellFormatting; // Thêm mới
@@ -107,29 +150,7 @@ namespace RestaurantClient
             lv_ChiTietDon.Groups.Add(new ListViewGroup("ChoXacNhan", "[3] MÓN CHỜ XÁC NHẬN"));
             lv_ChiTietDon.Groups.Add(new ListViewGroup("CoVanDe", "[4] MÓN CÓ VẤN ĐỀ / HỦY"));
         }
-        private async Task LoadMasterOrderList()
-        {
-            try
-            {
-                // Gọi API lấy danh sách đơn hàng (giống bên Bếp nhưng phục vụ xem hết)
-                var request = new GetKitchenOrdersRequest
-                {
-                    TrangThai = "TatCa",
-                    SapXep = "ThoiGian"
-                };
-
-                var response = await SendRequest<GetKitchenOrdersRequest, GetKitchenOrdersResponse>(request);
-
-                if (response != null && response.Success)
-                {
-                    dgv_DonHangTongQuan.DataSource = response.DonHang;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi tải danh sách đơn: " + ex.Message);
-            }
-        }
+      
         private async void Dgv_DonHangTongQuan_SelectionChanged(object sender, EventArgs e)
         {
             if (dgv_DonHangTongQuan.SelectedRows.Count == 0) return;
@@ -863,6 +884,8 @@ namespace RestaurantClient
         }
 
         // ==================== DATA LOADING ====================
+        // Trong NVPhucVu.cs
+
         private async Task<List<PendingPaymentData>> LoadPendingBillsFromServer()
         {
             try
@@ -876,13 +899,19 @@ namespace RestaurantClient
 
                 if (response?.Success == true)
                 {
-                    // Sắp xếp tăng dần theo mã hóa đơn trước khi trả về
-                    var sortedPayments = response.PendingPayments
+                    // ✅ SỬA 1: Gán lại giá trị đã chuyển đổi vào từng đối tượng
+                    var convertedPayments = response.PendingPayments
+                        .Select(p =>
+                        {
+                            // Áp dụng chuyển đổi múi giờ cho từng đối tượng NgayTao
+                            p.NgayTao = ConvertToVietnamTime(p.NgayTao);
+                            return p;
+                        })
                         .OrderBy(p => p.MaHD)
                         .ToList();
 
-                    UpdateStatusLabel(sortedPayments.Count);
-                    return sortedPayments;
+                    UpdateStatusLabel(convertedPayments.Count);
+                    return convertedPayments;
                 }
                 else
                 {
@@ -896,7 +925,6 @@ namespace RestaurantClient
                 return new List<PendingPaymentData>();
             }
         }
-
         private void UpdateStatusLabel(int count)
         {
             // Tìm status label trong controls
@@ -920,10 +948,18 @@ namespace RestaurantClient
                 }
             }
         }
+        // ✅ SỬA HÀM UpdateUserInfo để hiển thị giây
         private void UpdateUserInfo()
         {
-            lbl_userInfo.Text = $"Chào, {_currentUserName} • {DateTime.Now:HH:mm dd/MM/yyyy}";
+            if (lbl_userInfo.InvokeRequired)
+            {
+                lbl_userInfo.Invoke(new Action(UpdateUserInfo));
+                return;
+            }
+
+            lbl_userInfo.Text = $"Chào, {_currentUserName} • {DateTime.Now:HH:mm:ss dd/MM/yyyy}";
         }
+
         // ==================== EVENT HANDLERS ====================
         private void DataGridView_Bills_SelectionChanged(object sender, EventArgs e)
         {
@@ -965,11 +1001,11 @@ namespace RestaurantClient
                 }
             }
 
-            // Định dạng cột ngày tháng
             if (e.ColumnIndex == dataGridView_thanhtoan.Columns["NgayTao"].Index && e.Value != null)
             {
                 if (DateTime.TryParse(e.Value.ToString(), out DateTime date))
                 {
+
                     e.Value = date.ToString("HH:mm dd/MM/yyyy");
                     e.FormattingApplied = true;
                 }
@@ -991,8 +1027,15 @@ namespace RestaurantClient
                     this.Invoke(new Action<PendingPaymentData>(ShowBillDetails), payment);
                     return;
                 }
+                // 🔥 SỬA LỖI: Đảm bảo hiển thị đúng thời gian đã được chuyển đổi
+                if (tb_dateBill != null && payment.NgayTao != null)
+                {
+                    //// Kiểm tra DateTime Kind và chuyển đổi nếu cần
+                    DateTime displayTime = payment.NgayTao;
 
-                // HIỂN THỊ THÔNG TIN CHI TIẾT VÀO CÁC TEXTBOX
+                    tb_dateBill.Text = displayTime.ToString("HH:mm dd/MM/yyyy");
+                }
+
                 if (tb_idBill != null)
                 {
                     tb_idBill.Text = payment.MaHD.ToString();
@@ -1003,10 +1046,6 @@ namespace RestaurantClient
                     tb_idTable.Text = payment.MaBanAn.ToString();
                 }
 
-                if (tb_dateBill != null)
-                {
-                    tb_dateBill.Text = payment.NgayTao.ToString("HH:mm dd/MM/yyyy");
-                }
 
                 if (tb_tongtien != null)
                 {
@@ -1046,7 +1085,6 @@ namespace RestaurantClient
             }
         }
 
-        // ==================== PAYMENT METHODS ====================
         // ==================== PAYMENT METHODS ====================
         private async void btn_ttoan_Click(object sender, EventArgs e)
         {
@@ -1491,8 +1529,17 @@ namespace RestaurantClient
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            _autoRefreshTimer?.Stop(); // 🔥 ĐẢM BẢO DỪNG TIMER
+            // Stop the auto refresh timer
+            _autoRefreshTimer?.Stop();
             _autoRefreshTimer?.Dispose();
+
+            // ✅ THÊM: Stop the clock timer
+            if (_clockTimer != null)
+            {
+                _clockTimer.Stop();
+                _clockTimer.Dispose();
+            }
+
             base.OnFormClosing(e);
         }
 
@@ -1567,6 +1614,7 @@ namespace RestaurantClient
                             MaBanAn = maBan,
                             MaNhanVien = _currentUserId,
                             TongTien = tongTien,
+                            NgayOrder = DateTime.Now, // 🔥 THÊM DÒNG NÀY
                             ChiTietOrder = _gioHang.Select(item => new ChiTietOrder
                             {
                                 MaMon = item.MaMon,
@@ -2287,6 +2335,11 @@ namespace RestaurantClient
         }
 
         private void dgv_DonHangTongQuan_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void dataGridView_thanhtoan_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
 
         }
