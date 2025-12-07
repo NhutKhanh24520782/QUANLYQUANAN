@@ -1222,17 +1222,17 @@ namespace RestaurantServer
 
                         // 4. Thêm giao dịch thanh toán
                         string insertPaymentSql = @"
-                        INSERT INTO THANHTOAN (
-                            MaHD, MaNhanVien, PhuongThucThanhToan, 
-                            SoTienThanhToan, TrangThai, 
-                            MaGiaoDichNganHang, QRCodeData, GhiChu
-                        )
-                        VALUES (
-                            @MaHD, @MaNhanVien, N'ChuyenKhoan',
-                            @SoTienThanhToan, N'ThanhCong',
-                            @MaGiaoDichNganHang, @QRCodeData, N'Thanh toán chuyển khoản'
-                        );
-                        SELECT CAST(SCOPE_IDENTITY() AS INT)";
+                    INSERT INTO THANHTOAN (
+                        MaHD, MaNhanVien, PhuongThucThanhToan, 
+                        SoTienThanhToan, TrangThai, 
+                        MaGiaoDichNganHang, QRCodeData, GhiChu
+                    )
+                    VALUES (
+                        @MaHD, @MaNhanVien, N'ChuyenKhoan',
+                        @SoTienThanhToan, N'DangXuLy', -- <--- QUAN TRỌNG: ĐANG XỬ LÝ
+                        @MaGiaoDichNganHang, @QRCodeData, N'Đang chờ chuyển khoản'
+                    );
+                    SELECT CAST(SCOPE_IDENTITY() AS INT)";
 
                         int maGiaoDich;
                         using (SqlCommand insertCmd = new SqlCommand(insertPaymentSql, conn, transaction))
@@ -1242,32 +1242,18 @@ namespace RestaurantServer
                             insertCmd.Parameters.AddWithValue("@SoTienThanhToan", tongTien);
                             insertCmd.Parameters.AddWithValue("@MaGiaoDichNganHang", transactionNo);
                             insertCmd.Parameters.AddWithValue("@QRCodeData", qrCodeData);
-
                             maGiaoDich = Convert.ToInt32(insertCmd.ExecuteScalar());
                         }
 
-                        // 5. Cập nhật trạng thái hóa đơn
-                        string updateHoaDonSql = @"
-                        UPDATE HOADON 
-                        SET TrangThai = N'DaThanhToan',
-                            PhuongThucThanhToan = N'ChuyenKhoan'
-                        WHERE MaHD = @MaHD";
-
-                        using (SqlCommand updateCmd = new SqlCommand(updateHoaDonSql, conn, transaction))
-                        {
-                            updateCmd.Parameters.AddWithValue("@MaHD", maHD);
-                            int rowsAffected = updateCmd.ExecuteNonQuery();
-
-                            if (rowsAffected == 0)
-                                throw new Exception("Không thể cập nhật hóa đơn");
-                        }
+                        // LƯU Ý: KHÔNG UPDATE BẢNG HOADON THÀNH 'DaThanhToan' LÚC NÀY!
+                        // Hóa đơn vẫn phải treo chờ.
 
                         transaction.Commit();
 
                         return new TransferPaymentResult
                         {
                             Success = true,
-                            Message = "Thanh toán chuyển khoản thành công",
+                            Message = "Đã tạo mã QR. Vui lòng chờ khách thanh toán.",
                             TransactionNo = transactionNo,
                             QRCodeData = qrCodeData,
                             NgayThanhToan = DateTime.Now,
@@ -1277,16 +1263,48 @@ namespace RestaurantServer
                     catch (Exception ex)
                     {
                         transaction.Rollback();
-                        return new TransferPaymentResult
-                        {
-                            Success = false,
-                            Message = $"Lỗi thanh toán: {ex.Message}"
-                        };
+                        return new TransferPaymentResult { Success = false, Message = "Lỗi: " + ex.Message };
                     }
                 }
             }
         }
+        // [DatabaseAccess.cs] - Thêm hàm này vào class
+        public static bool CheckTransferStatus(int maHD)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
 
+                // Kiểm tra xem trong bảng THANHTOAN có dòng nào của HĐ này đã thành công chưa
+                string query = @"
+            SELECT COUNT(*) FROM THANHTOAN 
+            WHERE MaHD = @MaHD 
+              AND PhuongThucThanhToan = 'ChuyenKhoan' 
+              AND TrangThai = N'ThanhCong'"; // Chỉ tính là xong nếu trạng thái là Thành Công
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaHD", maHD);
+                    int count = (int)cmd.ExecuteScalar();
+
+                    if (count > 0)
+                    {
+                        // Nếu tìm thấy thanh toán thành công -> Update luôn trạng thái HÓA ĐƠN
+                        // (Đề phòng trường hợp chưa update)
+                        string updateHD = @"UPDATE HOADON 
+                                    SET TrangThai = N'DaThanhToan', PhuongThucThanhToan = N'ChuyenKhoan' 
+                                    WHERE MaHD = @MaHD AND TrangThai = N'ChuaThanhToan'";
+                        using (SqlCommand cmdHD = new SqlCommand(updateHD, conn))
+                        {
+                            cmdHD.Parameters.AddWithValue("@MaHD", maHD);
+                            cmdHD.ExecuteNonQuery();
+                        }
+                        return true; // Báo về Client là xong rồi
+                    }
+                }
+            }
+            return false; // Chưa thấy tiền
+        }
         public static OrderMonResult GetMon()
         {
             try
@@ -2856,6 +2874,63 @@ namespace RestaurantServer
             }
 
             return result;
+        }
+        // [DatabaseAccess.cs]
+
+        public static void ConfirmPaymentWebhook(int maHD, decimal soTienThucTe)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // BƯỚC 1: Cập nhật bảng HOADON (Code cũ của bạn)
+                    string queryHoaDon = @"UPDATE HOADON 
+                                   SET TrangThai = N'DaThanhToan', 
+                                       PhuongThucThanhToan = N'ChuyenKhoan' 
+                                   WHERE MaHD = @MaHD";
+
+                    using (var cmdHD = new SqlCommand(queryHoaDon, connection))
+                    {
+                        cmdHD.Parameters.AddWithValue("@MaHD", maHD);
+                        cmdHD.ExecuteNonQuery();
+                    }
+
+                    // BƯỚC 2: (QUAN TRỌNG - BỔ SUNG) Cập nhật bảng THANHTOAN
+                    // Client đang chờ bảng này chuyển sang trạng thái 'ThanhCong'
+                    string queryThanhToan = @"UPDATE THANHTOAN 
+                                      SET TrangThai = N'ThanhCong',
+                                          SoTienNhan = @SoTienThucTe,
+                                          ThoiGianThanhToan = GETDATE(),
+                                          GhiChu = CONCAT(GhiChu, N'. Nhận tiền qua Webhook.')
+                                      WHERE MaHD = @MaHD 
+                                        AND PhuongThucThanhToan = N'ChuyenKhoan' 
+                                        AND TrangThai = N'DangXuLy'";
+
+                    using (var cmdTT = new SqlCommand(queryThanhToan, connection))
+                    {
+                        cmdTT.Parameters.AddWithValue("@MaHD", maHD);
+                        cmdTT.Parameters.AddWithValue("@SoTienThucTe", soTienThucTe);
+
+                        int rows = cmdTT.ExecuteNonQuery();
+                        if (rows > 0)
+                        {
+                            Console.WriteLine($" 🎉 Đã xác nhận THANHTOAN thành công cho Hóa đơn #{maHD}");
+                        }
+                        else
+                        {
+                            // Trường hợp chưa có record trong bảng THANHTOAN (ví dụ khách ck trước khi bấm nút Thanh toán)
+                            // Bạn có thể cân nhắc Insert mới vào đây nếu cần thiết.
+                            Console.WriteLine($" ⚠️ Đã update HOADON nhưng không tìm thấy giao dịch 'DangXuLy' trong bảng THANHTOAN cho HD #{maHD}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("❌ Lỗi DB Webhook: " + ex.Message);
+            }
         }
     }
 }

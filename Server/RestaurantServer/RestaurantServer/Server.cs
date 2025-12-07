@@ -9,13 +9,19 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Net;
+using System.IO;
+using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
 namespace RestaurantServer
 {
     internal class Server
     {
         private TcpListener? listener;
+        private HttpListener? httpListener; // 🔥 Thêm HTTP Listener cho Webhook
         private bool isRunning = false;
+        private const string WEBHOOK_PREFIX = "http://+:8080/webhook/"; // Chạy cổng 8080 cho webhook
+        private const string API_KEY_CASSO = "secure-token-cua-ban"; // Để bảo mật
 
         public void Start(int port)
         {
@@ -25,12 +31,14 @@ namespace RestaurantServer
             Console.WriteLine($"🚀 Server đang lắng nghe tại cổng {port}...");
 
             _ = Task.Run(async () => await ListenForClientsAsync());
+            StartWebhookServer();
         }
 
         public void Stop()
         {
             isRunning = false;
             listener?.Stop();
+            httpListener?.Stop(); // Dừng cả HTTP
             Console.WriteLine("⛔ Server đã dừng.");
         }
 
@@ -77,7 +85,7 @@ namespace RestaurantServer
 
                     string jsonResponse = type switch
                     {
-                  
+
                         "Login" => await HandleLoginRequestAsync(rawRequest),
                         "Register" => await HandleRegisterRequestAsync(rawRequest),
                         "UpdatePassword" => await HandleUpdatePasswordRequestAsync(rawRequest),
@@ -117,6 +125,7 @@ namespace RestaurantServer
                         "GetKitchenStatistics" => HandleGetKitchenStatisticsRequestAsync(rawRequest).Result,
                         "GetThongKeBep" => await HandleGetThongKeBepRequestAsync(rawRequest),
                         "GetDanhSachDauBep" => await HandleGetDanhSachDauBepRequestAsync(rawRequest),
+                        "CheckTransferStatus" => await HandleCheckTransferStatusRequestAsync(rawRequest),
 
                         // Thống kê chi tiết đầu bếp
                         //"GetThongKeDauBepChiTiet" => await HandleGetThongKeDauBepChiTietRequestAsync(rawRequest),
@@ -139,7 +148,34 @@ namespace RestaurantServer
                 Console.WriteLine($"❌ {endpoint}: Lỗi - {ex.Message}");
             }
         }
+        // [Server.cs]
+        // Sửa lại hàm này để trả về Task<string> (không dùng StreamWriter writer nữa)
+        private async Task<string> HandleCheckTransferStatusRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<CheckTransferStatusRequest>();
 
+                    // Gọi hàm kiểm tra DB
+                    bool isPaid = DatabaseAccess.CheckTransferStatus(request.MaHD);
+
+                    var response = new CheckTransferStatusResponse
+                    {
+                        Success = true,
+                        IsPaid = isPaid,
+                        Message = isPaid ? "Đã thanh toán" : "Chưa thanh toán"
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi kiểm tra thanh toán: {ex.Message}");
+                }
+            });
+        }
         private async Task<string> HandleLoginRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
@@ -707,11 +743,13 @@ namespace RestaurantServer
                     var request = rawRequest.ToObject<GetMonRequest>();
                     if (request == null) return CreateErrorResponse("Request không hợp lệ");
                     var result = DatabaseAccess.GetMon();
-                    var response = new GetMonResponse { 
+                    var response = new GetMonResponse
+                    {
                         Success = result.Success,
                         Message = result.Message,
-                        MaMon=result.MaMon,
-                        OrderMons = result.OrderMons };
+                        MaMon = result.MaMon,
+                        OrderMons = result.OrderMons
+                    };
                     return JsonConvert.SerializeObject(response);
                 }
                 catch (Exception ex) { return CreateErrorResponse($"Lỗi lấy danh sách món: {ex.Message}"); }
@@ -1081,7 +1119,7 @@ namespace RestaurantServer
                 }
             });
         }
-    
+
         private async Task<string> HandleGetThongKeBepRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
@@ -1144,6 +1182,159 @@ namespace RestaurantServer
                 }
             });
         }
+
+        //==================== QR ====================
+        private void StartWebhookServer()
+        {
+            try
+            {
+                httpListener = new HttpListener();
+                httpListener.Prefixes.Add(WEBHOOK_PREFIX);
+                httpListener.Start();
+                Console.WriteLine($"🌍 Webhook Server đang lắng nghe tại {WEBHOOK_PREFIX}");
+
+                // Chạy luồng riêng để nhận tin từ Ngân hàng
+                Task.Run(async () =>
+                {
+                    while (isRunning)
+                    {
+                        try
+                        {
+                            var context = await httpListener.GetContextAsync();
+                            _ = ProcessWebhookRequest(context);
+                        }
+                        catch (Exception ex)
+                        {
+                            if (isRunning) Console.WriteLine("Lỗi Webhook Listener: " + ex.Message);
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("❌ Không thể khởi động Webhook Server (Cần quyền Admin): " + ex.Message);
+            }
+        }
+
+        private async Task ProcessWebhookRequest(HttpListenerContext context)
+        {
+            try
+            {
+                var request = context.Request;
+                var response = context.Response;
+
+                // Chỉ nhận POST
+                if (request.HttpMethod != "POST")
+                {
+                    response.StatusCode = 405;
+                    response.Close();
+                    return;
+                }
+
+                // Đọc dữ liệu JSON từ Casso/SePay gửi về
+                using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
+                {
+                    string jsonBody = await reader.ReadToEndAsync();
+                    Console.WriteLine($"💰 Nhận được thông báo thanh toán: {jsonBody}");
+
+                    // Xử lý dữ liệu
+                    HandlePaymentData(jsonBody);
+                }
+
+                // Phản hồi OK cho Casso để họ biết mình đã nhận
+                response.StatusCode = 200;
+                byte[] buffer = Encoding.UTF8.GetBytes("{\"status\":\"success\"}");
+                response.ContentLength64 = buffer.Length;
+                response.OutputStream.Write(buffer, 0, buffer.Length);
+                response.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi xử lý webhook: " + ex.Message);
+            }
+        }
+
+        // [Server.cs]
+
+        // [Server.cs]
+
+        private void HandlePaymentData(string json)
+        {
+            try
+            {
+                Console.WriteLine($"DEBUG JSON: {json}"); // In ra để xem cấu trúc thực tế
+                JObject data = JObject.Parse(json);
+
+                // 1. Lấy danh sách giao dịch (Hỗ trợ cả SePay và Casso)
+                JToken transactions = null;
+
+                // Thử lấy theo chuẩn SePay ("transactions")
+                if (data["transactions"] != null)
+                {
+                    transactions = data["transactions"];
+                }
+                // Thử lấy theo chuẩn Casso ("data")
+                else if (data["data"] != null)
+                {
+                    transactions = data["data"];
+                }
+
+                if (transactions != null)
+                {
+                    foreach (var trans in transactions)
+                    {
+                        // SePay: "transaction_content" hoặc "description"
+                        // Casso: "description"
+                        string description = trans["description"]?.ToString()
+                                             ?? trans["transaction_content"]?.ToString()
+                                             ?? "";
+
+                        // Lấy số tiền
+                        decimal amount = (decimal)(trans["amount"] ?? trans["amount_in"] ?? 0);
+
+                        // Tách Mã Hóa Đơn
+                        int maHD = ParseInvoiceId(description);
+
+                        if (maHD > 0)
+                        {
+                            Console.WriteLine($" ✅ Tìm thấy thanh toán cho Hóa đơn #{maHD}, Số tiền: {amount:N0}");
+
+                            // Gọi hàm cập nhật Database (Hàm bạn đã sửa ở bước trước)
+                            DatabaseAccess.ConfirmPaymentWebhook(maHD, amount);
+                        }
+                        else
+                        {
+                            Console.WriteLine($" ⚠️ Không tìm thấy mã HD trong nội dung: {description}");
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine(" ❌ Không tìm thấy danh sách giao dịch (transactions/data) trong JSON.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi phân tích JSON thanh toán: " + ex.Message);
+            }
+        }
+
+        private int ParseInvoiceId(string content)
+        {
+            // Regex tìm chữ số sau chữ "HD" hoặc "DH" (bất kể hoa thường)
+            // Ví dụ: "Thanh toan HD36" => lấy 36
+            var match = Regex.Match(content, @"(HD|DH)\s*(\d+)", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return int.Parse(match.Groups[2].Value);
+            }
+
+            // Fallback: Nếu nội dung chỉ có số "36" thì hơi rủi ro, nhưng có thể thử tìm số đứng riêng lẻ
+            // var matchNumber = Regex.Match(content, @"\b(\d+)\b"); ...
+
+            return 0;
+        }
+
     }
 
 }

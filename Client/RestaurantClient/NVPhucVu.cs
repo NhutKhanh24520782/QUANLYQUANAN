@@ -29,6 +29,8 @@ namespace RestaurantClient
         private List<CartItem> _gioHang = new List<CartItem>();
         private GridViewManager<PendingPaymentData> _billManager;
         private GridViewManager<MenuItemData> _ordermonManager;
+        private System.Windows.Forms.Timer _checkPaymentTimer;
+        private int _pendingMaHD = 0; // Lưu mã HD đang chờ
         private System.Windows.Forms.Timer _autoRefreshTimer; // 🔥 ĐÃ ĐƯỢC SỬ DỤNG
 
         // ==================== INITIALIZATION ====================
@@ -52,6 +54,9 @@ namespace RestaurantClient
             InitializeGridViewManager();
             InitializePaymentControls();
             InitializeAutoRefreshTimer(); // 🔥 BỔ SUNG: Khởi tạo Timer
+            _checkPaymentTimer = new System.Windows.Forms.Timer();
+            _checkPaymentTimer.Interval = 3000; // Kiểm tra mỗi 3 giây
+            _checkPaymentTimer.Tick += CheckPaymentTimer_Tick;
             LoadPendingBills();
             LoadMenuItems();
             InitializeCategoryComboBox();
@@ -1093,14 +1098,16 @@ namespace RestaurantClient
 
                     if (response?.Success == true)
                     {
-                        string successMessage = $"Thanh toán thành công!\nMã giao dịch: {response.MaGiaoDich}";
+                        //string successMessage = $"Thanh toán thành công!\nMã giao dịch: {response.MaGiaoDich}";
 
                         if (paymentMethod == "TienMat" && response.SoTienThua > 0)
                         {
-                            successMessage += $"\nTiền thừa: {response.SoTienThua:N0} VNĐ";
+                            string successMessage1 = $"Thanh toán thành công!\nMã giao dịch: {response.MaGiaoDich}";
+                            successMessage1 += $"\nTiền thừa: {response.SoTienThua:N0} VNĐ";
+                            ShowSuccess(successMessage1);
                         }
 
-                        ShowSuccess(successMessage);
+                        //ShowSuccess(successMessage);
 
                         // 🔥 QUAN TRỌNG: Refresh danh sách -> hóa đơn đã thanh toán sẽ ẩn đi
                         await _billManager.RefreshAsync();
@@ -1112,8 +1119,40 @@ namespace RestaurantClient
                         // Hiển thị QR code nếu là chuyển khoản
                         if (paymentMethod == "ChuyenKhoan")
                         {
-                            string noiDungCK = $"{selectedPayment.TenBan} Thanh Toan";
-                            HienThiMaQR(selectedPayment.TongTien, noiDungCK);
+                            if (!Confirm($"Xác nhận thanh toán CK cho bàn {selectedPayment.TenBan}?")) return;
+
+                            await ExecuteAsync(btn_ttoan, "Đang lấy QR...", async () =>
+                            {
+                                // Gọi API tạo thanh toán (Server sẽ trả về DangXuLy)
+                                var request = new ProcessPaymentRequest
+                                {
+                                    MaHD = selectedPayment.MaHD,
+                                    MaNhanVien = _currentUserId,
+                                    PhuongThucThanhToan = "ChuyenKhoan",
+                                    SoTienThanhToan = selectedPayment.TongTien
+                                };
+
+                                var response = await SendRequest<ProcessPaymentRequest, ProcessPaymentResponse>(request);
+
+                                if (response?.Success == true)
+                                {
+                                    // 1. Hiện QR
+                                    HienThiMaQR(selectedPayment.TongTien, $"HD{selectedPayment.MaHD}");
+                                    if (panel_qrthanhtoan != null) panel_qrthanhtoan.Visible = true;
+
+                                    // 2. Thông báo trạng thái chờ
+                                    ShowInfo("Vui lòng đợi khách quét QR. Hệ thống sẽ tự động xác nhận khi tiền về.");
+
+                                    // 3. BẮT ĐẦU ĐẾM GIỜ KIỂM TRA
+                                    _pendingMaHD = selectedPayment.MaHD;
+                                    _checkPaymentTimer.Start();
+                                    btn_ttoan.Enabled = false; // Khóa nút lại
+                                }
+                                else
+                                {
+                                    ShowError(response?.Message ?? "Lỗi tạo giao dịch");
+                                }
+                            });
                         }
                     }
                     else
@@ -1151,7 +1190,45 @@ namespace RestaurantClient
 
             });
         }
+        private async void CheckPaymentTimer_Tick(object sender, EventArgs e)
+        {
+            if (_pendingMaHD == 0) return;
 
+            try
+            {
+                // Gửi request hỏi Server
+                var request = new CheckTransferStatusRequest { MaHD = _pendingMaHD };
+
+                // Lưu ý: Cần viết hàm SendRequest nhẹ hơn không block UI, 
+                // nhưng tạm thời dùng hàm cũ cũng được.
+                var response = await SendRequest<CheckTransferStatusRequest, CheckTransferStatusResponse>(request);
+
+                if (response != null && response.IsPaid)
+                {
+                    // === THANH TOÁN THÀNH CÔNG ===
+                    _checkPaymentTimer.Stop(); // Dừng kiểm tra
+                    _pendingMaHD = 0;
+
+                    // Ẩn QR và báo thành công
+                    if (panel_qrthanhtoan != null) panel_qrthanhtoan.Visible = false;
+                    ShowSuccess("Thanh toán thành công! Tiền đã về tài khoản.");
+
+                    // Làm mới danh sách và mở lại nút
+                    await _billManager.RefreshAsync();
+                    ClearBillDetails();
+                    btn_ttoan.Enabled = true;
+                }
+                else
+                {
+                    // Chưa có tiền -> Console log nhẹ (không hiện popup làm phiền)
+                    Console.WriteLine("Đang đợi tiền về...");
+                }
+            }
+            catch
+            {
+                // Lỗi mạng thì cứ lờ đi, chờ lần check sau
+            }
+        }
         private void ShowQRCode(decimal amount, string transactionNo)
         {
             try
@@ -2087,44 +2164,40 @@ namespace RestaurantClient
         {
             try
             {
-                // --- SỬA LỖI 1: Bắt buộc dùng TLS 1.2 để tải được ảnh từ https ---
+                // Bắt buộc dùng TLS 1.2 để tải ảnh từ https
                 System.Net.ServicePointManager.SecurityProtocol =
                     System.Net.SecurityProtocolType.Tls12 |
                     System.Net.SecurityProtocolType.Tls11 |
                     System.Net.SecurityProtocolType.Tls;
 
-                // 1. Cấu hình tài khoản
-                string nganHang = "ICB";
+                // 1. Cấu hình tài khoản (Thay bằng thông tin của bạn)
+                string nganHang = "ICB"; // VietinBank
                 string soTaiKhoan = "0933200298";
                 string tenChuTaiKhoan = "NGUYEN QUOC TRUONG";
 
                 // 2. Xử lý dữ liệu
                 string amount = ((int)soTien).ToString();
+
+                // Encode nội dung sang định dạng URL (để tránh lỗi ký tự đặc biệt)
+                // VietQR sẽ tự động hiển thị đúng khi quét
                 string addInfo = Uri.EscapeDataString(noiDung);
                 string accountName = Uri.EscapeDataString(tenChuTaiKhoan);
 
-                // 3. Tạo link API
+                // 3. Tạo link API VietQR (Dùng template compact2 cho đẹp và chuẩn)
                 string apiUrl = $"https://img.vietqr.io/image/{nganHang}-{soTaiKhoan}-compact2.png?amount={amount}&addInfo={addInfo}&accountName={accountName}";
 
-                // --- SỬA LỖI 2: Xử lý hiển thị UI ---
-
-                // Nếu bạn có dùng panel_qrthanhtoan làm nền, hãy hiện nó lên trước
-                if (panel_qrthanhtoan != null)
-                {
-                    panel_qrthanhtoan.Visible = true;
-                    // Nếu pb_QR chưa nằm trong panel này, bạn nên kéo nó vào trong Designer
-                }
+                // 4. Hiển thị lên UI
+                if (panel_qrthanhtoan != null) panel_qrthanhtoan.Visible = true;
 
                 pb_QR.Visible = true;
-                pb_QR.Image = null; // Xóa ảnh cũ
+                pb_QR.Image = null; // Xóa ảnh cũ để tránh nhầm lẫn
                 pb_QR.SizeMode = PictureBoxSizeMode.Zoom;
-                pb_QR.BringToFront(); // Đưa ảnh lên lớp trên cùng để không bị che
+                pb_QR.BringToFront();
 
-                // 4. Tải ảnh và bắt lỗi tải
+                // Tải ảnh bất đồng bộ
                 pb_QR.LoadAsync(apiUrl);
 
-                // (Tùy chọn) Kiểm tra link xem có đúng không
-                Console.WriteLine("Link QR: " + apiUrl);
+                Console.WriteLine("Link QR đã tạo: " + apiUrl);
             }
             catch (Exception ex)
             {

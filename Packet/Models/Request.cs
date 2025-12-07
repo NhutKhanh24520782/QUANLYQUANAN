@@ -588,5 +588,10 @@ namespace Models.Request
             return (true, string.Empty);
         }
     }
+    public class CheckTransferStatusRequest
+    {
+        public string Type => "CheckTransferStatus";
+        public int MaHD { get; set; }
+    }
 }
 

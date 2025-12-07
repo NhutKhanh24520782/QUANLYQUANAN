@@ -830,4 +830,9 @@ namespace Models.Response
         public string FileName { get; set; } = string.Empty;
         public string ContentType { get; set; } = "application/pdf";
     }
+    public class CheckTransferStatusResponse : BaseResponse
+    {
+        public CheckTransferStatusResponse() => Type = "CheckTransferStatusResponse";
+        public bool IsPaid { get; set; } // True = Đã thanh toán, False = Chưa
+    }
 }

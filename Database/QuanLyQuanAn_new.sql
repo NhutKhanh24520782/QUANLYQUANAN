@@ -102,6 +102,7 @@ CREATE TABLE BAOCAO (
     MaNguoiTao INT,
     FOREIGN KEY (MaNguoiTao) REFERENCES NGUOIDUNG(MaNguoiDung)
 );
+DROP TABLE THANHTOAN;
 CREATE TABLE THANHTOAN (
     -- Khóa chính
     MaGiaoDich INT IDENTITY(1,1) PRIMARY KEY,
@@ -122,12 +123,12 @@ CREATE TABLE THANHTOAN (
     SoTienThua DECIMAL(12,2) NULL, -- Chỉ dùng cho tiền mặt
     
     -- Trạng thái giao dịch
-    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'ThanhCong' 
-        CHECK (TrangThai IN (N'ThanhCong', N'ThatBai', N'Huy')),
+    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'DangXuLy' 
+        CHECK (TrangThai IN (N'DangXuLy', N'ThanhCong', N'ThatBai', N'Huy')),
     
     -- Thông tin giao dịch ngân hàng (chỉ dùng cho chuyển khoản)
     MaGiaoDichNganHang NVARCHAR(255) NULL,
-    QRCodeData NVARCHAR(MAX) NULL,
+    QRCodeData NVARCHAR(MAX) NULL,
     
     -- Thời gian
     ThoiGianTao DATETIME DEFAULT GETDATE(),
