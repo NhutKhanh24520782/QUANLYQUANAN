@@ -33,7 +33,15 @@ namespace RestaurantClient
         private int _pendingMaHD = 0; // Lưu mã HD đang chờ
         private System.Windows.Forms.Timer _autoRefreshTimer; // 🔥 ĐÃ ĐƯỢC SỬ DỤNG
         private System.Windows.Forms.Timer? _clockTimer; // ✅ THÊM DÒNG NÀY
-
+        #region CHAT FIELDS
+        private System.Windows.Forms.Timer _chatRefreshTimer;      // Timer polling tin nhắn mới
+        private int _selectedChatUserId = 0;                        // ID user đang chat
+        private string _selectedChatUserName = "";                  // Tên user đang chat
+        private DateTime _lastMessageTime = DateTime.MinValue;      // Thời gian tin nhắn cuối
+        private List<ChatUserData> _chatUsers = new List<ChatUserData>();
+        private const int CHAT_REFRESH_INTERVAL = 3000;             // 3 giây polling
+        private HashSet<int> _displayedMessageIds = new HashSet<int>();
+        #endregion
 
         // ==================== INITIALIZATION ====================
         public NVPhucVu(int userId, string userName)
@@ -66,6 +74,7 @@ namespace RestaurantClient
             InitializeClockTimer(); // ✅ THÊM DÒNG NÀY
             UpdateUserInfo();
             LoadNVInfo();
+            InitializeChatFeature();
 
         }
         // 🔥 THÊM HÀM CHUYỂN ĐỔI MÚI GIỜ
@@ -1539,7 +1548,7 @@ namespace RestaurantClient
                 _clockTimer.Stop();
                 _clockTimer.Dispose();
             }
-
+            CleanupChatResources();
             base.OnFormClosing(e);
         }
 
@@ -2343,5 +2352,839 @@ namespace RestaurantClient
         {
 
         }
+        #region CHAT INITIALIZATION
+
+        /// <summary>
+        /// Khởi tạo chức năng Chat
+        /// </summary>
+        private void InitializeChatFeature()
+        {
+            try
+            {
+                // Setup ListView Users
+                SetupChatUserListView();
+
+                // Setup RichTextBox Messages
+                SetupChatMessagesBox();
+
+                // Setup Controls
+                SetupChatControls();
+
+                // Đăng ký sự kiện
+                RegisterChatEvents();
+
+                // Khởi tạo Timer polling
+                InitializeChatRefreshTimer();
+
+                // Load danh sách user
+                LoadChatUsers();
+
+                Console.WriteLine("✅ Khởi tạo Chat thành công");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi khởi tạo Chat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Setup ListView hiển thị danh sách user
+        /// </summary>
+        private void SetupChatUserListView()
+        {
+            if (lv_Users == null) return;
+
+            lv_Users.View = View.Details;
+            lv_Users.FullRowSelect = true;
+            lv_Users.GridLines = true;
+            lv_Users.MultiSelect = false;
+
+            // Xóa cột cũ và thêm cột mới
+            lv_Users.Columns.Clear();
+            lv_Users.Columns.Add("Tên", 180);
+            lv_Users.Columns.Add("Vai trò", 100);
+            lv_Users.Columns.Add("", 40); // Cột trạng thái online + số tin chưa đọc
+
+            // Cho phép sắp xếp
+            lv_Users.Sorting = SortOrder.None;
+        }
+
+        /// <summary>
+        /// Setup RichTextBox hiển thị tin nhắn
+        /// </summary>
+        private void SetupChatMessagesBox()
+        {
+            if (rtb_ChatMessages == null) return;
+
+            rtb_ChatMessages.ReadOnly = true;
+            rtb_ChatMessages.BackColor = Color.White;
+            rtb_ChatMessages.Font = new Font("Segoe UI", 10f);
+            rtb_ChatMessages.BorderStyle = BorderStyle.None;
+
+            // Hiển thị thông báo ban đầu
+            rtb_ChatMessages.Clear();
+            AppendColoredText("💬 Chọn một người để bắt đầu chat\n", Color.Gray, true);
+        }
+
+        /// <summary>
+        /// Setup các controls khác
+        /// </summary>
+        private void SetupChatControls()
+        {
+            // TextBox tìm kiếm
+            if (txt_SearchUser != null)
+            {
+                txt_SearchUser.PlaceholderText = "🔍 Tìm kiếm...";
+                txt_SearchUser.Font = new Font("Segoe UI", 9f);
+            }
+
+            // TextBox nhập tin nhắn
+            if (txt_ChatMessage != null)
+            {
+                txt_ChatMessage.PlaceholderText = "Nhập tin nhắn...";
+                txt_ChatMessage.Font = new Font("Segoe UI", 10f);
+                txt_ChatMessage.Enabled = false; // Disable cho đến khi chọn người chat
+            }
+
+            // Button gửi
+            if (btn_SendChat != null)
+            {
+                btn_SendChat.Enabled = false;
+                btn_SendChat.BackColor = Color.DodgerBlue;
+                btn_SendChat.ForeColor = Color.White;
+                btn_SendChat.FlatStyle = FlatStyle.Flat;
+            }
+
+            // CheckBox gửi tất cả
+            if (chk_SendAll != null)
+            {
+                chk_SendAll.Text = "📢 Gửi cho tất cả";
+            }
+
+            // Label header
+            if (lbl_ChatTitle != null)
+            {
+                lbl_ChatTitle.Text = "💬 Chọn người để chat";
+                lbl_ChatTitle.Font = new Font("Segoe UI", 11f, FontStyle.Bold);
+            }
+
+            if (lbl_ChatRole != null)
+            {
+                lbl_ChatRole.Text = "";
+                lbl_ChatRole.ForeColor = Color.DimGray;
+            }
+
+            // Label online count
+            UpdateOnlineCount();
+        }
+
+        /// <summary>
+        /// Đăng ký các sự kiện
+        /// </summary>
+        private void RegisterChatEvents()
+        {
+            // Sự kiện chọn user trong ListView
+            if (lv_Users != null)
+            {
+                lv_Users.SelectedIndexChanged += LvUsers_SelectedIndexChanged;
+                lv_Users.DoubleClick += LvUsers_DoubleClick;
+            }
+
+            // Sự kiện gửi tin nhắn
+            if (btn_SendChat != null)
+            {
+                btn_SendChat.Click += BtnSendChat_Click;
+            }
+
+            // Sự kiện nhấn Enter để gửi
+            if (txt_ChatMessage != null)
+            {
+                txt_ChatMessage.KeyPress += TxtChatMessage_KeyPress;
+            }
+
+            // Sự kiện tìm kiếm
+            if (txt_SearchUser != null)
+            {
+                txt_SearchUser.TextChanged += TxtSearchUser_TextChanged;
+            }
+
+            // Sự kiện checkbox gửi tất cả
+            if (chk_SendAll != null)
+            {
+                chk_SendAll.CheckedChanged += ChkSendAll_CheckedChanged;
+            }
+
+            // Sự kiện làm mới
+            if (btn_RefreshUsers != null)
+            {
+                btn_RefreshUsers.Click += BtnRefreshUsers_Click;
+            }
+        }
+
+        /// <summary>
+        /// Khởi tạo Timer polling tin nhắn mới
+        /// </summary>
+        private void InitializeChatRefreshTimer()
+        {
+            _chatRefreshTimer = new System.Windows.Forms.Timer();
+            _chatRefreshTimer.Interval = CHAT_REFRESH_INTERVAL;
+            _chatRefreshTimer.Tick += async (s, e) => await CheckNewMessagesAsync();
+            _chatRefreshTimer.Start();
+        }
+
+        #endregion
+
+        #region CHAT DATA LOADING
+
+        /// <summary>
+        /// Load danh sách user để chat
+        /// </summary>
+        private async void LoadChatUsers(string searchKeyword = "")
+        {
+            try
+            {
+                var request = new GetChatUsersRequest
+                {
+                    MaNguoiDungHienTai = _currentUserId,
+                    TimKiem = searchKeyword
+                };
+
+                var response = await SendRequest<GetChatUsersRequest, GetChatUsersResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    _chatUsers = response.Users;
+                    DisplayChatUsers(_chatUsers);
+                    UpdateOnlineCount();
+                }
+                else
+                {
+                    Console.WriteLine($"Lỗi load chat users: {response?.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi LoadChatUsers: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Hiển thị danh sách user lên ListView
+        /// </summary>
+        private void DisplayChatUsers(List<ChatUserData> users)
+        {
+            if (lv_Users == null) return;
+
+            if (lv_Users.InvokeRequired)
+            {
+                lv_Users.Invoke(new Action(() => DisplayChatUsers(users)));
+                return;
+            }
+
+            lv_Users.Items.Clear();
+
+            foreach (var user in users)
+            {
+                ListViewItem item = new ListViewItem(user.HoTen);
+                item.SubItems.Add(user.VaiTroDisplay);
+
+                // Hiển thị số tin chưa đọc hoặc trạng thái online
+                string statusText = user.SoTinChuaDoc > 0 ?
+                    $"({user.SoTinChuaDoc})" :
+                    (user.DangOnline ? "●" : "○");
+                item.SubItems.Add(statusText);
+
+                // Màu sắc theo vai trò
+                switch (user.VaiTro)
+                {
+                    case "Admin":
+                        item.ForeColor = Color.DarkRed;
+                        break;
+                    case "Bep":
+                        item.ForeColor = Color.DarkOrange;
+                        break;
+                    case "PhucVu":
+                        item.ForeColor = Color.DarkBlue;
+                        break;
+                }
+
+                // Highlight nếu có tin chưa đọc
+                if (user.SoTinChuaDoc > 0)
+                {
+                    item.BackColor = Color.LightYellow;
+                    item.Font = new Font(lv_Users.Font, FontStyle.Bold);
+                }
+
+                // Lưu MaNguoiDung vào Tag
+                item.Tag = user.MaNguoiDung;
+
+                lv_Users.Items.Add(item);
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật số user online
+        /// </summary>
+        private void UpdateOnlineCount()
+        {
+            if (lbl_OnlineCount == null) return;
+
+            if (lbl_OnlineCount.InvokeRequired)
+            {
+                lbl_OnlineCount.Invoke(new Action(UpdateOnlineCount));
+                return;
+            }
+
+            int online = _chatUsers?.Count(u => u.DangOnline) ?? 0;
+            int total = _chatUsers?.Count ?? 0;
+            lbl_OnlineCount.Text = $"Online: {online}/{total}";
+        }
+
+        /// <summary>
+        /// Load tin nhắn chat với user được chọn
+        /// </summary>
+        private async Task LoadChatMessagesAsync(int maNguoiChat)
+        {
+            try
+            {
+                var request = new GetChatMessagesRequest
+                {
+                    MaNguoiDung1 = _currentUserId,
+                    MaNguoiDung2 = maNguoiChat,
+                    SoLuong = 100
+                };
+
+                var response = await SendRequest<GetChatMessagesRequest, GetChatMessagesResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    DisplayChatMessages(response.Messages);
+
+                    // Cập nhật thời gian tin nhắn cuối
+                    if (response.Messages.Count > 0)
+                    {
+                        _lastMessageTime = response.Messages.Max(m => m.ThoiGian);
+                    }
+
+                    // Đánh dấu đã đọc
+                    await MarkMessagesAsReadAsync(maNguoiChat);
+
+                    // Refresh lại danh sách user để cập nhật số tin chưa đọc
+                    LoadChatUsers(txt_SearchUser?.Text ?? "");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi LoadChatMessages: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Hiển thị tin nhắn lên RichTextBox
+        /// </summary>
+        private void DisplayChatMessages(List<ChatMessageData> messages)
+        {
+            if (rtb_ChatMessages == null) return;
+
+            if (rtb_ChatMessages.InvokeRequired)
+            {
+                rtb_ChatMessages.Invoke(new Action(() => DisplayChatMessages(messages)));
+                return;
+            }
+
+            rtb_ChatMessages.Clear();
+            _displayedMessageIds.Clear();  // ✅ THÊM: Reset danh sách tin đã hiển thị
+
+            if (messages.Count == 0)
+            {
+                AppendColoredText("💬 Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!\n", Color.Gray, true);
+                return;
+            }
+
+            DateTime? lastDate = null;
+
+            foreach (var msg in messages)
+            {
+                // ✅ THÊM: Đánh dấu tin nhắn đã hiển thị
+                _displayedMessageIds.Add(msg.MaTinNhan);
+
+                // Hiển thị ngày nếu khác ngày trước
+                if (!lastDate.HasValue || msg.ThoiGian.Date != lastDate.Value.Date)
+                {
+                    AppendColoredText($"\n─── {msg.ThoiGian:dd/MM/yyyy} ───\n", Color.Gray, true);
+                    lastDate = msg.ThoiGian.Date;
+                }
+
+                bool isMine = msg.MaNguoiGui == _currentUserId;
+                string broadcastPrefix = msg.LaTinBroadcast ? "[📢 TẤT CẢ] " : "";
+
+                if (isMine)
+                {
+                    AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+                    AppendColoredText("Bạn: ", Color.DarkGreen, true);
+                    AppendColoredText($"{broadcastPrefix}{msg.NoiDung}\n", Color.Black, false);
+                }
+                else
+                {
+                    AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+
+                    Color nameColor = msg.VaiTroNguoiGui switch
+                    {
+                        "Admin" => Color.DarkRed,
+                        "Bep" => Color.DarkOrange,
+                        _ => Color.DarkBlue
+                    };
+
+                    AppendColoredText($"{msg.TenNguoiGui}: ", nameColor, true);
+                    AppendColoredText($"{broadcastPrefix}{msg.NoiDung}\n", Color.Black, false);
+                }
+            }
+
+            // Cuộn xuống cuối
+            rtb_ChatMessages.SelectionStart = rtb_ChatMessages.Text.Length;
+            rtb_ChatMessages.ScrollToCaret();
+        }
+
+        /// <summary>
+        /// Thêm text có màu vào RichTextBox
+        /// </summary>
+        private void AppendColoredText(string text, Color color, bool bold)
+        {
+            if (rtb_ChatMessages == null) return;
+
+            int start = rtb_ChatMessages.TextLength;
+            rtb_ChatMessages.AppendText(text);
+            rtb_ChatMessages.Select(start, text.Length);
+            rtb_ChatMessages.SelectionColor = color;
+
+            if (bold)
+            {
+                rtb_ChatMessages.SelectionFont = new Font(rtb_ChatMessages.Font, FontStyle.Bold);
+            }
+            else
+            {
+                rtb_ChatMessages.SelectionFont = new Font(rtb_ChatMessages.Font, FontStyle.Regular);
+            }
+
+            rtb_ChatMessages.SelectionLength = 0;
+        }
+
+        #endregion
+
+        #region CHAT SEND & RECEIVE
+
+        /// <summary>
+        /// Gửi tin nhắn chat
+        /// </summary>
+        private async Task SendChatMessageAsync()
+        {
+            try
+            {
+                string noiDung = txt_ChatMessage?.Text?.Trim() ?? "";
+
+                if (string.IsNullOrEmpty(noiDung))
+                {
+                    return;
+                }
+
+                bool guiTatCa = chk_SendAll?.Checked ?? false;
+
+                // Kiểm tra: phải chọn người nhận hoặc chọn gửi tất cả
+                if (!guiTatCa && _selectedChatUserId == 0)
+                {
+                    ShowWarning("Vui lòng chọn người nhận hoặc chọn 'Gửi cho tất cả'!");
+                    return;
+                }
+
+                // Disable controls khi đang gửi
+                if (btn_SendChat != null) btn_SendChat.Enabled = false;
+                if (txt_ChatMessage != null) txt_ChatMessage.Enabled = false;
+
+                var request = new SendChatMessageRequest
+                {
+                    MaNguoiGui = _currentUserId,
+                    MaNguoiNhan = guiTatCa ? 0 : _selectedChatUserId,
+                    NoiDung = noiDung,
+                    GuiTatCa = guiTatCa
+                };
+
+                var response = await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    // Xóa textbox
+                    if (txt_ChatMessage != null) txt_ChatMessage.Clear();
+
+                    // Thêm tin nhắn vào hiển thị ngay lập tức
+                    AppendSentMessage(noiDung, guiTatCa);
+
+                    // Cập nhật thời gian tin nhắn cuối
+                    _lastMessageTime = response.ThoiGianGui;
+
+                    Console.WriteLine($"✅ Đã gửi tin nhắn: {noiDung.Substring(0, Math.Min(20, noiDung.Length))}...");
+                }
+                else
+                {
+                    ShowError(response?.Message ?? "Lỗi gửi tin nhắn");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi gửi tin nhắn: {ex.Message}");
+            }
+            finally
+            {
+                // Enable lại controls
+                if (btn_SendChat != null) btn_SendChat.Enabled = true;
+                if (txt_ChatMessage != null)
+                {
+                    txt_ChatMessage.Enabled = true;
+                    txt_ChatMessage.Focus();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Thêm tin nhắn vừa gửi vào RichTextBox
+        /// </summary>
+        private void AppendSentMessage(string noiDung, bool guiTatCa)
+        {
+            if (rtb_ChatMessages == null) return;
+
+            if (rtb_ChatMessages.InvokeRequired)
+            {
+                rtb_ChatMessages.Invoke(new Action(() => AppendSentMessage(noiDung, guiTatCa)));
+                return;
+            }
+
+            string timeStr = DateTime.Now.ToString("HH:mm");
+            string prefix = guiTatCa ? "[📢 TẤT CẢ] " : "";
+
+            AppendColoredText($"[{timeStr}] ", Color.Gray, false);
+            AppendColoredText("Bạn: ", Color.DarkGreen, true);
+            AppendColoredText($"{prefix}{noiDung}\n", Color.Black, false);
+
+            // Cuộn xuống cuối
+            rtb_ChatMessages.SelectionStart = rtb_ChatMessages.Text.Length;
+            rtb_ChatMessages.ScrollToCaret();
+        }
+
+        /// <summary>
+        /// Kiểm tra tin nhắn mới (polling)
+        /// </summary>
+        private async Task CheckNewMessagesAsync()
+        {
+            try
+            {
+                // Chỉ kiểm tra nếu đang ở tab Chat
+                if (tabControl1?.SelectedTab?.Name != "tabPage1") return;
+
+                var request = new CheckNewMessagesRequest
+                {
+                    MaNguoiDung = _currentUserId,
+                    TuThoiGian = _lastMessageTime
+                };
+
+                var response = await SendRequest<CheckNewMessagesRequest, CheckNewMessagesResponse>(request);
+
+                if (response?.Success == true && response.CoTinMoi)
+                {
+                    bool hasNewMessages = false;
+
+                    foreach (var msg in response.TinNhanMoi)
+                    {
+                        // ✅ QUAN TRỌNG: Kiểm tra tin nhắn đã hiển thị chưa
+                        if (_displayedMessageIds.Contains(msg.MaTinNhan))
+                        {
+                            continue; // Bỏ qua tin đã hiển thị
+                        }
+
+                        // Đánh dấu đã hiển thị
+                        _displayedMessageIds.Add(msg.MaTinNhan);
+                        hasNewMessages = true;
+
+                        // Nếu tin nhắn từ người đang chat HOẶC là tin broadcast -> hiển thị
+                        if (msg.MaNguoiGui == _selectedChatUserId || msg.LaTinBroadcast)
+                        {
+                            AppendReceivedMessage(msg);
+                        }
+
+                        // Cập nhật thời gian
+                        if (msg.ThoiGian > _lastMessageTime)
+                        {
+                            _lastMessageTime = msg.ThoiGian;
+                        }
+                    }
+
+                    // Chỉ refresh danh sách user nếu có tin mới thực sự
+                    if (hasNewMessages)
+                    {
+                        LoadChatUsers(txt_SearchUser?.Text ?? "");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi CheckNewMessages: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Thêm tin nhắn nhận được vào RichTextBox
+        /// </summary>
+        private void AppendReceivedMessage(ChatMessageData msg)
+        {
+            if (rtb_ChatMessages == null) return;
+
+            if (rtb_ChatMessages.InvokeRequired)
+            {
+                rtb_ChatMessages.Invoke(new Action(() => AppendReceivedMessage(msg)));
+                return;
+            }
+
+            Color nameColor = msg.VaiTroNguoiGui switch
+            {
+                "Admin" => Color.DarkRed,
+                "Bep" => Color.DarkOrange,
+                _ => Color.DarkBlue
+            };
+
+            AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+            AppendColoredText($"{msg.TenNguoiGui}: ", nameColor, true);
+            AppendColoredText($"{msg.NoiDung}\n", Color.Black, false);
+
+            // Cuộn xuống cuối
+            rtb_ChatMessages.SelectionStart = rtb_ChatMessages.Text.Length;
+            rtb_ChatMessages.ScrollToCaret();
+        }
+
+        /// <summary>
+        /// Đánh dấu tin nhắn đã đọc
+        /// </summary>
+        private async Task MarkMessagesAsReadAsync(int maNguoiGui)
+        {
+            try
+            {
+                var request = new MarkMessagesReadRequest
+                {
+                    MaNguoiNhan = _currentUserId,
+                    MaNguoiGui = maNguoiGui
+                };
+
+                await SendRequest<MarkMessagesReadRequest, MarkMessagesReadResponse>(request);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi MarkMessagesAsRead: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region CHAT EVENT HANDLERS
+
+        /// <summary>
+        /// Sự kiện chọn user trong ListView
+        /// </summary>
+        private async void LvUsers_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lv_Users?.SelectedItems.Count == 0) return;
+
+            var selectedItem = lv_Users.SelectedItems[0];
+            if (selectedItem.Tag == null) return;
+
+            _selectedChatUserId = (int)selectedItem.Tag;
+            _selectedChatUserName = selectedItem.Text;
+
+            // Cập nhật header
+            UpdateChatHeader(_selectedChatUserName, selectedItem.SubItems[1].Text);
+
+            // Enable controls
+            if (txt_ChatMessage != null) txt_ChatMessage.Enabled = true;
+            if (btn_SendChat != null) btn_SendChat.Enabled = true;
+
+            // Bỏ chọn "Gửi tất cả" khi chọn người cụ thể
+            if (chk_SendAll != null) chk_SendAll.Checked = false;
+
+            // Load tin nhắn
+            await LoadChatMessagesAsync(_selectedChatUserId);
+        }
+
+        /// <summary>
+        /// Sự kiện double click vào user
+        /// </summary>
+        private void LvUsers_DoubleClick(object sender, EventArgs e)
+        {
+            // Focus vào textbox để nhập tin nhắn
+            txt_ChatMessage?.Focus();
+        }
+
+        /// <summary>
+        /// Sự kiện click nút Gửi
+        /// </summary>
+        private async void BtnSendChat_Click(object sender, EventArgs e)
+        {
+            await SendChatMessageAsync();
+        }
+
+        /// <summary>
+        /// Sự kiện nhấn phím trong textbox tin nhắn
+        /// </summary>
+        private async void TxtChatMessage_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // Nhấn Enter để gửi (Shift+Enter để xuống dòng)
+            if (e.KeyChar == (char)Keys.Enter && !ModifierKeys.HasFlag(Keys.Shift))
+            {
+                e.Handled = true; // Ngăn xuống dòng
+                await SendChatMessageAsync();
+            }
+        }
+
+        /// <summary>
+        /// Sự kiện thay đổi text tìm kiếm
+        /// </summary>
+        private void TxtSearchUser_TextChanged(object sender, EventArgs e)
+        {
+            // Delay để không gọi API liên tục khi đang gõ
+            // Có thể dùng Timer để debounce, nhưng đơn giản ta gọi trực tiếp
+            string keyword = txt_SearchUser?.Text?.Trim() ?? "";
+            FilterChatUsers(keyword);
+        }
+
+        /// <summary>
+        /// Lọc danh sách user theo từ khóa (local)
+        /// </summary>
+        private void FilterChatUsers(string keyword)
+        {
+            if (_chatUsers == null) return;
+
+            var filtered = string.IsNullOrEmpty(keyword) ?
+                _chatUsers :
+                _chatUsers.Where(u => u.HoTen.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            DisplayChatUsers(filtered);
+        }
+
+        /// <summary>
+        /// Sự kiện thay đổi checkbox "Gửi tất cả"
+        /// </summary>
+        private void ChkSendAll_CheckedChanged(object sender, EventArgs e)
+        {
+            bool guiTatCa = chk_SendAll?.Checked ?? false;
+
+            if (guiTatCa)
+            {
+                // Bỏ chọn user trong ListView
+                if (lv_Users != null)
+                {
+                    lv_Users.SelectedItems.Clear();
+                }
+
+                _selectedChatUserId = 0;
+                _selectedChatUserName = "";
+
+                // Cập nhật header
+                if (lbl_ChatTitle != null) lbl_ChatTitle.Text = "📢 Gửi tin nhắn cho TẤT CẢ";
+                if (lbl_ChatRole != null) lbl_ChatRole.Text = "Tin nhắn sẽ được gửi đến tất cả nhân viên";
+
+                // Enable controls
+                if (txt_ChatMessage != null) txt_ChatMessage.Enabled = true;
+                if (btn_SendChat != null) btn_SendChat.Enabled = true;
+
+                // Hiển thị hướng dẫn
+                if (rtb_ChatMessages != null)
+                {
+                    rtb_ChatMessages.Clear();
+                    AppendColoredText("📢 CHẾ ĐỘ GỬI TẤT CẢ\n\n", Color.DarkOrange, true);
+                    AppendColoredText("Tin nhắn của bạn sẽ được gửi đến TẤT CẢ nhân viên trong hệ thống.\n\n", Color.Gray, false);
+                    AppendColoredText("Lưu ý: Chỉ sử dụng khi có thông báo quan trọng!\n", Color.Red, false);
+                }
+            }
+            else
+            {
+                // Reset về trạng thái ban đầu nếu chưa chọn ai
+                if (_selectedChatUserId == 0)
+                {
+                    if (lbl_ChatTitle != null) lbl_ChatTitle.Text = "💬 Chọn người để chat";
+                    if (lbl_ChatRole != null) lbl_ChatRole.Text = "";
+
+                    if (txt_ChatMessage != null) txt_ChatMessage.Enabled = false;
+                    if (btn_SendChat != null) btn_SendChat.Enabled = false;
+
+                    if (rtb_ChatMessages != null)
+                    {
+                        rtb_ChatMessages.Clear();
+                        AppendColoredText("💬 Chọn một người để bắt đầu chat\n", Color.Gray, true);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sự kiện click nút Làm mới
+        /// </summary>
+        private async void BtnRefreshUsers_Click(object sender, EventArgs e)
+        {
+            if (btn_RefreshUsers != null)
+            {
+                btn_RefreshUsers.Enabled = false;
+                btn_RefreshUsers.Text = "Đang tải...";
+            }
+
+            try
+            {
+                LoadChatUsers(txt_SearchUser?.Text ?? "");
+
+                // Nếu đang chat với ai đó, refresh tin nhắn
+                if (_selectedChatUserId > 0)
+                {
+                    await LoadChatMessagesAsync(_selectedChatUserId);
+                }
+            }
+            finally
+            {
+                if (btn_RefreshUsers != null)
+                {
+                    btn_RefreshUsers.Enabled = true;
+                    btn_RefreshUsers.Text = "🔄 Làm mới";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật header khi chọn người chat
+        /// </summary>
+        private void UpdateChatHeader(string tenNguoi, string vaiTro)
+        {
+            if (lbl_ChatTitle != null)
+            {
+                lbl_ChatTitle.Text = $"💬 Chat với: {tenNguoi}";
+            }
+
+            if (lbl_ChatRole != null)
+            {
+                lbl_ChatRole.Text = $"Vai trò: {vaiTro}";
+            }
+        }
+
+        #endregion
+
+        #region CHAT CLEANUP
+
+        /// <summary>
+        /// Dọn dẹp resources khi đóng form
+        /// Thêm vào phương thức OnFormClosing đã có
+        /// </summary>
+        private void CleanupChatResources()
+        {
+            if (_chatRefreshTimer != null)
+            {
+                _chatRefreshTimer.Stop();
+                _chatRefreshTimer.Dispose();
+                _chatRefreshTimer = null;
+            }
+        }
+
+        #endregion
     }
 }
