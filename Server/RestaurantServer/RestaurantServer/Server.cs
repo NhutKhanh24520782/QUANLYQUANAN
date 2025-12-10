@@ -113,8 +113,7 @@ namespace RestaurantServer
                         "GetOrderDetail" => HandleGetOrderDetailRequestAsync(rawRequest).Result,
                         "UpdateDishStatus" => HandleUpdateDishStatusRequestAsync(rawRequest).Result,
                         "UpdateMultipleDishes" => HandleUpdateMultipleDishesRequestAsync(rawRequest).Result,
-                        "SendKitchenMessage" => HandleSendKitchenMessageRequestAsync(rawRequest).Result,
-                        "GetKitchenMessages" => HandleGetKitchenMessagesRequestAsync(rawRequest).Result,
+                      
                         "GetKitchenStatistics" => HandleGetKitchenStatisticsRequestAsync(rawRequest).Result,
                         "GetThongKeBep" => await HandleGetThongKeBepRequestAsync(rawRequest),
                         "GetDanhSachDauBep" => await HandleGetDanhSachDauBepRequestAsync(rawRequest),

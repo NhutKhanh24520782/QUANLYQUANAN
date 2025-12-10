@@ -447,7 +447,7 @@ namespace Models.Database
         public string HoTen { get; set; } = string.Empty;
         public int TongDon { get; set; }
         public int DonHoanThanh { get; set; }
-        public decimal TyLeHoanThanh => TongDon > 0 ? (decimal)DonHoanThanh / TongDon * 100 : 0;
+        public decimal? TyLeHoanThanh => TongDon > 0 ? (decimal)DonHoanThanh / TongDon * 100 : 0;
         public int TongMon { get; set; }
         public int MonHoanThanh { get; set; }
         public decimal TyLeMonHoanThanh => TongMon > 0 ? (decimal)MonHoanThanh / TongMon * 100 : 0;
@@ -516,6 +516,40 @@ namespace Models.Database
         public List<ChiTietDonHang> DanhSachMonDaCheBien { get; set; } = new List<ChiTietDonHang>();
     }
 
+    /// <summary>
+    /// Thống kê chi tiết
+    /// </summary>
+    public class KitchenStatisticsData
+    {
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+
+        // Tổng quan
+        public int TongSoDon { get; set; }
+        public int TongSoMon { get; set; }
+        public TimeSpan ThoiGianTrungBinh { get; set; }
+        public string ThoiGianTrungBinhDisplay => $"{(int)ThoiGianTrungBinh.TotalMinutes} phút";
+
+        // Phân bổ trạng thái
+        public int SoMonChoXacNhan { get; set; }
+        public int SoMonDangCheBien { get; set; }
+        public int SoMonHoanThanh { get; set; }
+        public int SoMonCoVanDe { get; set; }
+        public int SoMonHuy { get; set; }
+
+        // Top món
+        public List<TopMonData> TopMonAn { get; set; } = new List<TopMonData>();
+
+        // Hiệu suất đầu bếp
+        public List<HieuSuatDauBep> HieuSuatDauBep { get; set; } = new List<HieuSuatDauBep>();
+
+        // Phân bố theo giờ
+        public Dictionary<int, int> PhanBoTheoGio { get; set; } = new Dictionary<int, int>();
+    }
+
+    /// <summary>
+    /// Dữ liệu top món ăn
+    /// </summary>
 
     public class ThongKeBepTongQuan
     {

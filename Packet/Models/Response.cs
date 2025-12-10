@@ -388,11 +388,39 @@ namespace Models.Response
     /// <summary>
     /// Response danh sách đơn hàng cho bếp (Form chính)
     /// </summary>
+    // Thêm method tính toán trong GetKitchenOrdersResponse
+
     public class GetKitchenOrdersResponse : BaseResponse
     {
         public GetKitchenOrdersResponse() => Type = "GetKitchenOrdersResponse";
         public List<KitchenOrderData> DonHang { get; set; } = new List<KitchenOrderData>();
         public ThongKeBep ThongKe { get; set; } = new ThongKeBep();
+
+        // =========== THÊM: Tính toán thống kê chính xác ===========
+        public void TinhToanThongKe()
+        {
+            if (DonHang == null || DonHang.Count == 0)
+            {
+                ThongKe = new ThongKeBep();
+                return;
+            }
+
+            // Tạo thống kê mới từ danh sách đơn hàng
+            ThongKe = new ThongKeBep(DonHang);
+        }
+
+        // =========== THÊM: Tính thống kê chi tiết ===========
+        public ThongKeBepChiTiet GetThongKeChiTiet()
+        {
+            var thongKeChiTiet = new ThongKeBepChiTiet
+            {
+                Success = true,
+                Message = "Thống kê chi tiết"
+            };
+
+            thongKeChiTiet.TinhToanTuDonHang(DonHang);
+            return thongKeChiTiet;
+        }
     }
 
     /// <summary>
@@ -458,15 +486,12 @@ namespace Models.Response
 
     // ==================== KITCHEN DATA MODELS ====================
 
-    /// <summary>
-    /// Dữ liệu đơn hàng hiển thị trên FORM CHÍNH
-    /// </summary>
     public class KitchenOrderData
     {
         public int MaDonHang { get; set; }
-        public string MaDonHangDisplay => $"#{MaDonHang:D3}"; // Format: #012
+        public string MaDonHangDisplay => $"#{MaDonHang:D3}";
         public int MaBanAn { get; set; }
-        public string TenBan { get; set; } = ""; // "Bàn 1"
+        public string TenBan { get; set; } = "";
         public DateTime NgayOrder { get; set; }
         public string ThoiGianDisplay => NgayOrder.ToString("HH:mm");
         public string NgayOrderDisplay => NgayOrder.ToString("dd/MM/yyyy HH:mm");
@@ -479,19 +504,25 @@ namespace Models.Response
         public int SoMonCoVanDe { get; set; }
         public int SoMonHuy { get; set; }
 
+        // =========== SỬA QUAN TRỌNG ===========
+        // Thêm thuộc tính kiểm tra đơn hoàn thành
+        public bool LaDonHoanThanh => TongSoMon > 0 && SoMonHoanThanh == TongSoMon;
+        public bool LaDonHuy => TongSoMon > 0 && SoMonHuy == TongSoMon;
+
         // Trạng thái tổng của đơn hàng (tự động tính)
         public string TrangThaiDon
         {
             get
             {
-                if (SoMonHuy == TongSoMon) return "Huy";
-                if (SoMonHoanThanh == TongSoMon) return "HoanThanh";
+                if (LaDonHuy) return "Huy";
+                if (LaDonHoanThanh) return "HoanThanh";
+                if (SoMonCoVanDe > 0) return "CoVanDe";
                 if (SoMonDangCheBien > 0) return "DangCheBien";
                 if (SoMonChoXacNhan > 0) return "ChoXacNhan";
-                if (SoMonCoVanDe > 0) return "CoVanDe";
                 return "ChoXacNhan";
             }
         }
+        // ======================================
 
         public string trangThaiDon { get; set; }
 
@@ -733,54 +764,177 @@ namespace Models.Response
         public string DisplayText => $"{ThoiGianDisplay} • {TenNguoiGui} ({VaiTroNguoiGui}): {NoiDung}";
     }
 
-    /// <summary>
-    /// Thống kê cho FORM CHÍNH
-    /// </summary>
+
     public class ThongKeBep
     {
-        public int TongSoDon { get; set; }
+        // =========== SỬA: Tính toán chính xác số đơn hoàn thành ===========
+        private int _tongSoDon = 0;
+        private int _donHoanThanh = 0;
+        private List<KitchenOrderData> _donHangList = new List<KitchenOrderData>();
+
+        // Constructor mới để tính toán
+        public ThongKeBep() { }
+
+        public ThongKeBep(List<KitchenOrderData> donHang)
+        {
+            if (donHang != null)
+            {
+                _donHangList = donHang;
+                CalculateStatistics(donHang);
+            }
+        }
+
+        private void CalculateStatistics(List<KitchenOrderData> donHang)
+        {
+            TongSoDon = donHang.Count;
+            TongSoMon = donHang.Sum(d => d.TongSoMon);
+
+            // Tính chính xác số đơn hoàn thành (tất cả món đều hoàn thành)
+            DonHoanThanh = donHang.Count(d => d.LaDonHoanThanh);
+
+            // Tính các trạng thái khác
+            DonChoXacNhan = donHang.Count(d => d.TrangThaiDon == "ChoXacNhan");
+            DonDangCheBien = donHang.Count(d => d.TrangThaiDon == "DangCheBien");
+            DonCoVanDe = donHang.Count(d => d.TrangThaiDon == "CoVanDe");
+            DonHuy = donHang.Count(d => d.TrangThaiDon == "Huy");
+        }
+
+        // Properties
+        public int TongSoDon
+        {
+            get => _tongSoDon;
+            set => _tongSoDon = value;
+        }
+
         public int TongSoMon { get; set; }
+
+        public int DonHoanThanh
+        {
+            get => _donHoanThanh;
+            set => _donHoanThanh = value;
+        }
+
         public int DonChoXacNhan { get; set; }
         public int DonDangCheBien { get; set; }
-        public int DonHoanThanh { get; set; }
         public int DonCoVanDe { get; set; }
         public int DonHuy { get; set; }
 
+        // Tỷ lệ hoàn thành
+        public double TyLeHoanThanh => TongSoDon > 0
+            ? Math.Round((double)DonHoanThanh / TongSoDon * 100, 1)
+            : 0;
+
+        // Tỷ lệ các món hoàn thành (nếu cần)
+        public int TongMonHoanThanh { get; set; }
+        public double TyLeMonHoanThanh => TongSoMon > 0
+            ? Math.Round((double)TongMonHoanThanh / TongSoMon * 100, 1)
+            : 0;
+
+        // Cập nhật thống kê
+        public void UpdateFromOrders(List<KitchenOrderData> donHang)
+        {
+            CalculateStatistics(donHang);
+        }
+
         public string DisplayText =>
-            $"Tổng: {TongSoMon} món • ⏳ {DonChoXacNhan} chờ • 👨‍🍳 {DonDangCheBien} đang • ✅ {DonHoanThanh} xong • ⚠️ {DonCoVanDe} vấn đề";
+            $"Tổng: {TongSoDon} đơn • ⏳ {DonChoXacNhan} chờ • 👨‍🍳 {DonDangCheBien} đang • ✅ {DonHoanThanh} xong • ⚠️ {DonCoVanDe} vấn đề • ❌ {DonHuy} hủy";
+    }
+    // Thêm vào Models/Response.cs
+
+    /// <summary>
+    /// Thống kê bếp chi tiết với logic đúng đơn hoàn thành
+    /// </summary>
+    public class ThongKeBepChiTiet : BaseResponse
+    {
+        public ThongKeBepChiTiet() => Type = "ThongKeBepChiTiet";
+
+        // Tổng quan
+        public int TongDon { get; set; }
+        public int TongMon { get; set; }
+
+        // =========== QUAN TRỌNG: Đơn hoàn thành được tính chính xác ===========
+        public int DonHoanThanh { get; set; }
+        public int DonChoXacNhan { get; set; }
+        public int DonDangCheBien { get; set; }
+        public int DonCoVanDe { get; set; }
+        public int DonHuy { get; set; }
+
+        // Tỷ lệ
+        public double TyLeHoanThanh => TongDon > 0
+            ? Math.Round((double)DonHoanThanh / TongDon * 100, 1)
+            : 0;
+
+        // Thời gian
+        public double? ThoiGianTrungBinh { get; set; } // phút
+        public string ThoiGianTrungBinhDisplay => ThoiGianTrungBinh.HasValue
+            ? $"{Math.Round(ThoiGianTrungBinh.Value, 1)} phút"
+            : "N/A";
+
+        // Chi tiết từng đơn
+        public List<DonHangThongKe> ChiTietDonHang { get; set; } = new List<DonHangThongKe>();
+
+        // Tính toán từ danh sách đơn hàng
+        public void TinhToanTuDonHang(List<KitchenOrderData> donHang)
+        {
+            if (donHang == null || donHang.Count == 0)
+                return;
+
+            TongDon = donHang.Count;
+            TongMon = donHang.Sum(d => d.TongSoMon);
+
+            // QUAN TRỌNG: Đơn hoàn thành khi TẤT CẢ món đều hoàn thành
+            DonHoanThanh = donHang.Count(d => d.LaDonHoanThanh);
+
+            DonChoXacNhan = donHang.Count(d => d.TrangThaiDon == "ChoXacNhan");
+            DonDangCheBien = donHang.Count(d => d.TrangThaiDon == "DangCheBien");
+            DonCoVanDe = donHang.Count(d => d.TrangThaiDon == "CoVanDe");
+            DonHuy = donHang.Count(d => d.TrangThaiDon == "Huy");
+
+            // Tạo chi tiết
+            ChiTietDonHang = donHang.Select(d => new DonHangThongKe
+            {
+                MaDonHang = d.MaDonHang,
+                TenBan = d.TenBan,
+                TongSoMon = d.TongSoMon,
+                SoMonHoanThanh = d.SoMonHoanThanh,
+                LaDonHoanThanh = d.LaDonHoanThanh,
+                TrangThai = d.TrangThaiDon,
+                NgayOrder = d.NgayOrder
+            }).ToList();
+        }
     }
 
     /// <summary>
-    /// Thống kê chi tiết
+    /// Chi tiết từng đơn hàng cho thống kê
     /// </summary>
-    public class KitchenStatisticsData
+    public class DonHangThongKe
     {
-        public DateTime TuNgay { get; set; }
-        public DateTime DenNgay { get; set; }
-
-        // Tổng quan
-        public int TongSoDon { get; set; }
+        public int MaDonHang { get; set; }
+        public string TenBan { get; set; } = "";
         public int TongSoMon { get; set; }
-        public TimeSpan ThoiGianTrungBinh { get; set; }
-        public string ThoiGianTrungBinhDisplay => $"{(int)ThoiGianTrungBinh.TotalMinutes} phút";
-
-        // Phân bổ trạng thái
-        public int SoMonChoXacNhan { get; set; }
-        public int SoMonDangCheBien { get; set; }
         public int SoMonHoanThanh { get; set; }
-        public int SoMonCoVanDe { get; set; }
-        public int SoMonHuy { get; set; }
 
-        // Top món
-        public List<TopMonData> TopMonAn { get; set; } = new List<TopMonData>();
+        // =========== QUAN TRỌNG: Kiểm tra đơn hoàn thành ===========
+        public bool LaDonHoanThanh { get; set; }
 
-        // Hiệu suất đầu bếp
-        public List<HieuSuatDauBep> HieuSuatDauBep { get; set; } = new List<HieuSuatDauBep>();
+        public string TrangThai { get; set; } = "";
+        public DateTime NgayOrder { get; set; }
 
-        // Phân bố theo giờ
-        public Dictionary<int, int> PhanBoTheoGio { get; set; } = new Dictionary<int, int>();
+        public string TrangThaiDisplay => LaDonHoanThanh ? "✅ ĐÃ HOÀN THÀNH" :
+            TrangThai switch
+            {
+                "ChoXacNhan" => "⏳ Chờ xác nhận",
+                "DangCheBien" => "👨‍🍳 Đang chế biến",
+                "HoanThanh" => "✅ Hoàn thành",
+                "CoVanDe" => "⚠️ Có vấn đề",
+                "Huy" => "❌ Hủy",
+                _ => TrangThai
+            };
+
+        public double TyLeHoanThanh => TongSoMon > 0
+            ? Math.Round((double)SoMonHoanThanh / TongSoMon * 100, 1)
+            : 0;
     }
-
     /// <summary>
     /// Dữ liệu top món ăn
     /// </summary>
@@ -821,16 +975,7 @@ namespace Models.Response
         public GetDanhSachDauBepResponse() => Type = "GetDanhSachDauBepResponse";
         public List<NguoiDung> DanhSachDauBep { get; set; } = new List<NguoiDung>();
     }
-    /// Response xuất báo cáo
-    /// </summary>
-    public class XuatBaoCaoThongKeBepResponse
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public byte[] FileData { get; set; } = Array.Empty<byte>();
-        public string FileName { get; set; } = string.Empty;
-        public string ContentType { get; set; } = "application/pdf";
-    }
+  
     public class CheckTransferStatusResponse : BaseResponse
     {
         public CheckTransferStatusResponse() => Type = "CheckTransferStatusResponse";

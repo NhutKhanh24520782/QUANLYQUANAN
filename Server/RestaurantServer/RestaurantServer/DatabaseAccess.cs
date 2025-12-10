@@ -1795,10 +1795,10 @@ namespace RestaurantServer
             }
             return result;
         }
+        // Trong phương thức GetKitchenOrders trong DatabaseAccess.cs
 
-        // ==================== KITCHEN ORDER FUNCTIONS ====================
         public static KitchenOrdersResult GetKitchenOrders(string trangThai = "", string timKiemBan = "",
-            string sapXep = "ThoiGian", int? maNhanVienBep = null)
+              string sapXep = "ThoiGian", int? maNhanVienBep = null)
         {
             try
             {
@@ -1807,85 +1807,43 @@ namespace RestaurantServer
                     conn.Open();
 
                     string query = @"
-                SELECT TOP 50
-                    dh.MaDonHang,
-                    dh.MaBanAn,
-                    b.TenBan,
-                    dh.NgayOrder,
-                    dh.TrangThai as TrangThaiDon,
-                    nv.HoTen as TenNhanVienOrder,
-                    
-                    -- Thống kê món
-                    (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang) as TongSoMon,
-                    
-                    -- Số món theo trạng thái
-                    (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-                     WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'ChoXacNhan') as SoMonChoXacNhan,
-                    (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-                     WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'DangCheBien') as SoMonDangCheBien,
-                    (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-                     WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'HoanThanh') as SoMonHoanThanh,
-                    (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-                     WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'CoVanDe') as SoMonCoVanDe,
-                    (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-                     WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'Huy') as SoMonHuy,
-                    
-                    -- Ưu tiên cao nhất
-                    (SELECT MAX(UuTien) FROM CHITIET_DONHANG ctdh3 
-                     WHERE ctdh3.MaDonHang = dh.MaDonHang) as UuTienCaoNhat,
-                    
-                    -- Tổng tiền
-                    ISNULL((SELECT SUM(ctdh.SoLuong * ctdh.DonGia) 
-                           FROM CHITIET_DONHANG ctdh 
-                           WHERE ctdh.MaDonHang = dh.MaDonHang), 0) as TongTien
-                    
-                FROM DONHANG dh
-                LEFT JOIN BAN b ON dh.MaBanAn = b.MaBanAn
-                LEFT JOIN NGUOIDUNG nv ON dh.MaNVOrder = nv.MaNguoiDung
-                WHERE 1=1";
-
-                    // ✅ FIX: Thêm điều kiện lọc theo trạng thái MÓN ĂN
-                    if (!string.IsNullOrEmpty(timKiemBan))
-                    {
-                        query += " AND b.TenBan LIKE '%' + @TimKiemBan + '%'";
-                    }
-
-                    // ✅ FIX: LỌC THEO TRẠNG THÁI MÓN ĂN thay vì trạng thái đơn hàng
-                    if (!string.IsNullOrEmpty(trangThai) && trangThai != "TatCa")
-                    {
-                        query += @" AND EXISTS (
-                    SELECT 1 FROM CHITIET_DONHANG ctdh 
-                    WHERE ctdh.MaDonHang = dh.MaDonHang 
-                    AND ctdh.TrangThai = @TrangThai
-                )";
-                    }
-
-                    // Sắp xếp
-                    query += " ORDER BY ";
-                    switch (sapXep)
-                    {
-                        case "UuTien":
-                            query += "UuTienCaoNhat DESC, dh.NgayOrder DESC";
-                            break;
-                        case "Ban":
-                            query += "b.TenBan ASC, dh.NgayOrder DESC";
-                            break;
-                        case "ThoiGianCho":
-                            query += "dh.NgayOrder ASC";
-                            break;
-                        default: // "ThoiGian"
-                            query += "dh.NgayOrder DESC";
-                            break;
-                    }
-
+        SELECT TOP 50
+            dh.MaDonHang,
+            dh.MaBanAn,
+            b.TenBan,
+            dh.NgayOrder,
+            dh.TrangThai as TrangThaiDon,
+            nv.HoTen as TenNhanVienOrder,
+            
+            -- Thống kê món
+            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang) as TongSoMon,
+            
+            -- Số món theo trạng thái
+            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
+             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'ChoXacNhan') as SoMonChoXacNhan,
+            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
+             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'DangCheBien') as SoMonDangCheBien,
+            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
+             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'HoanThanh') as SoMonHoanThanh,
+            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
+             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'CoVanDe') as SoMonCoVanDe,
+            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
+             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'Huy') as SoMonHuy,
+            
+            -- Ưu tiên cao nhất
+            (SELECT MAX(UuTien) FROM CHITIET_DONHANG ctdh3 
+             WHERE ctdh3.MaDonHang = dh.MaDonHang) as UuTienCaoNhat,
+            
+            -- Tổng tiền
+            ISNULL((SELECT SUM(ctdh.SoLuong * ctdh.DonGia) 
+                   FROM CHITIET_DONHANG ctdh 
+                   WHERE ctdh.MaDonHang = dh.MaDonHang), 0) as TongTien
+            
+        FROM DONHANG dh
+        LEFT JOIN BAN b ON dh.MaBanAn = b.MaBanAn
+        LEFT JOIN NGUOIDUNG nv ON dh.MaNVOrder = nv.MaNguoiDung
+        WHERE 1=1";
                     SqlCommand cmd = new SqlCommand(query, conn);
-
-                    if (!string.IsNullOrEmpty(timKiemBan))
-                        cmd.Parameters.AddWithValue("@TimKiemBan", timKiemBan);
-
-                    if (!string.IsNullOrEmpty(trangThai) && trangThai != "TatCa")
-                        cmd.Parameters.AddWithValue("@TrangThai", trangThai);
-
                     List<KitchenOrderData> orders = new List<KitchenOrderData>();
 
                     using (SqlDataReader r = cmd.ExecuteReader())
@@ -1893,13 +1851,14 @@ namespace RestaurantServer
                         while (r.Read())
                         {
                             DateTime ngayOrderDB = (DateTime)r["NgayOrder"];
-                            DateTime ngayOrderVietnam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayOrderDB); // ✅ SỬA
+                            DateTime ngayOrderVietnam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayOrderDB);
+
                             var order = new KitchenOrderData
                             {
                                 MaDonHang = (int)r["MaDonHang"],
                                 MaBanAn = r["MaBanAn"] != DBNull.Value ? Convert.ToInt32(r["MaBanAn"]) : 0,
                                 TenBan = r["TenBan"]?.ToString() ?? "Không xác định",
-                                NgayOrder = ngayOrderVietnam, // Dùng giờ đã chuyển đổi
+                                NgayOrder = ngayOrderVietnam,
                                 TenNhanVienOrder = r["TenNhanVienOrder"]?.ToString() ?? "Không xác định",
                                 TongSoMon = r["TongSoMon"] != DBNull.Value ? Convert.ToInt32(r["TongSoMon"]) : 0,
                                 TongTien = r["TongTien"] != DBNull.Value ? Convert.ToDecimal(r["TongTien"]) : 0,
@@ -1912,45 +1871,95 @@ namespace RestaurantServer
                                 SoMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0,
                                 UuTienCaoNhat = r["UuTienCaoNhat"] != DBNull.Value ? Convert.ToInt32(r["UuTienCaoNhat"]) : 1,
 
-                                // ✅ THÊM: Xác định trạng thái đơn dựa trên món
+                                // =========== QUAN TRỌNG: Tính toán LaDonHoanThanh và LaDonHuy ===========
                                 trangThaiDon = r["TrangThaiDon"]?.ToString() ?? "ChoXacNhan"
                             };
+
+                            // =========== TÍNH TOÁN ĐƠN HOÀN THÀNH CHÍNH XÁC ===========
+                            // order.LaDonHoanThanh và order.LaDonHuy đã được tính tự động trong property
+                            // do chúng ta đã sửa trong class KitchenOrderData
 
                             orders.Add(order);
                         }
                     }
 
                     // Tính thống kê
-                    var thongKe = new ThongKeBep
+                    var thongKe = new ThongKeBep(orders); // Sử dụng constructor mới
+
+                    // =========== DEBUG: Kiểm tra logic đơn hoàn thành ===========
+                    Console.WriteLine($"DEBUG Thống kê:");
+                    Console.WriteLine($"- Tổng đơn: {thongKe.TongSoDon}");
+                    Console.WriteLine($"- Đơn hoàn thành: {thongKe.DonHoanThanh}");
+
+                    // Liệt kê các đơn hoàn thành
+                    var donHoanThanh = orders.Where(o => o.LaDonHoanThanh).ToList();
+                    foreach (var don in donHoanThanh)
                     {
-                        TongSoDon = orders.Count,
-                        TongSoMon = orders.Sum(o => o.TongSoMon),
-                        DonChoXacNhan = orders.Count(o => o.SoMonChoXacNhan > 0),
-                        DonDangCheBien = orders.Count(o => o.SoMonDangCheBien > 0),
-                        DonHoanThanh = orders.Count(o => o.SoMonHoanThanh == o.TongSoMon && o.TongSoMon > 0),
-                        DonCoVanDe = orders.Count(o => o.SoMonCoVanDe > 0),
-                        DonHuy = orders.Count(o => o.SoMonHuy == o.TongSoMon && o.TongSoMon > 0)
-                    };
+                        Console.WriteLine($"  + Đơn #{don.MaDonHang}: {don.SoMonHoanThanh}/{don.TongSoMon} món hoàn thành");
+                    }
 
                     return new KitchenOrdersResult
                     {
                         Success = true,
                         DonHang = orders,
                         ThongKe = thongKe,
-                        Message = $"Tìm thấy {orders.Count} đơn hàng"
+                        Message = $"Tìm thấy {orders.Count} đơn hàng, {thongKe.DonHoanThanh} đơn hoàn thành"
                     };
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ LỖI GetKitchenOrders: {ex.Message}");
-                Console.WriteLine($"❌ StackTrace: {ex.StackTrace}");
                 return new KitchenOrdersResult
                 {
                     Success = false,
                     Message = $"Lỗi lấy đơn hàng bếp: {ex.Message}"
                 };
             }
+        }
+        // Thêm vào DatabaseAccess.cs
+
+        public static bool KiemTraDonHoanThanh(int maDonHang)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+            SELECT 
+                COUNT(*) as TongSoMon,
+                SUM(CASE WHEN TrangThai = 'HoanThanh' THEN 1 ELSE 0 END) as SoMonHoanThanh,
+                SUM(CASE WHEN TrangThai = 'Huy' THEN 1 ELSE 0 END) as SoMonHuy
+            FROM CHITIET_DONHANG 
+            WHERE MaDonHang = @MaDonHang";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            if (r.Read())
+                            {
+                                int tongSoMon = r["TongSoMon"] != DBNull.Value ? Convert.ToInt32(r["TongSoMon"]) : 0;
+                                int soMonHoanThanh = r["SoMonHoanThanh"] != DBNull.Value ? Convert.ToInt32(r["SoMonHoanThanh"]) : 0;
+                                int soMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0;
+
+                                // Đơn hoàn thành khi: có món và tất cả món đều hoàn thành
+                                return tongSoMon > 0 && soMonHoanThanh == tongSoMon;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ LỖI KiemTraDonHoanThanh: {ex.Message}");
+            }
+
+            return false;
         }
         public static OrderDetailResult GetOrderDetail(int maDonHang)
         {
@@ -1982,7 +1991,7 @@ namespace RestaurantServer
                     SqlCommand cmd = new SqlCommand(orderQuery, conn);
                     cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
 
-                    KitchenOrderDetailData orderDetail = null;
+                    KitchenOrderDetailData? orderDetail = null;
 
                     using (SqlDataReader r = cmd.ExecuteReader())
                     {
@@ -2333,9 +2342,6 @@ namespace RestaurantServer
             }
         }
 
-        /// <summary>
-        /// Lấy thống kê công việc bếp
-        /// </summary>
         public static KitchenStatisticsResult GetKitchenStatistics(DateTime tuNgay, DateTime denNgay, int? maNhanVienBep = null)
         {
             try
@@ -2353,89 +2359,125 @@ namespace RestaurantServer
                         PhanBoTheoGio = new Dictionary<int, int>()
                     };
 
-                    // Điều chỉnh ngày theo múi giờ Việt Nam
+                    // ✅ FIX 1: Chỉ tạo ngày Việt Nam một lần và dùng xuyên suốt
                     DateTime tuNgayVietnam = tuNgay.Date;
                     DateTime denNgayVietnam = denNgay.Date.AddDays(1).AddSeconds(-1);
 
-                    // Tổng số đơn và món
+                    Console.WriteLine($"DEBUG GetKitchenStatistics: TuNgay={tuNgayVietnam:yyyy-MM-dd HH:mm:ss}, DenNgay={denNgayVietnam:yyyy-MM-dd HH:mm:ss}");
+
+                    // ✅ FIX 2: Tổng số đơn và món (SỬA QUERY)
                     string totalQuery = @"
-                SELECT 
-                    COUNT(DISTINCT dh.MaDonHang) as TongSoDon,
-                    COUNT(ctdh.MaChiTiet) as TongSoMon,
-                    AVG(DATEDIFF(MINUTE, ctdh.ThoiGianBatDau, ctdh.ThoiGianHoanThanh)) as ThoiGianTrungBinh,
-                    SUM(CASE WHEN ctdh.TrangThai = 'ChoXacNhan' THEN 1 ELSE 0 END) as SoMonChoXacNhan,
-                    SUM(CASE WHEN ctdh.TrangThai = 'DangCheBien' THEN 1 ELSE 0 END) as SoMonDangCheBien,
-                    SUM(CASE WHEN ctdh.TrangThai = 'HoanThanh' THEN 1 ELSE 0 END) as SoMonHoanThanh,
-                    SUM(CASE WHEN ctdh.TrangThai = 'CoVanDe' THEN 1 ELSE 0 END) as SoMonCoVanDe,
-                    SUM(CASE WHEN ctdh.TrangThai = 'Huy' THEN 1 ELSE 0 END) as SoMonHuy
-                FROM DONHANG dh
-                INNER JOIN CHITIET_DONHANG ctdh ON dh.MaDonHang = ctdh.MaDonHang
-                WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
-                AND (@MaNhanVienBep IS NULL OR ctdh.MaNhanVienCheBien = @MaNhanVienBep)";
-
-                    SqlCommand cmd = new SqlCommand(totalQuery, conn);
-                    cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
-                    cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
-                    if (maNhanVienBep.HasValue)
-                        cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
-                    else
-                        cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
-
-                    using (SqlDataReader r = cmd.ExecuteReader())
-                    {
-                        if (r.Read())
-                        {
-                            statistics.TongSoDon = r["TongSoDon"] != DBNull.Value ? Convert.ToInt32(r["TongSoDon"]) : 0;
-                            statistics.TongSoMon = r["TongSoMon"] != DBNull.Value ? Convert.ToInt32(r["TongSoMon"]) : 0;
-                            statistics.ThoiGianTrungBinh = r["ThoiGianTrungBinh"] != DBNull.Value ?
-                                TimeSpan.FromMinutes(Convert.ToDouble(r["ThoiGianTrungBinh"])) : TimeSpan.Zero;
-                            statistics.SoMonChoXacNhan = r["SoMonChoXacNhan"] != DBNull.Value ? Convert.ToInt32(r["SoMonChoXacNhan"]) : 0;
-                            statistics.SoMonDangCheBien = r["SoMonDangCheBien"] != DBNull.Value ? Convert.ToInt32(r["SoMonDangCheBien"]) : 0;
-                            statistics.SoMonHoanThanh = r["SoMonHoanThanh"] != DBNull.Value ? Convert.ToInt32(r["SoMonHoanThanh"]) : 0;
-                            statistics.SoMonCoVanDe = r["SoMonCoVanDe"] != DBNull.Value ? Convert.ToInt32(r["SoMonCoVanDe"]) : 0;
-                            statistics.SoMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0;
-                        }
-                    }
-
-                    // Top 5 món được order nhiều nhất
-                    string topMonQuery = @"
-                        SELECT TOP 5 
-                            ctdh.MaMon,
-                            mi.TenMon,
-                            COUNT(*) as SoLanOrder,
-                            SUM(ctdh.SoLuong) as TongSoPhan
-                        FROM CHITIET_DONHANG ctdh
-                        INNER JOIN MENUITEMS mi ON ctdh.MaMon = mi.MaMon
-                        INNER JOIN DONHANG dh ON ctdh.MaDonHang = dh.MaDonHang
+                        SELECT 
+                            COUNT(DISTINCT dh.MaDonHang) as TongSoDon,
+                            COUNT(ctdh.MaChiTiet) as TongSoMon,
+                            -- CHỈ tính thời gian cho các món đã hoàn thành
+                            CASE 
+                                WHEN COUNT(CASE WHEN ctdh.TrangThai = 'HoanThanh' AND ctdh.ThoiGianBatDau IS NOT NULL AND ctdh.ThoiGianHoanThanh IS NOT NULL THEN 1 END) > 0
+                                THEN AVG(DATEDIFF(MINUTE, ctdh.ThoiGianBatDau, ctdh.ThoiGianHoanThanh))
+                                ELSE NULL
+                            END as ThoiGianTrungBinh,
+                            SUM(CASE WHEN ctdh.TrangThai = 'ChoXacNhan' THEN 1 ELSE 0 END) as SoMonChoXacNhan,
+                            SUM(CASE WHEN ctdh.TrangThai = 'DangCheBien' THEN 1 ELSE 0 END) as SoMonDangCheBien,
+                            SUM(CASE WHEN ctdh.TrangThai = 'HoanThanh' THEN 1 ELSE 0 END) as SoMonHoanThanh,
+                            SUM(CASE WHEN ctdh.TrangThai = 'CoVanDe' THEN 1 ELSE 0 END) as SoMonCoVanDe,
+                            SUM(CASE WHEN ctdh.TrangThai = 'Huy' THEN 1 ELSE 0 END) as SoMonHuy
+                        FROM DONHANG dh
+                        INNER JOIN CHITIET_DONHANG ctdh ON dh.MaDonHang = ctdh.MaDonHang
                         WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
-                        GROUP BY ctdh.MaMon, mi.TenMon
-                        ORDER BY SoLanOrder DESC, TongSoPhan DESC";
+                        AND (@MaNhanVienBep IS NULL OR ctdh.MaNhanVienCheBien = @MaNhanVienBep)";
 
-                    cmd = new SqlCommand(topMonQuery, conn);
-                    cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
-                    cmd.Parameters.AddWithValue("@DenNgay", denNgay);
-
-                    using (SqlDataReader r = cmd.ExecuteReader())
+                    // ✅ FIX 3: Khởi tạo command riêng cho từng query để tránh lỗi parameter
+                    using (SqlCommand cmd = new SqlCommand(totalQuery, conn))
                     {
-                        while (r.Read())
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                        if (maNhanVienBep.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
                         {
-                            statistics.TopMonAn.Add(new TopMonData
+                            if (r.Read())
                             {
-                                MaMon = (int)r["MaMon"],
-                                TenMon = r["TenMon"].ToString(),
-                                SoLanOrder = (int)r["SoLanOrder"],
-                                TongSoPhan = (int)r["TongSoPhan"]
-                            });
+                                statistics.TongSoDon = r["TongSoDon"] != DBNull.Value ? Convert.ToInt32(r["TongSoDon"]) : 0;
+                                statistics.TongSoMon = r["TongSoMon"] != DBNull.Value ? Convert.ToInt32(r["TongSoMon"]) : 0;
+
+                                // ✅ FIX: Xử lý NULL cho ThoiGianTrungBinh
+                                if (r["ThoiGianTrungBinh"] != DBNull.Value)
+                                {
+                                    double phut = Convert.ToDouble(r["ThoiGianTrungBinh"]);
+                                    statistics.ThoiGianTrungBinh = TimeSpan.FromMinutes(phut);
+                                }
+                                else
+                                {
+                                    statistics.ThoiGianTrungBinh = TimeSpan.Zero;
+                                }
+
+                                statistics.SoMonChoXacNhan = r["SoMonChoXacNhan"] != DBNull.Value ? Convert.ToInt32(r["SoMonChoXacNhan"]) : 0;
+                                statistics.SoMonDangCheBien = r["SoMonDangCheBien"] != DBNull.Value ? Convert.ToInt32(r["SoMonDangCheBien"]) : 0;
+                                statistics.SoMonHoanThanh = r["SoMonHoanThanh"] != DBNull.Value ? Convert.ToInt32(r["SoMonHoanThanh"]) : 0;
+                                statistics.SoMonCoVanDe = r["SoMonCoVanDe"] != DBNull.Value ? Convert.ToInt32(r["SoMonCoVanDe"]) : 0;
+                                statistics.SoMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0;
+                            }
                         }
                     }
 
-                    // Hiệu suất đầu bếp
-                    string hieuSuatQuery = @"
+                    Console.WriteLine($"DEBUG: Thống kê tổng - Đơn: {statistics.TongSoDon}, Món: {statistics.TongSoMon}, Hoàn thành: {statistics.SoMonHoanThanh}");
+
+                    // ✅ FIX 4: Top 5 món được order nhiều nhất (SỬA QUERY - thêm điều kiện MaNhanVienBep)
+                                string topMonQuery = @"
+                            SELECT TOP 5 
+                                ctdh.MaMon,
+                                mi.TenMon,
+                                COUNT(*) as SoLanOrder,
+                                SUM(ctdh.SoLuong) as TongSoPhan
+                            FROM CHITIET_DONHANG ctdh
+                            INNER JOIN MENUITEMS mi ON ctdh.MaMon = mi.MaMon
+                            INNER JOIN DONHANG dh ON ctdh.MaDonHang = dh.MaDonHang
+                            WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
+                            AND (@MaNhanVienBep IS NULL OR ctdh.MaNhanVienCheBien = @MaNhanVienBep)
+                            GROUP BY ctdh.MaMon, mi.TenMon
+                            ORDER BY SoLanOrder DESC, TongSoPhan DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(topMonQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                        if (maNhanVienBep.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                statistics.TopMonAn.Add(new TopMonData
+                                {
+                                    MaMon = (int)r["MaMon"],
+                                    TenMon = r["TenMon"].ToString(),
+                                    SoLanOrder = (int)r["SoLanOrder"],
+                                    TongSoPhan = (int)r["TongSoPhan"]
+                                });
+                            }
+                        }
+                    }
+
+                    Console.WriteLine($"DEBUG: Top {statistics.TopMonAn.Count} món phổ biến");
+
+                    // ✅ FIX 5: Hiệu suất đầu bếp (SỬA QUERY - chỉ tính món đã hoàn thành)
+                            string hieuSuatQuery = @"
                         SELECT 
                             nv.MaNguoiDung,
                             nv.HoTen as TenNhanVien,
                             COUNT(ctdh.MaChiTiet) as TongSoMon,
-                            AVG(DATEDIFF(MINUTE, ctdh.ThoiGianBatDau, ctdh.ThoiGianHoanThanh)) as ThoiGianTrungBinh
+                            -- CHỈ tính thời gian cho món đã hoàn thành
+                            CASE 
+                                WHEN COUNT(CASE WHEN ctdh.TrangThai = 'HoanThanh' AND ctdh.ThoiGianBatDau IS NOT NULL AND ctdh.ThoiGianHoanThanh IS NOT NULL THEN 1 END) > 0
+                                THEN AVG(DATEDIFF(MINUTE, ctdh.ThoiGianBatDau, ctdh.ThoiGianHoanThanh))
+                                ELSE NULL
+                            END as ThoiGianTrungBinh
                         FROM NGUOIDUNG nv
                         INNER JOIN CHITIET_DONHANG ctdh ON nv.MaNguoiDung = ctdh.MaNhanVienCheBien
                         INNER JOIN DONHANG dh ON ctdh.MaDonHang = dh.MaDonHang
@@ -2447,62 +2489,88 @@ namespace RestaurantServer
                         HAVING COUNT(ctdh.MaChiTiet) > 0
                         ORDER BY TongSoMon DESC";
 
-                    cmd = new SqlCommand(hieuSuatQuery, conn);
-                    cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
-                    cmd.Parameters.AddWithValue("@DenNgay", denNgay);
-                    if (maNhanVienBep.HasValue)
-                        cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
-                    else
-                        cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
-
-                    using (SqlDataReader r = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(hieuSuatQuery, conn))
                     {
-                        while (r.Read())
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                        if (maNhanVienBep.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
                         {
-                            var hieuSuat = new HieuSuatDauBep
+                            while (r.Read())
                             {
-                                MaNhanVien = (int)r["MaNguoiDung"],
-                                TenNhanVien = r["TenNhanVien"].ToString(),
-                                TongSoMon = (int)r["TongSoMon"],
-                                ThoiGianTrungBinh = r["ThoiGianTrungBinh"] != DBNull.Value ?
-                                    TimeSpan.FromMinutes(Convert.ToDouble(r["ThoiGianTrungBinh"])) : TimeSpan.Zero
-                            };
+                                var hieuSuat = new HieuSuatDauBep
+                                {
+                                    MaNhanVien = (int)r["MaNguoiDung"],
+                                    TenNhanVien = r["TenNhanVien"].ToString(),
+                                    TongSoMon = (int)r["TongSoMon"]
+                                };
 
-                            // Tính hiệu suất phần trăm (giả sử)
-                            hieuSuat.HieuSuatPhanTram = CalculateEfficiency(hieuSuat);
+                                // ✅ FIX: Xử lý NULL cho thời gian trung bình
+                                if (r["ThoiGianTrungBinh"] != DBNull.Value)
+                                {
+                                    double phut = Convert.ToDouble(r["ThoiGianTrungBinh"]);
+                                    hieuSuat.ThoiGianTrungBinh = TimeSpan.FromMinutes(phut);
+                                }
+                                else
+                                {
+                                    hieuSuat.ThoiGianTrungBinh = TimeSpan.Zero;
+                                }
 
-                            statistics.HieuSuatDauBep.Add(hieuSuat);
+                                // ✅ FIX 6: Thêm hàm CalculateEfficiency
+                                hieuSuat.HieuSuatPhanTram = CalculateEfficiency(hieuSuat);
+
+                                statistics.HieuSuatDauBep.Add(hieuSuat);
+                            }
                         }
                     }
 
-                    // Phân bố theo giờ
+                    Console.WriteLine($"DEBUG: Hiệu suất {statistics.HieuSuatDauBep.Count} đầu bếp");
+
+                    // ✅ FIX 7: Phân bố theo giờ (THÊM điều kiện MaNhanVienBep)
                     for (int gio = 7; gio <= 22; gio++) // Từ 7h đến 22h
                     {
                         string hourQuery = @"
-                            SELECT COUNT(DISTINCT dh.MaDonHang) as SoDon
-                            FROM DONHANG dh
-                            WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
-                            AND DATEPART(HOUR, dh.NgayOrder) = @Gio";
+                    SELECT COUNT(DISTINCT dh.MaDonHang) as SoDon
+                    FROM DONHANG dh
+                    INNER JOIN CHITIET_DONHANG ctdh ON dh.MaDonHang = ctdh.MaDonHang
+                    WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
+                    AND DATEPART(HOUR, dh.NgayOrder) = @Gio
+                    AND (@MaNhanVienBep IS NULL OR ctdh.MaNhanVienCheBien = @MaNhanVienBep)";
 
-                        cmd = new SqlCommand(hourQuery, conn);
-                        cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
-                        cmd.Parameters.AddWithValue("@DenNgay", denNgay);
-                        cmd.Parameters.AddWithValue("@Gio", gio);
+                        using (SqlCommand cmd = new SqlCommand(hourQuery, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                            cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                            cmd.Parameters.AddWithValue("@Gio", gio);
+                            if (maNhanVienBep.HasValue)
+                                cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                            else
+                                cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
 
-                        int soDon = Convert.ToInt32(cmd.ExecuteScalar());
-                        statistics.PhanBoTheoGio[gio] = soDon;
+                            object result = cmd.ExecuteScalar();
+                            int soDon = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+                            statistics.PhanBoTheoGio[gio] = soDon;
+                        }
                     }
+
+                    Console.WriteLine($"DEBUG: Phân bố theo giờ - Tổng: {statistics.PhanBoTheoGio.Values.Sum()} đơn");
 
                     return new KitchenStatisticsResult
                     {
                         Success = true,
                         ThongKe = statistics,
-                        Message = "Lấy thống kê thành công"
+                        Message = $"Lấy thống kê thành công: {statistics.TongSoDon} đơn, {statistics.TongSoMon} món"
                     };
                 }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"❌ LỖI GetKitchenStatistics: {ex.Message}");
+                Console.WriteLine($"❌ StackTrace: {ex.StackTrace}");
                 return new KitchenStatisticsResult
                 {
                     Success = false,
@@ -2769,94 +2837,6 @@ namespace RestaurantServer
                 };
             }
         }
-
-        public static GetThongKeDauBepChiTietResult GetThongKeDauBepChiTiet(int maNhanVien, DateTime tuNgay, DateTime denNgay)
-        {
-            var result = new GetThongKeDauBepChiTietResult();
-
-            try
-            {
-                using (var connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-
-                    // Lấy thông tin chi tiết đầu bếp từ stored procedure
-                    using (var cmd = new SqlCommand("sp_ThongKeHieuSuatDauBep", connection))
-                    {
-                        cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
-                        cmd.Parameters.AddWithValue("@DenNgay", denNgay);
-                        cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                result.ThongKe = new ThongKeDauBepSPResult
-                                {
-                                    MaNguoiDung = Convert.ToInt32(reader["MaNguoiDung"]),
-                                    HoTen = reader["HoTen"].ToString(),
-                                    TongDon = reader["TongDon"] != DBNull.Value ? Convert.ToInt32(reader["TongDon"]) : 0,
-                                    DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0,
-                                    TongMon = reader["TongMon"] != DBNull.Value ? Convert.ToInt32(reader["TongMon"]) : 0,
-                                    MonHoanThanh = reader["MonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["MonHoanThanh"]) : 0,
-                                    ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null
-                                };
-                            }
-                        }
-                    }
-
-                    // Lấy danh sách món đã chế biến
-                    var query = @"
-                SELECT ct.*, mi.TenMon, dh.NgayOrder
-                FROM CHITIET_DONHANG ct
-                JOIN DONHANG dh ON ct.MaDonHang = dh.MaDonHang
-                JOIN MENUITEMS mi ON ct.MaMon = mi.MaMon
-                WHERE ct.MaNhanVienCheBien = @MaNhanVien
-                    AND dh.NgayOrder BETWEEN @TuNgay AND DATEADD(DAY, 1, @DenNgay)
-                    AND ct.TrangThai = N'HoanThanh'
-                ORDER BY dh.NgayOrder DESC";
-
-                    using (var cmd = new SqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@MaNhanVien", maNhanVien);
-                        cmd.Parameters.AddWithValue("@TuNgay", tuNgay);
-                        cmd.Parameters.AddWithValue("@DenNgay", denNgay);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                result.DanhSachMonDaCheBien.Add(new ChiTietDonHang
-                                {
-                                    MaChiTiet = Convert.ToInt32(reader["MaChiTiet"]),
-                                    MaDonHang = Convert.ToInt32(reader["MaDonHang"]),
-                                    MaMon = Convert.ToInt32(reader["MaMon"]),
-                                    SoLuong = Convert.ToInt32(reader["SoLuong"]),
-                                    DonGia = Convert.ToDecimal(reader["DonGia"]),
-                                    GhiChuBep = reader["GhiChuBep"]?.ToString() ?? "",
-                                    UuTien = Convert.ToInt32(reader["UuTien"]),
-                                    ThoiGianHoanThanh = reader["ThoiGianHoanThanh"] != DBNull.Value ?
-                                        Convert.ToDateTime(reader["ThoiGianHoanThanh"]) : (DateTime?)null
-                                });
-                            }
-                        }
-                    }
-
-                    result.Success = true;
-                    result.Message = "Lấy thống kê chi tiết thành công";
-                }
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.Message = $"Lỗi khi lấy thống kê chi tiết: {ex.Message}";
-                Console.WriteLine($"Error in GetThongKeDauBepChiTiet: {ex}");
-            }
-
-            return result;
-        }
-
         public static ThongKeBepDayDuResult GetThongKeBep(DateTime tuNgay, DateTime denNgay, int? MaNhanVienBep = null)
         {
             var result = new ThongKeBepDayDuResult();
@@ -2866,6 +2846,11 @@ namespace RestaurantServer
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
+
+                    Console.WriteLine($"\n=== BẮT ĐẦU LẤY THỐNG KÊ BẾP ===");
+                    Console.WriteLine($"Thời gian: {tuNgay:dd/MM/yyyy} - {denNgay:dd/MM/yyyy}");
+
+                   
 
                     // 1. Lấy thống kê tổng quan
                     using (var cmdTongQuan = new SqlCommand("sp_ThongKeTongQuanBep", connection))
@@ -2882,11 +2867,18 @@ namespace RestaurantServer
                                 result.TongQuan.DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0;
                                 result.TongQuan.TongMon = reader["TongMon"] != DBNull.Value ? Convert.ToInt32(reader["TongMon"]) : 0;
                                 result.TongQuan.ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null;
+
+                                Console.WriteLine($"Thống kê tổng quan:");
+                                Console.WriteLine($"  - Tổng đơn: {result.TongQuan.TongDon}");
+                                Console.WriteLine($"  - Đơn hoàn thành: {result.TongQuan.DonHoanThanh}");
+                                Console.WriteLine($"  - Tổng món: {result.TongQuan.TongMon}");
+                                Console.WriteLine($"  - Thời gian TB: {(result.TongQuan.ThoiGianTrungBinh.HasValue ? result.TongQuan.ThoiGianTrungBinh.Value.ToString("F1") : "N/A")} phút");
                             }
                         }
                     }
 
-                    // 2. Lấy thống kê đầu bếp
+                    // 2. Lấy thống kê đầu bếp (SP đã fix)
+                    Console.WriteLine($"\n=== THỐNG KÊ TỪNG ĐẦU BẾP ===");
                     using (var cmdDauBep = new SqlCommand("sp_ThongKeHieuSuatDauBep", connection))
                     {
                         cmdDauBep.CommandType = CommandType.StoredProcedure;
@@ -2900,19 +2892,38 @@ namespace RestaurantServer
 
                         using (var reader = cmdDauBep.ExecuteReader())
                         {
+                            // Debug: In tên các cột
+                            Console.WriteLine("Các cột trong kết quả:");
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                Console.WriteLine($"  {i}: {reader.GetName(i)}");
+                            }
+                            Console.WriteLine();
+
+                            int count = 0;
                             while (reader.Read())
                             {
-                                // Tạo đối tượng ThongKeDauBep thay vì ThongKeDauBepSPResult
-                                var dauBep = new ThongKeDauBep
+                                count++;
+
+                                // Debug: In tất cả giá trị
+                                Console.WriteLine($"--- Dòng #{count} ---");
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    Console.WriteLine($"  {reader.GetName(i)}: {reader[i]}");
+                                }
+
+                                var dauBep = new ThongKeDauBep()
                                 {
                                     MaNguoiDung = Convert.ToInt32(reader["MaNguoiDung"]),
                                     HoTen = reader["HoTen"].ToString(),
                                     TongDon = reader["TongDon"] != DBNull.Value ? Convert.ToInt32(reader["TongDon"]) : 0,
                                     DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0,
+                                    TongMon = reader["TongMon"] != DBNull.Value ? Convert.ToInt32(reader["TongMon"]) : 0,
+                                    MonHoanThanh = reader["MonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["MonHoanThanh"]) : 0,
                                     ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null
                                 };
 
-                                // Tính tỷ lệ hoàn thành
+                                // Tính tỷ lệ hoàn thành ĐƠN
                                 dauBep.TyLeHoanThanh = dauBep.TongDon > 0 ?
                                     (decimal)dauBep.DonHoanThanh / dauBep.TongDon * 100 : 0;
 
@@ -2920,6 +2931,17 @@ namespace RestaurantServer
                                 dauBep.DanhGiaHieuSuat = CalculateHieuSuat(dauBep.TyLeHoanThanh, dauBep.ThoiGianTrungBinh);
 
                                 result.DanhSachDauBep.Add(dauBep);
+
+                                Console.WriteLine($"✅ Đầu bếp {dauBep.HoTen}: {dauBep.TongDon} đơn, {dauBep.DonHoanThanh} đơn HT ({dauBep.TyLeHoanThanh:F2}%)");
+                            }
+
+                            if (count == 0)
+                            {
+                                Console.WriteLine($"⚠️ Không có đầu bếp nào có dữ liệu trong khoảng thời gian này");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"\n✅ Tổng cộng: {count} đầu bếp có dữ liệu");
                             }
                         }
                     }
@@ -2935,11 +2957,11 @@ namespace RestaurantServer
                         using (var reader = cmdTopMon.ExecuteReader())
                         {
                             int totalQuantity = 0;
-                            var topMonList = new List<TopMonAnThongKe>(); // Sửa thành TopMonAnThongKe
+                            var topMonList = new List<TopMonAnThongKe>();
 
                             while (reader.Read())
                             {
-                                var mon = new TopMonAnThongKe // Sửa thành TopMonAnThongKe
+                                var mon = new TopMonAnThongKe
                                 {
                                     MaMon = Convert.ToInt32(reader["MaMon"]),
                                     TenMon = reader["TenMon"].ToString(),
@@ -2959,36 +2981,51 @@ namespace RestaurantServer
                             }
 
                             result.TopMonAn = topMonList;
+                            Console.WriteLine($"\n✅ Lấy {topMonList.Count} món phổ biến, tổng {totalQuantity} phần");
                         }
                     }
 
                     result.Success = true;
                     result.Message = "Lấy thống kê thành công";
+
+                    Console.WriteLine($"\n=== KẾT THÚC THỐNG KÊ ===");
+                    Console.WriteLine($"Thành công: {result.Success}");
+                    Console.WriteLine($"Số đầu bếp: {result.DanhSachDauBep.Count}");
+                    Console.WriteLine($"Số món top: {result.TopMonAn.Count}");
                 }
             }
             catch (Exception ex)
             {
                 result.Success = false;
                 result.Message = $"Lỗi khi lấy thống kê: {ex.Message}";
-                Console.WriteLine($"Error in GetThongKeBep: {ex}");
+                Console.WriteLine($"\n❌ Lỗi trong GetThongKeBep: {ex.Message}");
+
+                // Hiển thị chi tiết lỗi SQL
+                if (ex is System.Data.SqlClient.SqlException sqlEx)
+                {
+                    Console.WriteLine($"SQL Error Number: {sqlEx.Number}");
+                    Console.WriteLine($"SQL Error Message: {sqlEx.Message}");
+                }
             }
 
             return result;
         }
-
-        // Phương thức tính hiệu suất
+        // =============================================
+        // Hàm tính hiệu suất (giữ nguyên)
+        // =============================================
         private static string CalculateHieuSuat(decimal tyLeHoanThanh, decimal? thoiGianTrungBinh)
         {
-            if (thoiGianTrungBinh == null || tyLeHoanThanh == 0)
-                return "⭐☆☆☆☆";
-
-            double diem = (((double)tyLeHoanThanh / 100.0) * 0.7) +
-                          ((30.0 - Math.Min((double)thoiGianTrungBinh, 30.0)) / 30.0 * 0.3);
-            if (diem >= 0.8) return "⭐⭐⭐⭐⭐";
-            else if (diem >= 0.6) return "⭐⭐⭐⭐☆";
-            else if (diem >= 0.4) return "⭐⭐⭐☆☆";
-            else if (diem >= 0.2) return "⭐⭐☆☆☆";
-            else return "⭐☆☆☆☆";
+            // Logic đánh giá (có thể tùy chỉnh)
+            if (tyLeHoanThanh >= 90 && thoiGianTrungBinh.HasValue && thoiGianTrungBinh <= 15)
+                return "Xuất sắc";
+            else if (tyLeHoanThanh >= 80 && thoiGianTrungBinh.HasValue && thoiGianTrungBinh <= 20)
+                return "Tốt";
+            else if (tyLeHoanThanh >= 70)
+                return "Khá";
+            else if (tyLeHoanThanh >= 50)
+                return "Trung bình";
+            else
+                return "Cần cải thiện";
         }
 
         public static GetDanhSachDauBepResult GetDanhSachDauBep()

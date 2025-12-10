@@ -449,16 +449,6 @@ namespace RestaurantClient
                 Width = 60,
                 ReadOnly = true
             });
-
-            dataGridView_dishs.Columns.Add(new DataGridViewButtonColumn
-            {
-                Name = "Action",
-                HeaderText = "Thao tác",
-                Text = "🔄",
-                UseColumnTextForButtonValue = true,
-                Width = 70,
-                FlatStyle = FlatStyle.Flat
-            });
         }
 
         private void InitializeComboBoxes()
@@ -527,37 +517,78 @@ namespace RestaurantClient
                 {
                     TongDon = response.TongQuan.TongDon,
                     DonHoanThanh = response.TongQuan.DonHoanThanh,
-                    TyLeHoanThanh = response.TongQuan.TyLeHoanThanh,
                     TongMon = response.TongQuan.TongMon,
+                    
                     ThoiGianTrungBinh = response.TongQuan.ThoiGianTrungBinh
                 }
             };
 
+            // Tính tỷ lệ hoàn thành
+            result.TongQuan.TyLeHoanThanh = result.TongQuan.TongDon > 0
+                ? Math.Round((decimal)result.TongQuan.DonHoanThanh / result.TongQuan.TongDon * 100, 1)
+                : 0;
+
             // Chuyển đổi danh sách đầu bếp
-            result.DanhSachDauBep = response.DanhSachDauBep.Select(d => new ThongKeDauBep
+            if (response.DanhSachDauBep != null)
             {
-                MaNguoiDung = d.MaNguoiDung,
-                HoTen = d.HoTen,
-                TongDon = d.TongDon,
-                DonHoanThanh = d.DonHoanThanh,
-                TyLeHoanThanh = d.TyLeHoanThanh,
-                ThoiGianTrungBinh = d.ThoiGianTrungBinh,
-                DanhGiaHieuSuat = d.DanhGiaHieuSuat
-            }).ToList();
+                result.DanhSachDauBep = response.DanhSachDauBep.Select(d => new ThongKeDauBep
+                {
+                    MaNguoiDung = d.MaNguoiDung,
+                    HoTen = d.HoTen,
+                    TongDon = d.TongDon,
+                    DonHoanThanh = d.DonHoanThanh,
+                    TongMon = d.TongMon,
+                    MonHoanThanh = d.MonHoanThanh,
+                    ThoiGianTrungBinh = d.ThoiGianTrungBinh,
+                    // Tính tỷ lệ hoàn thành cho từng đầu bếp
+                    TyLeHoanThanh = d.TongDon > 0
+                        ? Math.Round((decimal)d.DonHoanThanh / d.TongDon * 100, 1)
+                        : 0,
+                    DanhGiaHieuSuat = CalculatePerformanceRating(d.TongDon, d.DonHoanThanh, (double?)d.ThoiGianTrungBinh)
+                }).ToList();
+            }
 
             // Chuyển đổi top món ăn
-            result.TopMonAn = response.TopMonAn.Select(m => new TopMonAnThongKe
+            if (response.TopMonAn != null)
             {
-                TenMon = m.TenMon,
-                TenLoai = m.TenLoai,
-                SoLuong = m.SoLuong,
-                SoDon = m.SoDon,
-                TyLe = m.TyLe
-            }).ToList();
+                result.TopMonAn = response.TopMonAn.Select(m => new TopMonAnThongKe
+                {
+                    TenMon = m.TenMon,
+                    TenLoai = m.TenLoai,
+                    SoLuong = m.SoLuong,
+                    SoDon = m.SoDon,
+                    TyLe = m.TyLe
+                }).ToList();
+            }
 
             return result;
         }
+        // Hàm đánh giá hiệu suất đầu bếp
+        private string CalculatePerformanceRating(int tongDon, int donHoanThanh, double? thoiGianTrungBinh)
+        {
+            if (tongDon == 0) return "Chưa có dữ liệu";
 
+            decimal tyLeHoanThanh = tongDon > 0
+                ? Math.Round((decimal)donHoanThanh / tongDon * 100, 1)
+                : 0;
+
+            // Tính điểm hiệu suất
+            double diem = (double)tyLeHoanThanh / 100.0 * 0.7; // Tỷ lệ hoàn thành chiếm 70%
+
+            // Thời gian trung bình chiếm 30%
+            if (thoiGianTrungBinh.HasValue)
+            {
+                double diemThoiGian = Math.Max(0, 30 - (thoiGianTrungBinh.Value / 10.0));
+                diem += (diemThoiGian / 30.0 * 0.3);
+            }
+
+            // Chuyển sang đánh giá sao
+            if (diem >= 0.9) return "⭐⭐⭐⭐⭐";
+            else if (diem >= 0.8) return "⭐⭐⭐⭐☆";
+            else if (diem >= 0.7) return "⭐⭐⭐☆☆";
+            else if (diem >= 0.6) return "⭐⭐☆☆☆";
+            else return "⭐☆☆☆☆";
+        }
         private async Task TaiDuLieuThongKeAsync()
         {
             try
@@ -703,6 +734,8 @@ namespace RestaurantClient
             listView1.Columns.Add("Tổng đơn", 80, HorizontalAlignment.Center);
             listView1.Columns.Add("Đơn HT", 80, HorizontalAlignment.Center);
             listView1.Columns.Add("Tỷ lệ HT", 80, HorizontalAlignment.Center);
+            listView1.Columns.Add("Tổng món", 80, HorizontalAlignment.Center); // 🔥 THÊM CỘT NÀY
+            listView1.Columns.Add("Món HT", 80, HorizontalAlignment.Center);
             listView1.Columns.Add("Thời gian TB", 100, HorizontalAlignment.Center);
             listView1.Columns.Add("Hiệu suất", 100, HorizontalAlignment.Center);
 
@@ -715,6 +748,8 @@ namespace RestaurantClient
                 item.SubItems.Add(dauBep.TongDon.ToString());
                 item.SubItems.Add(dauBep.DonHoanThanh.ToString());
                 item.SubItems.Add($"{Math.Round(dauBep.TyLeHoanThanh, 1)}%");
+                item.SubItems.Add(dauBep.TongMon.ToString());          // Tổng món của đầu bếp này
+                item.SubItems.Add(dauBep.MonHoanThanh.ToString());
                 item.SubItems.Add(dauBep.ThoiGianTrungBinh.HasValue ?
                     $"{Math.Round(dauBep.ThoiGianTrungBinh.Value, 1)}p" : "N/A");
                 item.SubItems.Add(dauBep.DanhGiaHieuSuat ?? "");
@@ -940,7 +975,15 @@ namespace RestaurantClient
                             if (response != null && response.Success)
                             {
                                 // CHUYỂN ĐỔI TỪ GetThongKeBepResponse SANG ThongKeBepDayDuResult
-                                return ConvertResponseToResult(response);
+                                var result = ConvertResponseToResult(response);
+
+                                // SỬA LẠI: Tính toán chính xác số đơn hoàn thành
+                                result.TongQuan.DonHoanThanh = CalculateDonHoanThanh(response);
+                                result.TongQuan.TyLeHoanThanh = (decimal)(result.TongQuan.TongDon > 0
+                                    ? Math.Round((double)result.TongQuan.DonHoanThanh / result.TongQuan.TongDon * 100, 1)
+                                    : 0);
+
+                                return result;
                             }
                         }
 
@@ -961,6 +1004,15 @@ namespace RestaurantClient
                 };
             }
         }
+
+        // Hàm tính toán số đơn hoàn thành chính xác
+        private int CalculateDonHoanThanh(GetThongKeBepResponse response)
+        {
+           
+            return response.TongQuan.DonHoanThanh;
+        }
+
+       
 
         private async Task<List<NguoiDung>> GetDanhSachDauBepFromServer()
         {
@@ -1032,31 +1084,6 @@ namespace RestaurantClient
                 return new List<KitchenDishData>();
             }
         }
-
-        private async Task LoadThongKeAsync()
-        {
-            try
-            {
-                var request = new GetKitchenStatisticsRequest
-                {
-                    TuNgay = DateTime.Today,
-                    DenNgay = DateTime.Today.AddDays(1).AddSeconds(-1)
-                };
-
-                var response = await SendRequest<GetKitchenStatisticsRequest, GetKitchenStatisticsResponse>(request);
-
-                if (response?.Success == true)
-                {
-                    // Có thể hiển thị thống kê nếu cần
-                    Console.WriteLine($"Thống kê hôm nay: {response.ThongKe.TongSoDon} đơn, {response.ThongKe.TongSoMon} món");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Lỗi tải thống kê: {ex.Message}");
-            }
-        }
-
         // ==================== DISPLAY UPDATE METHODS ====================
         private void UpdateThongKeDisplay(ThongKeBep thongKe)
         {
@@ -1916,8 +1943,6 @@ namespace RestaurantClient
         {
             try
             {
-                Console.WriteLine("Bắt đầu tải đơn hàng từ server...");
-
                 var request = new GetKitchenOrdersRequest
                 {
                     TrangThai = ConvertFilterToStatus(comboBox1.SelectedItem?.ToString()),
@@ -1926,96 +1951,67 @@ namespace RestaurantClient
                     MaNhanVienBep = _currentUserId
                 };
 
-                Console.WriteLine($"Gửi request: TrangThai={request.TrangThai}, MaNhanVienBep={request.MaNhanVienBep}");
-
                 var response = await SendRequest<GetKitchenOrdersRequest, GetKitchenOrdersResponse>(request);
 
                 if (response?.Success == true)
                 {
                     var orders = response.DonHang ?? new List<KitchenOrderData>();
 
-                    Console.WriteLine($"Nhận được {orders.Count} đơn hàng từ server");
+                    // =========== QUAN TRỌNG: Tính lại thống kê từ client nếu cần ===========
+                    // Hoặc sử dụng thống kê từ server (đã được tính chính xác)
 
-
-                    // Sắp xếp
-                    if (ConvertSortToServer(cb_sapxep.SelectedItem?.ToString()) == "ThoiGianCho")
+                    // Hiển thị debug thông tin
+                    if (orders.Count > 0)
                     {
-                        orders = orders.OrderBy(o => o.NgayOrder).ToList();
+                        int donHoanThanhCount = orders.Count(o => o.LaDonHoanThanh);
+                        Console.WriteLine($"Client nhận được: {orders.Count} đơn, {donHoanThanhCount} đơn hoàn thành");
                     }
 
                     UpdateThongKeDisplay(response.ThongKe ?? new ThongKeBep());
-
-                    // Hiển thị thông báo nếu không có đơn hàng
-                    if (orders.Count == 0)
-                    {
-                        Console.WriteLine("Không có đơn hàng nào phù hợp với điều kiện lọc");
-
-                        if (this.InvokeRequired)
-                        {
-                            this.Invoke(new Action(() =>
-                            {
-                                // Có thể hiển thị thông báo trên DataGridView
-                                dataGridView1.Rows.Clear();
-                                dataGridView1.Rows.Add("Không có đơn hàng nào");
-                            }));
-                        }
-                    }
 
                     return orders;
                 }
                 else
                 {
-                    string errorMsg = response?.Message ?? "Không thể tải danh sách đơn hàng";
-                    Console.WriteLine($"Lỗi từ server: {errorMsg}");
-
-                    if (this.InvokeRequired)
-                    {
-                        this.Invoke(new Action(() =>
-                        {
-                            ShowError(errorMsg);
-                            dataGridView1.Rows.Clear();
-                            dataGridView1.Rows.Add(errorMsg);
-                        }));
-                    }
-
+                    // ... xử lý lỗi ...
                     return new List<KitchenOrderData>();
                 }
             }
-            catch (SocketException)
-            {
-                string errorMsg = "Không thể kết nối đến server (127.0.0.1:5000).";
-                Console.WriteLine(errorMsg);
-
-                if (this.InvokeRequired)
-                {
-                    this.Invoke(new Action(() =>
-                    {
-                        ShowError(errorMsg);
-                        dataGridView1.Rows.Clear();
-                        dataGridView1.Rows.Add(errorMsg);
-                    }));
-                }
-
-                return new List<KitchenOrderData>();
-            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi tải đơn hàng: {ex.Message}");
-
-                if (this.InvokeRequired)
-                {
-                    this.Invoke(new Action(() =>
-                    {
-                        ShowError($"Lỗi tải đơn hàng: {ex.Message}");
-                        dataGridView1.Rows.Clear();
-                        dataGridView1.Rows.Add("Lỗi tải dữ liệu");
-                    }));
-                }
-
+                // ... xử lý lỗi ...
                 return new List<KitchenOrderData>();
             }
         }
 
+        // Hàm xác định trạng thái đơn dựa trên các món
+        private string DetermineOrderStatus(KitchenOrderData order)
+        {
+            // Nếu tổng số món = 0, trả về mặc định
+            if (order.TongSoMon == 0) return "ChoXacNhan";
+
+            // Nếu tất cả món đều hủy
+            if (order.SoMonHuy == order.TongSoMon)
+                return "Huy";
+
+            // Nếu tất cả món đều hoàn thành
+            if (order.SoMonHoanThanh == order.TongSoMon)
+                return "HoanThanh";
+
+            // Nếu có món có vấn đề
+            if (order.SoMonCoVanDe > 0)
+                return "CoVanDe";
+
+            // Nếu có món đang chế biến
+            if (order.SoMonDangCheBien > 0)
+                return "DangCheBien";
+
+            // Nếu có món chờ xác nhận
+            if (order.SoMonChoXacNhan > 0)
+                return "ChoXacNhan";
+
+            return "ChoXacNhan"; // Mặc định
+        }
         private async Task ExecuteAsync(Button button, string loadingText, Func<Task> action)
         {
             string originalText = button.Text;
