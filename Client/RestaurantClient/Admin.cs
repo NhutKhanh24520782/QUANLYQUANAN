@@ -194,8 +194,18 @@ namespace RestaurantClient
             dataGridView_menu.SelectionChanged += (s, e) =>
             {
                 var item = _menuManager.GetSelectedItem();
+
                 if (item != null)
                 {
+             
+                    if (item.MaLoaiMon.HasValue) // Kiểm tra nếu MaLoaiMon là int? (nullable int)
+                    {
+                        tb_maloaimon.Text = item.MaLoaiMon.Value.ToString();
+                    }
+                    else // Nếu MaLoaiMon là int (non-nullable)
+                    {
+                        tb_maloaimon.Text = item.MaLoaiMon.ToString();
+                    }
                     tb_nameFood.Text = item.TenMon;
                     nm_priceFood.Value = item.Gia;
 
