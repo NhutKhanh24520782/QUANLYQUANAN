@@ -2679,7 +2679,7 @@ namespace RestaurantServer
                     // Lấy tin nhắn liên quan đến bàn này
                     string messagesQuery = @"
                 SELECT 
-                    tn.MaTin,
+                    tn.MaTinNhan,
                     tn.MaNguoiGui,
                     gui.HoTen as TenNguoiGui,
                     gui.VaiTro as VaiTroNguoiGui,
@@ -2717,7 +2717,7 @@ namespace RestaurantServer
                         {
                             var message = new KitchenMessageData
                             {
-                                MaTin = (int)r["MaTin"],
+                                MaTin = (int)r["MaTinNhan"],
                                 MaNguoiGui = (int)r["MaNguoiGui"],
                                 TenNguoiGui = r["TenNguoiGui"].ToString(),
                                 VaiTroNguoiGui = r["VaiTroNguoiGui"].ToString(),
@@ -3093,5 +3093,526 @@ namespace RestaurantServer
                 Console.WriteLine("❌ Lỗi DB Webhook: " + ex.Message);
             }
         }
+        #region CHAT FUNCTIONS
+
+        /// <summary>
+        /// Lấy danh sách user để chat (loại trừ user hiện tại)
+        /// </summary>
+        public static ChatUsersResult GetChatUsers(int maNguoiDungHienTai, string timKiem = "")
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+                SELECT 
+                    nd.MaNguoiDung,
+                    nd.HoTen,
+                    nd.VaiTro,
+                    nd.TrangThai,
+                    -- Đếm số tin chưa đọc từ người này gửi đến user hiện tại
+                    (SELECT COUNT(*) FROM TINNHAN tn 
+                     WHERE tn.MaNguoiGui = nd.MaNguoiDung 
+                     AND tn.MaNguoiNhan = @MaNguoiDungHienTai 
+                     AND tn.DaDoc = 0) as SoTinChuaDoc
+                FROM NGUOIDUNG nd
+                WHERE nd.MaNguoiDung != @MaNguoiDungHienTai
+                AND nd.TrangThai = 1
+                AND nd.VaiTro IN ('Admin', 'PhucVu', 'Bep')
+                AND (@TimKiem = '' OR nd.HoTen LIKE '%' + @TimKiem + '%')
+                ORDER BY 
+                    CASE nd.VaiTro 
+                        WHEN 'Admin' THEN 1 
+                        WHEN 'Bep' THEN 2 
+                        WHEN 'PhucVu' THEN 3 
+                        ELSE 4 
+                    END,
+                    nd.HoTen";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDungHienTai", maNguoiDungHienTai);
+                        cmd.Parameters.AddWithValue("@TimKiem", timKiem ?? "");
+
+                        var users = new List<ChatUserData>();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                users.Add(new ChatUserData
+                                {
+                                    MaNguoiDung = (int)reader["MaNguoiDung"],
+                                    HoTen = reader["HoTen"].ToString(),
+                                    VaiTro = reader["VaiTro"].ToString(),
+                                    DangOnline = true, // Giả định tất cả đều online (có thể cải tiến sau)
+                                    SoTinChuaDoc = (int)reader["SoTinChuaDoc"]
+                                });
+                            }
+                        }
+
+                        return new ChatUsersResult
+                        {
+                            Success = true,
+                            Users = users,
+                            TongSoUser = users.Count,
+                            Message = $"Tìm thấy {users.Count} người dùng"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ChatUsersResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy danh sách user: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gửi tin nhắn chat
+        /// </summary>
+        public static SendChatResult SendChatMessage(int maNguoiGui, int maNguoiNhan, string noiDung, bool guiTatCa)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    DateTime thoiGianGui = TimeHelper.GetVietnamTime();
+                    int soNguoiNhan = 0;
+                    int maTinNhanDau = 0;
+
+                    if (guiTatCa)
+                    {
+                        // Gửi cho tất cả user (trừ người gửi)
+                        string getUsersQuery = @"
+                    SELECT MaNguoiDung FROM NGUOIDUNG 
+                    WHERE MaNguoiDung != @MaNguoiGui 
+                    AND TrangThai = 1 
+                    AND VaiTro IN ('Admin', 'PhucVu', 'Bep')";
+
+                        List<int> danhSachNguoiNhan = new List<int>();
+
+                        using (SqlCommand getCmd = new SqlCommand(getUsersQuery, conn))
+                        {
+                            getCmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+                            using (SqlDataReader reader = getCmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    danhSachNguoiNhan.Add((int)reader["MaNguoiDung"]);
+                                }
+                            }
+                        }
+
+                        // Gửi tin nhắn cho từng người
+                        foreach (int nguoiNhan in danhSachNguoiNhan)
+                        {
+                            string insertQuery = @"
+                        INSERT INTO TINNHAN (MaNguoiGui, MaNguoiNhan, NoiDung, ThoiGian, DaDoc)
+                        OUTPUT INSERTED.MaTinNhan
+                        VALUES (@MaNguoiGui, @MaNguoiNhan, @NoiDung, @ThoiGian, 0)";
+
+                            using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
+                            {
+                                insertCmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+                                insertCmd.Parameters.AddWithValue("@MaNguoiNhan", nguoiNhan);
+                                insertCmd.Parameters.AddWithValue("@NoiDung", "[📢 TẤT CẢ] " + noiDung);
+                                insertCmd.Parameters.AddWithValue("@ThoiGian", thoiGianGui);
+
+                                int MaTinNhan = (int)insertCmd.ExecuteScalar();
+                                if (maTinNhanDau == 0) maTinNhanDau = MaTinNhan;
+                                soNguoiNhan++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Gửi cho 1 người cụ thể
+                        string insertQuery = @"
+                    INSERT INTO TINNHAN (MaNguoiGui, MaNguoiNhan, NoiDung, ThoiGian, DaDoc)
+                    OUTPUT INSERTED.MaTinNhan
+                    VALUES (@MaNguoiGui, @MaNguoiNhan, @NoiDung, @ThoiGian, 0)";
+
+                        using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
+                        {
+                            insertCmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+                            insertCmd.Parameters.AddWithValue("@MaNguoiNhan", maNguoiNhan);
+                            insertCmd.Parameters.AddWithValue("@NoiDung", noiDung);
+                            insertCmd.Parameters.AddWithValue("@ThoiGian", thoiGianGui);
+
+                            maTinNhanDau = (int)insertCmd.ExecuteScalar();
+                            soNguoiNhan = 1;
+                        }
+                    }
+
+                    return new SendChatResult
+                    {
+                        Success = true,
+                        MaTinNhan = maTinNhanDau,
+                        ThoiGianGui = thoiGianGui,
+                        SoNguoiNhan = soNguoiNhan,
+                        Message = guiTatCa ?
+                            $"Đã gửi tin nhắn cho {soNguoiNhan} người" :
+                            "Đã gửi tin nhắn"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new SendChatResult
+                {
+                    Success = false,
+                    Message = $"Lỗi gửi tin nhắn: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Lấy tin nhắn chat giữa 2 người
+        /// </summary>
+        public static ChatMessagesResult GetChatMessages(int maNguoiDung1, int maNguoiDung2, int soLuong = 50)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+                SELECT TOP (@SoLuong)
+                    tn.MaTinNhan,
+                    tn.MaNguoiGui,
+                    gui.HoTen as TenNguoiGui,
+                    gui.VaiTro as VaiTroNguoiGui,
+                    tn.MaNguoiNhan,
+                    nhan.HoTen as TenNguoiNhan,
+                    tn.NoiDung,
+                    tn.ThoiGian,
+                    tn.DaDoc
+                FROM TINNHAN tn
+                INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+                INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+                WHERE (
+                    (tn.MaNguoiGui = @MaNguoiDung1 AND tn.MaNguoiNhan = @MaNguoiDung2)
+                    OR 
+                    (tn.MaNguoiGui = @MaNguoiDung2 AND tn.MaNguoiNhan = @MaNguoiDung1)
+                )
+                ORDER BY tn.ThoiGian DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDung1", maNguoiDung1);
+                        cmd.Parameters.AddWithValue("@MaNguoiDung2", maNguoiDung2);
+                        cmd.Parameters.AddWithValue("@SoLuong", soLuong);
+
+                        var messages = new List<ChatMessageData>();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                DateTime thoiGianDB = (DateTime)reader["ThoiGian"];
+                                DateTime thoiGianVN = TimeHelper.SafeConvertFromDatabase(thoiGianDB);
+
+                                messages.Add(new ChatMessageData
+                                {
+                                    MaTinNhan = (int)reader["MaTinNhan"],
+                                    MaNguoiGui = (int)reader["MaNguoiGui"],
+                                    TenNguoiGui = reader["TenNguoiGui"].ToString(),
+                                    VaiTroNguoiGui = reader["VaiTroNguoiGui"].ToString(),
+                                    MaNguoiNhan = (int)reader["MaNguoiNhan"],
+                                    TenNguoiNhan = reader["TenNguoiNhan"].ToString(),
+                                    NoiDung = reader["NoiDung"].ToString(),
+                                    ThoiGian = thoiGianVN,
+                                    DaDoc = (bool)reader["DaDoc"],
+                                    LaTinBroadcast = reader["NoiDung"].ToString().StartsWith("[📢 TẤT CẢ]")
+                                });
+                            }
+                        }
+
+                        // Đảo ngược để tin cũ ở trên, tin mới ở dưới
+                        messages.Reverse();
+
+                        return new ChatMessagesResult
+                        {
+                            Success = true,
+                            Messages = messages,
+                            TongSoTinNhan = messages.Count,
+                            Message = $"Lấy được {messages.Count} tin nhắn"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ChatMessagesResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy tin nhắn: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Đánh dấu tin nhắn đã đọc
+        /// </summary>
+        public static MarkReadResult MarkMessagesAsRead(int maNguoiNhan, int maNguoiGui)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string updateQuery = @"
+                UPDATE TINNHAN 
+                SET DaDoc = 1 
+                WHERE MaNguoiNhan = @MaNguoiNhan 
+                AND MaNguoiGui = @MaNguoiGui 
+                AND DaDoc = 0";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiNhan", maNguoiNhan);
+                        cmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        return new MarkReadResult
+                        {
+                            Success = true,
+                            SoTinDaDoc = rowsAffected,
+                            Message = $"Đã đánh dấu {rowsAffected} tin nhắn là đã đọc"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MarkReadResult
+                {
+                    Success = false,
+                    Message = $"Lỗi đánh dấu đã đọc: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Lấy số tin nhắn chưa đọc
+        /// </summary>
+        public static UnreadCountResult GetUnreadCount(int maNguoiDung)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Tổng số tin chưa đọc
+                    string totalQuery = @"
+                SELECT COUNT(*) FROM TINNHAN 
+                WHERE MaNguoiNhan = @MaNguoiDung AND DaDoc = 0";
+
+                    int tongChuaDoc = 0;
+                    using (SqlCommand totalCmd = new SqlCommand(totalQuery, conn))
+                    {
+                        totalCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        tongChuaDoc = (int)totalCmd.ExecuteScalar();
+                    }
+
+                    // Chi tiết theo từng người gửi
+                    string detailQuery = @"
+                SELECT 
+                    tn.MaNguoiGui,
+                    nd.HoTen as TenNguoiGui,
+                    COUNT(*) as SoChuaDoc
+                FROM TINNHAN tn
+                INNER JOIN NGUOIDUNG nd ON tn.MaNguoiGui = nd.MaNguoiDung
+                WHERE tn.MaNguoiNhan = @MaNguoiDung AND tn.DaDoc = 0
+                GROUP BY tn.MaNguoiGui, nd.HoTen
+                ORDER BY SoChuaDoc DESC";
+
+                    var chiTiet = new List<UnreadCountData>();
+                    using (SqlCommand detailCmd = new SqlCommand(detailQuery, conn))
+                    {
+                        detailCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        using (SqlDataReader reader = detailCmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                chiTiet.Add(new UnreadCountData
+                                {
+                                    MaNguoiGui = (int)reader["MaNguoiGui"],
+                                    TenNguoiGui = reader["TenNguoiGui"].ToString(),
+                                    SoChuaDoc = (int)reader["SoChuaDoc"]
+                                });
+                            }
+                        }
+                    }
+
+                    return new UnreadCountResult
+                    {
+                        Success = true,
+                        TongChuaDoc = tongChuaDoc,
+                        ChiTietChuaDoc = chiTiet,
+                        Message = $"Có {tongChuaDoc} tin nhắn chưa đọc"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new UnreadCountResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy số tin chưa đọc: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Kiểm tra tin nhắn mới (dùng cho polling)
+        /// </summary>
+        public static CheckNewMessagesResult CheckNewMessages(int maNguoiDung, DateTime tuThoiGian)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Chuyển thời gian về UTC để so sánh với database
+                    DateTime utcTime = TimeHelper.ConvertVietnamTimeToUtc(tuThoiGian);
+
+                    string query = @"
+                SELECT 
+                    tn.MaTinNhan,
+                    tn.MaNguoiGui,
+                    gui.HoTen as TenNguoiGui,
+                    gui.VaiTro as VaiTroNguoiGui,
+                    tn.MaNguoiNhan,
+                    nhan.HoTen as TenNguoiNhan,
+                    tn.NoiDung,
+                    tn.ThoiGian,
+                    tn.DaDoc
+                FROM TINNHAN tn
+                INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+                INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+                WHERE tn.MaNguoiNhan = @MaNguoiDung
+                AND tn.ThoiGian > @TuThoiGian
+                ORDER BY tn.ThoiGian ASC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        cmd.Parameters.AddWithValue("@TuThoiGian", utcTime);
+
+                        var messages = new List<ChatMessageData>();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                DateTime thoiGianDB = (DateTime)reader["ThoiGian"];
+                                DateTime thoiGianVN = TimeHelper.SafeConvertFromDatabase(thoiGianDB);
+
+                                messages.Add(new ChatMessageData
+                                {
+                                    MaTinNhan = (int)reader["MaTinNhan"],
+                                    MaNguoiGui = (int)reader["MaNguoiGui"],
+                                    TenNguoiGui = reader["TenNguoiGui"].ToString(),
+                                    VaiTroNguoiGui = reader["VaiTroNguoiGui"].ToString(),
+                                    MaNguoiNhan = (int)reader["MaNguoiNhan"],
+                                    TenNguoiNhan = reader["TenNguoiNhan"].ToString(),
+                                    NoiDung = reader["NoiDung"].ToString(),
+                                    ThoiGian = thoiGianVN,
+                                    DaDoc = (bool)reader["DaDoc"],
+                                    LaTinBroadcast = reader["NoiDung"].ToString().StartsWith("[📢 TẤT CẢ]")
+                                });
+                            }
+                        }
+
+                        return new CheckNewMessagesResult
+                        {
+                            Success = true,
+                            CoTinMoi = messages.Count > 0,
+                            SoTinMoi = messages.Count,
+                            TinNhanMoi = messages,
+                            Message = messages.Count > 0 ?
+                                $"Có {messages.Count} tin nhắn mới" :
+                                "Không có tin nhắn mới"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new CheckNewMessagesResult
+                {
+                    Success = false,
+                    Message = $"Lỗi kiểm tra tin nhắn mới: {ex.Message}"
+                };
+            }
+        }
+
+        #endregion
+
+        // ==================== RESULT CLASSES (Thêm vào cuối file) ====================
+
+        public class ChatUsersResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public List<ChatUserData> Users { get; set; } = new List<ChatUserData>();
+            public int TongSoUser { get; set; }
+        }
+
+        public class SendChatResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public int MaTinNhan { get; set; }
+            public DateTime ThoiGianGui { get; set; }
+            public int SoNguoiNhan { get; set; }
+        }
+
+        public class ChatMessagesResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public List<ChatMessageData> Messages { get; set; } = new List<ChatMessageData>();
+            public int TongSoTinNhan { get; set; }
+        }
+
+        public class MarkReadResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public int SoTinDaDoc { get; set; }
+        }
+
+        public class UnreadCountResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public int TongChuaDoc { get; set; }
+            public List<UnreadCountData> ChiTietChuaDoc { get; set; } = new List<UnreadCountData>();
+        }
+
+        public class CheckNewMessagesResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public bool CoTinMoi { get; set; }
+            public int SoTinMoi { get; set; }
+            public List<ChatMessageData> TinNhanMoi { get; set; } = new List<ChatMessageData>();
+        }
+
     }
 }

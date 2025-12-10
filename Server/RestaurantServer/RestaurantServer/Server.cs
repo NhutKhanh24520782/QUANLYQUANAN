@@ -9,19 +9,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using System.Net;
-using System.IO;
-using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
+using static RestaurantServer.DatabaseAccess;
+
 namespace RestaurantServer
 {
     internal class Server
     {
         private TcpListener? listener;
-        private HttpListener? httpListener; // 🔥 Thêm HTTP Listener cho Webhook
         private bool isRunning = false;
-        private const string WEBHOOK_PREFIX = "http://+:8080/webhook/"; // Chạy cổng 8080 cho webhook
-        private const string API_KEY_CASSO = "secure-token-cua-ban"; // Để bảo mật
 
         public void Start(int port)
         {
@@ -31,14 +26,12 @@ namespace RestaurantServer
             Console.WriteLine($"🚀 Server đang lắng nghe tại cổng {port}...");
 
             _ = Task.Run(async () => await ListenForClientsAsync());
-            StartWebhookServer();
         }
 
         public void Stop()
         {
             isRunning = false;
             listener?.Stop();
-            httpListener?.Stop(); // Dừng cả HTTP
             Console.WriteLine("⛔ Server đã dừng.");
         }
 
@@ -125,13 +118,15 @@ namespace RestaurantServer
                         "GetKitchenStatistics" => HandleGetKitchenStatisticsRequestAsync(rawRequest).Result,
                         "GetThongKeBep" => await HandleGetThongKeBepRequestAsync(rawRequest),
                         "GetDanhSachDauBep" => await HandleGetDanhSachDauBepRequestAsync(rawRequest),
-                        "CheckTransferStatus" => await HandleCheckTransferStatusRequestAsync(rawRequest),
 
-                        // Thống kê chi tiết đầu bếp
-                        //"GetThongKeDauBepChiTiet" => await HandleGetThongKeDauBepChiTietRequestAsync(rawRequest),
+                        // ==================== CHAT HANDLERS ====================
+                        "GetChatUsers" => await HandleGetChatUsersRequestAsync(rawRequest),
+                        "SendChatMessage" => await HandleSendChatMessageRequestAsync(rawRequest),
+                        "GetChatMessages" => await HandleGetChatMessagesRequestAsync(rawRequest),
+                        "MarkMessagesRead" => await HandleMarkMessagesReadRequestAsync(rawRequest),
+                        "GetUnreadCount" => await HandleGetUnreadCountRequestAsync(rawRequest),
+                        "CheckNewMessages" => await HandleCheckNewMessagesRequestAsync(rawRequest),
 
-                        //// Xuất báo cáo
-                        //"XuatBaoCaoThongKeBep" => await HandleXuatBaoCaoThongKeBepRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -148,34 +143,7 @@ namespace RestaurantServer
                 Console.WriteLine($"❌ {endpoint}: Lỗi - {ex.Message}");
             }
         }
-        // [Server.cs]
-        // Sửa lại hàm này để trả về Task<string> (không dùng StreamWriter writer nữa)
-        private async Task<string> HandleCheckTransferStatusRequestAsync(JObject rawRequest)
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    var request = rawRequest.ToObject<CheckTransferStatusRequest>();
 
-                    // Gọi hàm kiểm tra DB
-                    bool isPaid = DatabaseAccess.CheckTransferStatus(request.MaHD);
-
-                    var response = new CheckTransferStatusResponse
-                    {
-                        Success = true,
-                        IsPaid = isPaid,
-                        Message = isPaid ? "Đã thanh toán" : "Chưa thanh toán"
-                    };
-
-                    return JsonConvert.SerializeObject(response);
-                }
-                catch (Exception ex)
-                {
-                    return CreateErrorResponse($"Lỗi kiểm tra thanh toán: {ex.Message}");
-                }
-            });
-        }
         private async Task<string> HandleLoginRequestAsync(JObject rawRequest)
         {
             return await Task.Run(() =>
@@ -1214,158 +1182,236 @@ namespace RestaurantServer
             });
         }
 
-        //==================== QR ====================
-        private void StartWebhookServer()
-        {
-            try
-            {
-                httpListener = new HttpListener();
-                httpListener.Prefixes.Add(WEBHOOK_PREFIX);
-                httpListener.Start();
-                Console.WriteLine($"🌍 Webhook Server đang lắng nghe tại {WEBHOOK_PREFIX}");
+        // ==================== CHAT HANDLERS ====================
+        #region CHAT HANDLERS
 
-                // Chạy luồng riêng để nhận tin từ Ngân hàng
-                Task.Run(async () =>
+        private async Task<string> HandleGetChatUsersRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
                 {
-                    while (isRunning)
+                    var request = rawRequest.ToObject<GetChatUsersRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetChatUsers(
+                        request.MaNguoiDungHienTai,
+                        request.TimKiem
+                    );
+
+                    var response = new GetChatUsersResponse
                     {
-                        try
-                        {
-                            var context = await httpListener.GetContextAsync();
-                            _ = ProcessWebhookRequest(context);
-                        }
-                        catch (Exception ex)
-                        {
-                            if (isRunning) Console.WriteLine("Lỗi Webhook Listener: " + ex.Message);
-                        }
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("❌ Không thể khởi động Webhook Server (Cần quyền Admin): " + ex.Message);
-            }
+                        Success = result.Success,
+                        Message = result.Message,
+                        Users = result.Users,
+                        TongSoUser = result.TongSoUser
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"💬 Lấy danh sách chat users: {result.TongSoUser} người");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy danh sách chat users: {ex.Message}");
+                }
+            });
         }
 
-        private async Task ProcessWebhookRequest(HttpListenerContext context)
+        private async Task<string> HandleSendChatMessageRequestAsync(JObject rawRequest)
         {
-            try
+            return await Task.Run(() =>
             {
-                var request = context.Request;
-                var response = context.Response;
-
-                // Chỉ nhận POST
-                if (request.HttpMethod != "POST")
+                try
                 {
-                    response.StatusCode = 405;
-                    response.Close();
-                    return;
-                }
+                    var request = rawRequest.ToObject<SendChatMessageRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
 
-                // Đọc dữ liệu JSON từ Casso/SePay gửi về
-                using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
-                {
-                    string jsonBody = await reader.ReadToEndAsync();
-                    Console.WriteLine($"💰 Nhận được thông báo thanh toán: {jsonBody}");
+                    var validation = request.Validate();
+                    if (!validation.isValid)
+                        return CreateErrorResponse(validation.error);
 
-                    // Xử lý dữ liệu
-                    HandlePaymentData(jsonBody);
-                }
+                    var result = DatabaseAccess.SendChatMessage(
+                        request.MaNguoiGui,
+                        request.MaNguoiNhan,
+                        request.NoiDung,
+                        request.GuiTatCa
+                    );
 
-                // Phản hồi OK cho Casso để họ biết mình đã nhận
-                response.StatusCode = 200;
-                byte[] buffer = Encoding.UTF8.GetBytes("{\"status\":\"success\"}");
-                response.ContentLength64 = buffer.Length;
-                response.OutputStream.Write(buffer, 0, buffer.Length);
-                response.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Lỗi xử lý webhook: " + ex.Message);
-            }
-        }
-
-        // [Server.cs]
-
-        // [Server.cs]
-
-        private void HandlePaymentData(string json)
-        {
-            try
-            {
-                Console.WriteLine($"DEBUG JSON: {json}"); // In ra để xem cấu trúc thực tế
-                JObject data = JObject.Parse(json);
-
-                // 1. Lấy danh sách giao dịch (Hỗ trợ cả SePay và Casso)
-                JToken transactions = null;
-
-                // Thử lấy theo chuẩn SePay ("transactions")
-                if (data["transactions"] != null)
-                {
-                    transactions = data["transactions"];
-                }
-                // Thử lấy theo chuẩn Casso ("data")
-                else if (data["data"] != null)
-                {
-                    transactions = data["data"];
-                }
-
-                if (transactions != null)
-                {
-                    foreach (var trans in transactions)
+                    var response = new SendChatMessageResponse
                     {
-                        // SePay: "transaction_content" hoặc "description"
-                        // Casso: "description"
-                        string description = trans["description"]?.ToString()
-                                             ?? trans["transaction_content"]?.ToString()
-                                             ?? "";
+                        Success = result.Success,
+                        Message = result.Message,
+                        MaTinNhan = result.MaTinNhan,
+                        ThoiGianGui = result.ThoiGianGui,
+                        SoNguoiNhan = result.SoNguoiNhan
+                    };
 
-                        // Lấy số tiền
-                        decimal amount = (decimal)(trans["amount"] ?? trans["amount_in"] ?? 0);
-
-                        // Tách Mã Hóa Đơn
-                        int maHD = ParseInvoiceId(description);
-
-                        if (maHD > 0)
-                        {
-                            Console.WriteLine($" ✅ Tìm thấy thanh toán cho Hóa đơn #{maHD}, Số tiền: {amount:N0}");
-
-                            // Gọi hàm cập nhật Database (Hàm bạn đã sửa ở bước trước)
-                            DatabaseAccess.ConfirmPaymentWebhook(maHD, amount);
-                        }
-                        else
-                        {
-                            Console.WriteLine($" ⚠️ Không tìm thấy mã HD trong nội dung: {description}");
-                        }
+                    if (result.Success)
+                    {
+                        string targetInfo = request.GuiTatCa ?
+                            $"TẤT CẢ ({result.SoNguoiNhan} người)" :
+                            $"User {request.MaNguoiNhan}";
+                        Console.WriteLine($"💬 Gửi tin nhắn: User {request.MaNguoiGui} → {targetInfo}");
                     }
+
+                    return JsonConvert.SerializeObject(response);
                 }
-                else
+                catch (Exception ex)
                 {
-                    Console.WriteLine(" ❌ Không tìm thấy danh sách giao dịch (transactions/data) trong JSON.");
+                    return CreateErrorResponse($"Lỗi gửi tin nhắn chat: {ex.Message}");
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Lỗi phân tích JSON thanh toán: " + ex.Message);
-            }
+            });
         }
 
-        private int ParseInvoiceId(string content)
+        private async Task<string> HandleGetChatMessagesRequestAsync(JObject rawRequest)
         {
-            // Regex tìm chữ số sau chữ "HD" hoặc "DH" (bất kể hoa thường)
-            // Ví dụ: "Thanh toan HD36" => lấy 36
-            var match = Regex.Match(content, @"(HD|DH)\s*(\d+)", RegexOptions.IgnoreCase);
-            if (match.Success)
+            return await Task.Run(() =>
             {
-                return int.Parse(match.Groups[2].Value);
-            }
+                try
+                {
+                    var request = rawRequest.ToObject<GetChatMessagesRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
 
-            // Fallback: Nếu nội dung chỉ có số "36" thì hơi rủi ro, nhưng có thể thử tìm số đứng riêng lẻ
-            // var matchNumber = Regex.Match(content, @"\b(\d+)\b"); ...
+                    var result = DatabaseAccess.GetChatMessages(
+                        request.MaNguoiDung1,
+                        request.MaNguoiDung2,
+                        request.SoLuong
+                    );
 
-            return 0;
+                    var response = new GetChatMessagesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        Messages = result.Messages,
+                        TongSoTinNhan = result.TongSoTinNhan
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"💬 Lấy tin nhắn: {result.TongSoTinNhan} tin");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy tin nhắn chat: {ex.Message}");
+                }
+            });
         }
+
+        private async Task<string> HandleMarkMessagesReadRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<MarkMessagesReadRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.MarkMessagesAsRead(
+                        request.MaNguoiNhan,
+                        request.MaNguoiGui
+                    );
+
+                    var response = new MarkMessagesReadResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        SoTinDaDoc = result.SoTinDaDoc
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi đánh dấu đã đọc: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleGetUnreadCountRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<GetUnreadCountRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.GetUnreadCount(request.MaNguoiDung);
+
+                    var response = new GetUnreadCountResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        TongChuaDoc = result.TongChuaDoc,
+                        ChiTietChuaDoc = result.ChiTietChuaDoc
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi lấy số tin chưa đọc: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task<string> HandleCheckNewMessagesRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<CheckNewMessagesRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var result = DatabaseAccess.CheckNewMessages(
+                        request.MaNguoiDung,
+                        request.TuThoiGian
+                    );
+
+                    var response = new CheckNewMessagesResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        CoTinMoi = result.CoTinMoi,
+                        SoTinMoi = result.SoTinMoi,
+                        TinNhanMoi = result.TinNhanMoi
+                    };
+
+                    if (result.CoTinMoi)
+                        Console.WriteLine($"💬 Tin nhắn mới: {result.SoTinMoi} tin");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi kiểm tra tin nhắn mới: {ex.Message}");
+                }
+            });
+        }
+
+        #endregion
+
 
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -592,5 +592,83 @@ namespace Models.Request
         public string Type => "CheckTransferStatus";
         public int MaHD { get; set; }
     }
+
+    // ==================== CHAT REQUESTS ====================
+
+    /// <summary>
+    /// Request lấy danh sách user online/tất cả user để chat
+    /// </summary>
+    public class GetChatUsersRequest
+    {
+        public string Type => "GetChatUsers";
+        public int MaNguoiDungHienTai { get; set; } // ID user đang đăng nhập (để loại trừ)
+        public string TimKiem { get; set; } = "";   // Tìm theo tên
+    }
+
+    /// <summary>
+    /// Request gửi tin nhắn chat
+    /// </summary>
+    public class SendChatMessageRequest
+    {
+        public string Type => "SendChatMessage";
+        public int MaNguoiGui { get; set; }
+        public int MaNguoiNhan { get; set; }        // 0 = gửi tất cả
+        public string NoiDung { get; set; } = "";
+        public bool GuiTatCa { get; set; } = false; // true = broadcast
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaNguoiGui <= 0)
+                return (false, "Mã người gửi không hợp lệ");
+            if (!GuiTatCa && MaNguoiNhan <= 0)
+                return (false, "Vui lòng chọn người nhận");
+            if (string.IsNullOrWhiteSpace(NoiDung))
+                return (false, "Nội dung tin nhắn không được để trống");
+            if (NoiDung.Length > 1000)
+                return (false, "Tin nhắn không được quá 1000 ký tự");
+            return (true, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Request lấy tin nhắn chat (giữa 2 người hoặc tất cả)
+    /// </summary>
+    public class GetChatMessagesRequest
+    {
+        public string Type => "GetChatMessages";
+        public int MaNguoiDung1 { get; set; }       // User hiện tại
+        public int MaNguoiDung2 { get; set; }       // User đang chat (0 = lấy tất cả tin nhắn broadcast)
+        public int SoLuong { get; set; } = 50;      // Số tin nhắn tối đa
+        public DateTime? TuThoiGian { get; set; }   // Lấy tin nhắn từ thời gian này
+    }
+
+    /// <summary>
+    /// Request đánh dấu đã đọc tin nhắn
+    /// </summary>
+    public class MarkMessagesReadRequest
+    {
+        public string Type => "MarkMessagesRead";
+        public int MaNguoiNhan { get; set; }        // User hiện tại
+        public int MaNguoiGui { get; set; }         // User gửi tin nhắn
+    }
+
+    /// <summary>
+    /// Request lấy số tin nhắn chưa đọc
+    /// </summary>
+    public class GetUnreadCountRequest
+    {
+        public string Type => "GetUnreadCount";
+        public int MaNguoiDung { get; set; }
+    }
+
+    /// <summary>
+    /// Request kiểm tra tin nhắn mới (polling)
+    /// </summary>
+    public class CheckNewMessagesRequest
+    {
+        public string Type => "CheckNewMessages";
+        public int MaNguoiDung { get; set; }
+        public DateTime TuThoiGian { get; set; }    // Lấy tin nhắn sau thời gian này
+    }
 }
 

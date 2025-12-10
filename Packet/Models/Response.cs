@@ -836,4 +836,133 @@ namespace Models.Response
         public CheckTransferStatusResponse() => Type = "CheckTransferStatusResponse";
         public bool IsPaid { get; set; } // True = Đã thanh toán, False = Chưa
     }
+    // ==================== CHAT RESPONSES ====================
+
+    /// <summary>
+    /// Response danh sách user để chat
+    /// </summary>
+    public class GetChatUsersResponse : BaseResponse
+    {
+        public GetChatUsersResponse() => Type = "LoGetChatUsersResponse";
+        public List<ChatUserData> Users { get; set; } = new List<ChatUserData>();
+        public int TongSoUser { get; set; }
+    }
+
+    /// <summary>
+    /// Response gửi tin nhắn
+    /// </summary>
+    public class SendChatMessageResponse : BaseResponse
+    {
+        public SendChatMessageResponse() => Type = "SendChatMessageResponse";
+        public int MaTinNhan { get; set; }
+        public DateTime ThoiGianGui { get; set; }
+        public int SoNguoiNhan { get; set; }        // Số người nhận (nếu broadcast)
+    }
+
+    /// <summary>
+    /// Response danh sách tin nhắn
+    /// </summary>
+    public class GetChatMessagesResponse : BaseResponse
+    {
+        public GetChatMessagesResponse() => Type = "GetChatMessagesResponse";
+        public List<ChatMessageData> Messages { get; set; } = new List<ChatMessageData>();
+        public int TongSoTinNhan { get; set; }
+    }
+
+    /// <summary>
+    /// Response đánh dấu đã đọc
+    /// </summary>
+    public class MarkMessagesReadResponse : BaseResponse
+    {
+        public MarkMessagesReadResponse() => Type = "MarkMessagesReadResponse";
+        public int SoTinDaDoc { get; set; }
+    }
+
+    /// <summary>
+    /// Response số tin nhắn chưa đọc
+    /// </summary>
+    public class GetUnreadCountResponse : BaseResponse
+    {
+        public GetUnreadCountResponse() => Type = "GetUnreadCountResponse";
+        public int TongChuaDoc { get; set; }
+        public List<UnreadCountData> ChiTietChuaDoc { get; set; } = new List<UnreadCountData>();
+    }
+
+    /// <summary>
+    /// Response kiểm tra tin nhắn mới
+    /// </summary>
+    public class CheckNewMessagesResponse : BaseResponse
+    {
+        public CheckNewMessagesResponse() => Type = "CheckNewMessagesResponse";
+        public bool CoTinMoi { get; set; }
+        public int SoTinMoi { get; set; }
+        public List<ChatMessageData> TinNhanMoi { get; set; } = new List<ChatMessageData>();
+    }
+
+    // ==================== CHAT DATA MODELS ====================
+
+    /// <summary>
+    /// Thông tin user để hiển thị trong danh sách chat
+    /// </summary>
+    public class ChatUserData
+    {
+        public int MaNguoiDung { get; set; }
+        public string HoTen { get; set; } = "";
+        public string VaiTro { get; set; } = "";
+        public string VaiTroDisplay
+        {
+            get
+            {
+                return VaiTro switch
+                {
+                    "Admin" => "👑 Quản lý",
+                    "PhucVu" => "🍽️ Phục vụ",
+                    "Bep" => "👨‍🍳 Bếp",
+                    _ => VaiTro
+                };
+            }
+        }
+        public bool DangOnline { get; set; }
+        public DateTime? LanCuoiOnline { get; set; }
+        public int SoTinChuaDoc { get; set; }
+
+        // Hiển thị
+        public string TrangThaiDisplay => DangOnline ? "●" : "○";
+        public System.Drawing.Color MauTrangThai => DangOnline ?
+            System.Drawing.Color.Green : System.Drawing.Color.Gray;
+    }
+
+    /// <summary>
+    /// Thông tin tin nhắn chat
+    /// </summary>
+    public class ChatMessageData
+    {
+        public int MaTinNhan { get; set; }
+        public int MaNguoiGui { get; set; }
+        public string TenNguoiGui { get; set; } = "";
+        public string VaiTroNguoiGui { get; set; } = "";
+        public int MaNguoiNhan { get; set; }
+        public string TenNguoiNhan { get; set; } = "";
+        public string NoiDung { get; set; } = "";
+        public DateTime ThoiGian { get; set; }
+        public bool DaDoc { get; set; }
+        public bool LaTinBroadcast { get; set; }    // Tin gửi cho tất cả
+
+        // Hiển thị
+        public string ThoiGianDisplay => ThoiGian.ToString("HH:mm");
+        public string ThoiGianDayDu => ThoiGian.ToString("HH:mm dd/MM/yyyy");
+
+        // Kiểm tra tin của mình hay người khác
+        public bool LaTinCuaToi(int maNguoiDungHienTai) => MaNguoiGui == maNguoiDungHienTai;
+    }
+
+    /// <summary>
+    /// Số tin chưa đọc theo từng người
+    /// </summary>
+    public class UnreadCountData
+    {
+        public int MaNguoiGui { get; set; }
+        public string TenNguoiGui { get; set; } = "";
+        public int SoChuaDoc { get; set; }
+    }
 }
