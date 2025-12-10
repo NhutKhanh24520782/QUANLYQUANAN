@@ -393,3 +393,78 @@ BEGIN
     END
 END
 GO
+
+-- =============================================
+-- Stored Procedure: Thống kê hiệu suất đầu bếp (ĐÃ FIX LỖI ĐẾM LẶP ĐƠN HÀNG)
+-- Mục tiêu: DonHoanThanh = Số lượng đơn hàng DUY NHẤT mà tất cả món của đầu bếp đó đã HoanThanh
+-- =============================================
+ALTER PROCEDURE dbo.sp_ThongKeHieuSuatDauBep
+    @TuNgay DATETIME,
+    @DenNgay DATETIME,
+    @MaNhanVien INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- 1. Lấy tất cả chi tiết món ăn mà các đầu bếp phụ trách trong kỳ (CẤP MÓN)
+    WITH CTE_ChiTietPhuTrach AS (
+        SELECT 
+            ct.MaNhanVienCheBien,
+            ct.MaDonHang,
+            ct.MaChiTiet,
+            ct.TrangThai AS TrangThaiMon,
+            -- Lấy thời gian bắt đầu và kết thúc chế biến
+            (SELECT MIN(ThoiGianThayDoi) FROM LICHSU_TRANGTHAI_MON WHERE MaChiTiet = ct.MaChiTiet AND TrangThaiMoi = N'DangCheBien') AS ThoiGianBatDau,
+            (SELECT MAX(ThoiGianThayDoi) FROM LICHSU_TRANGTHAI_MON WHERE MaChiTiet = ct.MaChiTiet AND TrangThaiMoi = N'HoanThanh') AS ThoiGianHoanThanh
+        FROM CHITIET_DONHANG ct
+        INNER JOIN DONHANG dh ON ct.MaDonHang = dh.MaDonHang
+        WHERE dh.NgayOrder BETWEEN @TuNgay AND DATEADD(DAY, 1, @DenNgay)
+            AND ct.MaNhanVienCheBien IS NOT NULL
+            AND (@MaNhanVien IS NULL OR ct.MaNhanVienCheBien = @MaNhanVien)
+    ),
+    -- 2. XÁC ĐỊNH TRẠNG THÁI HOÀN THÀNH CỦA ĐƠN HÀNG (theo từng đầu bếp) (CẤP ĐƠN)
+    CTE_TrangThaiDonHoanThanh AS (
+        SELECT
+            MaNhanVienCheBien,
+            MaDonHang,
+            -- LaDonHoanThanh = 1 nếu tất cả món do đầu bếp này phụ trách đều đã HoanThanh
+            CASE WHEN SUM(CASE WHEN TrangThaiMon != N'HoanThanh' THEN 1 ELSE 0 END) = 0 THEN 1 ELSE 0 END AS LaDonHoanThanh
+        FROM CTE_ChiTietPhuTrach
+        GROUP BY MaNhanVienCheBien, MaDonHang
+    )
+    -- 3. Tổng hợp kết quả cuối cùng
+    SELECT 
+        nd.MaNguoiDung,
+        nd.HoTen,
+        
+        -- TỔNG ĐƠN: Đếm số lượng Đơn Hàng khác nhau
+        COUNT(DISTINCT ct.MaDonHang) AS TongDon,
+        
+        -- 🔥 FIX LỖI: Sử dụng CTE_TrangThaiDonHoanThanh để đếm Đơn hoàn thành
+        -- Phải dùng Subquery hoặc Left Join lại CTE để đếm số đơn (Không dùng hàm SUM trực tiếp trên cấp MÓN)
+        (
+            SELECT SUM(LaDonHoanThanh)
+            FROM CTE_TrangThaiDonHoanThanh td_sub
+            WHERE td_sub.MaNhanVienCheBien = nd.MaNguoiDung
+        ) AS DonHoanThanh,
+        
+        -- Tổng món (Đếm tất cả các chi tiết món ăn)
+        COUNT(ct.MaChiTiet) AS TongMon,
+        
+        -- Món hoàn thành
+        SUM(CASE WHEN ct.TrangThaiMon = N'HoanThanh' THEN 1 ELSE 0 END) AS MonHoanThanh,
+        
+        -- Thời gian trung bình (chỉ tính món đã hoàn thành và có thời gian đầy đủ)
+        AVG(CAST(DATEDIFF(SECOND, ct.ThoiGianBatDau, ct.ThoiGianHoanThanh) AS DECIMAL(10, 2)) / 60.0) AS ThoiGianTrungBinh
+        
+    FROM NGUOIDUNG nd
+    INNER JOIN CTE_ChiTietPhuTrach ct ON nd.MaNguoiDung = ct.MaNhanVienCheBien
+    -- KHÔNG cần JOIN CTE_TrangThaiDonHoanThanh ở đây
+    GROUP BY nd.MaNguoiDung, nd.HoTen
+    
+    -- Chỉ hiển thị nhân viên có ít nhất 1 đơn
+    HAVING COUNT(DISTINCT ct.MaDonHang) > 0
+    
+    ORDER BY TongDon DESC;
+END
+GO
