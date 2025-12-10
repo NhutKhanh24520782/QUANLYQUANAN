@@ -116,6 +116,7 @@
             label15 = new Label();
             label14 = new Label();
             label13 = new Label();
+            btn_ThongBao_PhucVu = new Button();
             tabControl1.SuspendLayout();
             tp_phucvuqly.SuspendLayout();
             gb_thucdonorder.SuspendLayout();
@@ -945,6 +946,7 @@
             // 
             panel_UserList.BackColor = Color.WhiteSmoke;
             panel_UserList.BorderStyle = BorderStyle.Fixed3D;
+            panel_UserList.Controls.Add(btn_ThongBao_PhucVu);
             panel_UserList.Controls.Add(lbl_OnlineCount);
             panel_UserList.Controls.Add(btn_RefreshUsers);
             panel_UserList.Controls.Add(lv_Users);
@@ -959,7 +961,7 @@
             // lbl_OnlineCount
             // 
             lbl_OnlineCount.AutoSize = true;
-            lbl_OnlineCount.Location = new Point(99, 718);
+            lbl_OnlineCount.Location = new Point(82, 718);
             lbl_OnlineCount.Name = "lbl_OnlineCount";
             lbl_OnlineCount.Size = new Size(99, 25);
             lbl_OnlineCount.TabIndex = 4;
@@ -967,7 +969,7 @@
             // 
             // btn_RefreshUsers
             // 
-            btn_RefreshUsers.Location = new Point(99, 665);
+            btn_RefreshUsers.Location = new Point(54, 665);
             btn_RefreshUsers.Name = "btn_RefreshUsers";
             btn_RefreshUsers.Size = new Size(160, 34);
             btn_RefreshUsers.TabIndex = 3;
@@ -1137,6 +1139,16 @@
             label13.TabIndex = 0;
             label13.Text = "Thông tin tài khoản";
             // 
+            // btn_ThongBao_PhucVu
+            // 
+            btn_ThongBao_PhucVu.Location = new Point(295, 665);
+            btn_ThongBao_PhucVu.Name = "btn_ThongBao_PhucVu";
+            btn_ThongBao_PhucVu.Size = new Size(112, 34);
+            btn_ThongBao_PhucVu.TabIndex = 5;
+            btn_ThongBao_PhucVu.Text = "Thông báo";
+            btn_ThongBao_PhucVu.UseVisualStyleBackColor = true;
+            btn_ThongBao_PhucVu.Click += btn_ThongBao_PhucVu_Click;
+            // 
             // NVPhucVu
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
@@ -1281,5 +1293,6 @@
         private Label lbl_ChatTitle;
         private RichTextBox rtb_ChatMessages;
         private Button btn_SendChat;
+        private Button btn_ThongBao_PhucVu;
     }
 }

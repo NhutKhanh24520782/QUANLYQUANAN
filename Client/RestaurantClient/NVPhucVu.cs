@@ -159,7 +159,7 @@ namespace RestaurantClient
             lv_ChiTietDon.Groups.Add(new ListViewGroup("ChoXacNhan", "[3] MÓN CHỜ XÁC NHẬN"));
             lv_ChiTietDon.Groups.Add(new ListViewGroup("CoVanDe", "[4] MÓN CÓ VẤN ĐỀ / HỦY"));
         }
-      
+
         private async void Dgv_DonHangTongQuan_SelectionChanged(object sender, EventArgs e)
         {
             if (dgv_DonHangTongQuan.SelectedRows.Count == 0) return;
@@ -1638,6 +1638,10 @@ namespace RestaurantClient
                         {
                             ShowSuccess($"Đã gửi order thành công!\nMã hóa đơn: {response.MaHoaDon}");
 
+                            // ✅ THÊM: Gửi thông báo tự động cho Bếp
+                            int soMon = _gioHang.Sum(item => item.SoLuong);
+                            await SendNotificationToBepAsync(selectedTable.TenBan, soMon, tongTien);
+
                             // Cập nhật trạng thái bàn thành "CoNguoi"
                             await UpdateTableStatus(maBan, "CoNguoi");
 
@@ -1647,6 +1651,7 @@ namespace RestaurantClient
                             // Refresh danh sách bàn
                             await RefreshTableList();
                         }
+
                         else
                         {
                             ShowError(response?.Message ?? "Lỗi gửi order!");
@@ -2980,6 +2985,93 @@ namespace RestaurantClient
         }
 
         #endregion
+        #region AUTO NOTIFICATION
+
+        /// <summary>
+        /// Gửi thông báo tự động cho nhân viên Bếp khi có đơn hàng mới
+        /// </summary>
+        private async Task SendNotificationToBepAsync(string tenBan, int soMon, decimal tongTien)
+        {
+            try
+            {
+                string noiDung = $"🆕 ĐƠN MỚI [{tenBan}]: {soMon} món - {tongTien:N0} VNĐ";
+
+                // Gửi cho tất cả nhân viên Bếp
+                await SendChatNotificationAsync(noiDung, "Bep");
+
+                Console.WriteLine($"✅ Đã gửi thông báo cho Bếp: {noiDung}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi SendNotificationToBep: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gửi thông báo qua chat cho vai trò cụ thể
+        /// </summary>
+        private async Task SendChatNotificationAsync(string noiDung, string vaiTroNhan)
+        {
+            try
+            {
+                // Lấy danh sách user theo vai trò
+                var usersToNotify = _chatUsers?.Where(u => u.VaiTro == vaiTroNhan).ToList();
+
+                if (usersToNotify == null || usersToNotify.Count == 0)
+                {
+                    // Nếu không có danh sách, gửi broadcast
+                    var request = new SendChatMessageRequest
+                    {
+                        MaNguoiGui = _currentUserId,
+                        MaNguoiNhan = 0,
+                        NoiDung = $"🔔 {noiDung}",
+                        GuiTatCa = true
+                    };
+
+                    await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+                }
+                else
+                {
+                    // Gửi cho từng user theo vai trò
+                    foreach (var user in usersToNotify)
+                    {
+                        var request = new SendChatMessageRequest
+                        {
+                            MaNguoiGui = _currentUserId,
+                            MaNguoiNhan = user.MaNguoiDung,
+                            NoiDung = $"🔔 {noiDung}",
+                            GuiTatCa = false
+                        };
+
+                        await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+                    }
+                }
+
+                Console.WriteLine($"✅ Đã gửi thông báo chat: {noiDung}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi gửi thông báo chat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gửi thông báo khi món đã được phục vụ (lên bàn)
+        /// </summary>
+        private async Task SendServedNotificationAsync(string tenBan, string tenMon)
+        {
+            try
+            {
+                string noiDung = $"🍽️ [{tenBan}] Đã phục vụ: {tenMon}";
+                await SendChatNotificationAsync(noiDung, "Bep");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi gửi thông báo: {ex.Message}");
+            }
+        }
+
+        #endregion
 
         #region CHAT EVENT HANDLERS
 
@@ -3186,5 +3278,31 @@ namespace RestaurantClient
         }
 
         #endregion
+
+        private async void btn_ThongBao_PhucVu_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Hiển thị form nhập thông báo
+                string noiDung = Microsoft.VisualBasic.Interaction.InputBox(
+                    "Nhập nội dung thông báo gửi cho Bếp:",
+                    "📢 Gửi Thông Báo",
+                    ""
+                );
+
+                if (string.IsNullOrWhiteSpace(noiDung))
+                {
+                    return;
+                }
+
+                // Gửi thông báo
+                await SendChatNotificationAsync(noiDung, "Bep");
+                ShowSuccess("Đã gửi thông báo cho tất cả nhân viên Bếp!");
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi gửi thông báo: {ex.Message}");
+            }
+        }
     }
 }

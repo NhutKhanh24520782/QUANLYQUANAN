@@ -51,7 +51,7 @@ namespace RestaurantClient
             InitializeComponent();
             InitializeGridViewManagers();
             InitializeComboBoxes();
-            InitializeAutoRefreshTimer(); 
+            InitializeAutoRefreshTimer();
             InitializeClockTimer(); // ✅ THÊM DÒNG NÀY
             UpdateUserInfo();
             InitializeEmptyDataGridView(); // THÊM DÒNG NÀY
@@ -1587,6 +1587,16 @@ namespace RestaurantClient
                     {
                         ShowSuccess($"Đã cập nhật trạng thái '{_selectedDish.TenMon}' thành '{response.TrangThaiMoi}'");
 
+                        // ✅ THÊM: Gửi thông báo tự động cho Phục vụ
+                        if (trangThaiMoi == "HoanThanh" || trangThaiMoi == "DangCheBien" || trangThaiMoi == "CoVanDe")
+                        {
+                            string tenBan = _currentOrderDetail?.TenBan ?? "Không rõ";
+                            await SendChatNotificationAsync(
+                                $"[{tenBan}] {_selectedDish.TenMon} x{_selectedDish.SoLuong}: {ConvertStatusToDisplay(trangThaiMoi)}",
+                                "PhucVu"
+                            );
+                        }
+
                         // Refresh
                         if (_dishesManager != null) await _dishesManager.RefreshAsync();
                         if (_ordersManager != null) await _ordersManager.RefreshAsync();
@@ -2965,6 +2975,63 @@ namespace RestaurantClient
 
         #endregion
 
+        #region AUTO NOTIFICATION
+
+        /// <summary>
+        /// Gửi thông báo tự động cho nhân viên Phục vụ khi cập nhật trạng thái món
+        /// </summary>
+        
+
+        /// <summary>
+        /// Gửi thông báo nhanh qua chat (fallback nếu không có API riêng)
+        /// </summary>
+        private async Task SendChatNotificationAsync(string noiDung, string vaiTroNhan)
+        {
+            try
+            {
+                // Lấy danh sách user theo vai trò
+                var usersToNotify = _chatUsers?.Where(u => u.VaiTro == vaiTroNhan).ToList();
+
+                if (usersToNotify == null || usersToNotify.Count == 0)
+                {
+                    // Nếu không có danh sách, gửi broadcast
+                    var request = new SendChatMessageRequest
+                    {
+                        MaNguoiGui = _currentUserId,
+                        MaNguoiNhan = 0,
+                        NoiDung = $"🔔 {noiDung}",
+                        GuiTatCa = true
+                    };
+
+                    await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+                }
+                else
+                {
+                    // Gửi cho từng user theo vai trò
+                    foreach (var user in usersToNotify)
+                    {
+                        var request = new SendChatMessageRequest
+                        {
+                            MaNguoiGui = _currentUserId,
+                            MaNguoiNhan = user.MaNguoiDung,
+                            NoiDung = $"🔔 {noiDung}",
+                            GuiTatCa = false
+                        };
+
+                        await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+                    }
+                }
+
+                Console.WriteLine($"✅ Đã gửi thông báo chat: {noiDung}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi gửi thông báo chat: {ex.Message}");
+            }
+        }
+
+        #endregion
+
         #region CHAT EVENT HANDLERS
 
         /// <summary>
@@ -3175,6 +3242,32 @@ namespace RestaurantClient
         }
 
         #endregion
+
+        private async void btn_ThongBao_Bep_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Hiển thị form nhập thông báo
+                string noiDung = Microsoft.VisualBasic.Interaction.InputBox(
+                    "Nhập nội dung thông báo gửi cho Phục vụ:",
+                    "📢 Gửi Thông Báo",
+                    ""
+                );
+
+                if (string.IsNullOrWhiteSpace(noiDung))
+                {
+                    return;
+                }
+
+                // Gửi thông báo
+                await SendChatNotificationAsync(noiDung, "PhucVu");
+                ShowSuccess("Đã gửi thông báo cho tất cả Phục vụ!");
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi gửi thông báo: {ex.Message}");
+            }
+        }
     }
 
 

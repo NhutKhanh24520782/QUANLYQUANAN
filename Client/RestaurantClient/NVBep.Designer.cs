@@ -90,6 +90,20 @@
             label6 = new Label();
             lbl_titlethongke = new Label();
             tabPage_chat = new TabPage();
+            panel_ChatArea_Bep = new Panel();
+            rtb_ChatMessages_Bep = new RichTextBox();
+            panel_ChatInput_Bep = new Panel();
+            btn_SendChat_Bep = new Button();
+            txt_ChatMessage_Bep = new TextBox();
+            panel_ChatHeader_Bep = new Panel();
+            lbl_ChatRole_Bep = new Label();
+            label13 = new Label();
+            panel_UserList_Bep = new Panel();
+            lbl_OnlineCount_Bep = new Label();
+            btn_RefreshUsers_Bep = new Button();
+            lv_Users_Bep = new ListView();
+            chk_SendAll_Bep = new CheckBox();
+            txt_SearchUser_Bep = new TextBox();
             tabPage_taikhoan = new TabPage();
             button_dangxuatnvbep = new Button();
             textbox_chucvubep = new TextBox();
@@ -101,20 +115,7 @@
             label10 = new Label();
             label9 = new Label();
             label8 = new Label();
-            panel_UserList_Bep = new Panel();
-            txt_SearchUser_Bep = new TextBox();
-            chk_SendAll_Bep = new CheckBox();
-            lv_Users_Bep = new ListView();
-            btn_RefreshUsers_Bep = new Button();
-            lbl_OnlineCount_Bep = new Label();
-            panel_ChatArea_Bep = new Panel();
-            panel_ChatHeader_Bep = new Panel();
-            label13 = new Label();
-            lbl_ChatRole_Bep = new Label();
-            panel_ChatInput_Bep = new Panel();
-            txt_ChatMessage_Bep = new TextBox();
-            btn_SendChat_Bep = new Button();
-            rtb_ChatMessages_Bep = new RichTextBox();
+            btn_ThongBao_Bep = new Button();
             tc_nvbep.SuspendLayout();
             tp_quanlyvaxuly.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
@@ -127,11 +128,11 @@
             panel_tongquan.SuspendLayout();
             gb_fillterthongke.SuspendLayout();
             tabPage_chat.SuspendLayout();
-            tabPage_taikhoan.SuspendLayout();
-            panel_UserList_Bep.SuspendLayout();
             panel_ChatArea_Bep.SuspendLayout();
-            panel_ChatHeader_Bep.SuspendLayout();
             panel_ChatInput_Bep.SuspendLayout();
+            panel_ChatHeader_Bep.SuspendLayout();
+            panel_UserList_Bep.SuspendLayout();
+            tabPage_taikhoan.SuspendLayout();
             SuspendLayout();
             // 
             // tc_nvbep
@@ -142,7 +143,7 @@
             tc_nvbep.Controls.Add(tabPage_chat);
             tc_nvbep.Controls.Add(tabPage_taikhoan);
             tc_nvbep.Location = new Point(5, 4);
-            tc_nvbep.Margin = new Padding(4, 4, 4, 4);
+            tc_nvbep.Margin = new Padding(4);
             tc_nvbep.Name = "tc_nvbep";
             tc_nvbep.SelectedIndex = 0;
             tc_nvbep.Size = new Size(1531, 635);
@@ -538,9 +539,9 @@
             tp_thongke.Controls.Add(label6);
             tp_thongke.Controls.Add(lbl_titlethongke);
             tp_thongke.Location = new Point(4, 34);
-            tp_thongke.Margin = new Padding(4, 4, 4, 4);
+            tp_thongke.Margin = new Padding(4);
             tp_thongke.Name = "tp_thongke";
-            tp_thongke.Padding = new Padding(4, 4, 4, 4);
+            tp_thongke.Padding = new Padding(4);
             tp_thongke.Size = new Size(1523, 597);
             tp_thongke.TabIndex = 2;
             tp_thongke.Text = "Thống kê";
@@ -552,7 +553,7 @@
             panel1.Controls.Add(listView_topmonphobien);
             panel1.Controls.Add(label7);
             panel1.Location = new Point(702, 325);
-            panel1.Margin = new Padding(4, 4, 4, 4);
+            panel1.Margin = new Padding(4);
             panel1.Name = "panel1";
             panel1.Size = new Size(815, 259);
             panel1.TabIndex = 26;
@@ -560,7 +561,7 @@
             // listView_topmonphobien
             // 
             listView_topmonphobien.Location = new Point(11, 52);
-            listView_topmonphobien.Margin = new Padding(4, 4, 4, 4);
+            listView_topmonphobien.Margin = new Padding(4);
             listView_topmonphobien.Name = "listView_topmonphobien";
             listView_topmonphobien.Size = new Size(806, 196);
             listView_topmonphobien.TabIndex = 15;
@@ -582,7 +583,7 @@
             panel_topdaubep.Controls.Add(listView1);
             panel_topdaubep.Controls.Add(lbl_topdaubep);
             panel_topdaubep.Location = new Point(702, 79);
-            panel_topdaubep.Margin = new Padding(4, 4, 4, 4);
+            panel_topdaubep.Margin = new Padding(4);
             panel_topdaubep.Name = "panel_topdaubep";
             panel_topdaubep.Size = new Size(815, 239);
             panel_topdaubep.TabIndex = 25;
@@ -590,7 +591,7 @@
             // listView1
             // 
             listView1.Location = new Point(4, 46);
-            listView1.Margin = new Padding(4, 4, 4, 4);
+            listView1.Margin = new Padding(4);
             listView1.Name = "listView1";
             listView1.Size = new Size(806, 186);
             listView1.TabIndex = 14;
@@ -617,7 +618,7 @@
             panel_tongquan.Controls.Add(lbl_tongdon);
             panel_tongquan.Controls.Add(lbl_tongquan);
             panel_tongquan.Location = new Point(5, 325);
-            panel_tongquan.Margin = new Padding(4, 4, 4, 4);
+            panel_tongquan.Margin = new Padding(4);
             panel_tongquan.Name = "panel_tongquan";
             panel_tongquan.Size = new Size(694, 259);
             panel_tongquan.TabIndex = 24;
@@ -712,9 +713,9 @@
             gb_fillterthongke.Controls.Add(lbl_tungay);
             gb_fillterthongke.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
             gb_fillterthongke.Location = new Point(5, 65);
-            gb_fillterthongke.Margin = new Padding(4, 4, 4, 4);
+            gb_fillterthongke.Margin = new Padding(4);
             gb_fillterthongke.Name = "gb_fillterthongke";
-            gb_fillterthongke.Padding = new Padding(4, 4, 4, 4);
+            gb_fillterthongke.Padding = new Padding(4);
             gb_fillterthongke.Size = new Size(694, 252);
             gb_fillterthongke.TabIndex = 23;
             gb_fillterthongke.TabStop = false;
@@ -724,7 +725,7 @@
             // 
             btn_xuatbaocao.AutoSize = true;
             btn_xuatbaocao.Location = new Point(468, 202);
-            btn_xuatbaocao.Margin = new Padding(4, 4, 4, 4);
+            btn_xuatbaocao.Margin = new Padding(4);
             btn_xuatbaocao.Name = "btn_xuatbaocao";
             btn_xuatbaocao.Size = new Size(198, 50);
             btn_xuatbaocao.TabIndex = 8;
@@ -735,7 +736,7 @@
             // btn_lammoi
             // 
             btn_lammoi.Location = new Point(281, 202);
-            btn_lammoi.Margin = new Padding(4, 4, 4, 4);
+            btn_lammoi.Margin = new Padding(4);
             btn_lammoi.Name = "btn_lammoi";
             btn_lammoi.Size = new Size(144, 45);
             btn_lammoi.TabIndex = 7;
@@ -746,7 +747,7 @@
             // btn_taithongke
             // 
             btn_taithongke.Location = new Point(468, 132);
-            btn_taithongke.Margin = new Padding(4, 4, 4, 4);
+            btn_taithongke.Margin = new Padding(4);
             btn_taithongke.Name = "btn_taithongke";
             btn_taithongke.Size = new Size(144, 45);
             btn_taithongke.TabIndex = 6;
@@ -758,7 +759,7 @@
             // 
             cb_thongkedaubep.FormattingEnabled = true;
             cb_thongkedaubep.Location = new Point(130, 136);
-            cb_thongkedaubep.Margin = new Padding(4, 4, 4, 4);
+            cb_thongkedaubep.Margin = new Padding(4);
             cb_thongkedaubep.Name = "cb_thongkedaubep";
             cb_thongkedaubep.Size = new Size(188, 38);
             cb_thongkedaubep.TabIndex = 5;
@@ -778,7 +779,7 @@
             // 
             dateTimePicker_denngay.Format = DateTimePickerFormat.Short;
             dateTimePicker_denngay.Location = new Point(468, 45);
-            dateTimePicker_denngay.Margin = new Padding(4, 4, 4, 4);
+            dateTimePicker_denngay.Margin = new Padding(4);
             dateTimePicker_denngay.Name = "dateTimePicker_denngay";
             dateTimePicker_denngay.Size = new Size(186, 36);
             dateTimePicker_denngay.TabIndex = 3;
@@ -787,7 +788,7 @@
             // 
             dateTimePicker_tungay.Format = DateTimePickerFormat.Short;
             dateTimePicker_tungay.Location = new Point(130, 45);
-            dateTimePicker_tungay.Margin = new Padding(4, 4, 4, 4);
+            dateTimePicker_tungay.Margin = new Padding(4);
             dateTimePicker_tungay.Name = "dateTimePicker_tungay";
             dateTimePicker_tungay.Size = new Size(188, 36);
             dateTimePicker_tungay.TabIndex = 2;
@@ -839,13 +840,156 @@
             tabPage_chat.Controls.Add(panel_ChatArea_Bep);
             tabPage_chat.Controls.Add(panel_UserList_Bep);
             tabPage_chat.Location = new Point(4, 34);
-            tabPage_chat.Margin = new Padding(4, 4, 4, 4);
+            tabPage_chat.Margin = new Padding(4);
             tabPage_chat.Name = "tabPage_chat";
-            tabPage_chat.Padding = new Padding(4, 4, 4, 4);
+            tabPage_chat.Padding = new Padding(4);
             tabPage_chat.Size = new Size(1523, 597);
             tabPage_chat.TabIndex = 3;
             tabPage_chat.Text = "Chat";
             tabPage_chat.UseVisualStyleBackColor = true;
+            // 
+            // panel_ChatArea_Bep
+            // 
+            panel_ChatArea_Bep.Controls.Add(rtb_ChatMessages_Bep);
+            panel_ChatArea_Bep.Controls.Add(panel_ChatInput_Bep);
+            panel_ChatArea_Bep.Controls.Add(panel_ChatHeader_Bep);
+            panel_ChatArea_Bep.Dock = DockStyle.Fill;
+            panel_ChatArea_Bep.Location = new Point(572, 4);
+            panel_ChatArea_Bep.Name = "panel_ChatArea_Bep";
+            panel_ChatArea_Bep.Size = new Size(947, 589);
+            panel_ChatArea_Bep.TabIndex = 1;
+            // 
+            // rtb_ChatMessages_Bep
+            // 
+            rtb_ChatMessages_Bep.BorderStyle = BorderStyle.None;
+            rtb_ChatMessages_Bep.Dock = DockStyle.Fill;
+            rtb_ChatMessages_Bep.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            rtb_ChatMessages_Bep.Location = new Point(0, 150);
+            rtb_ChatMessages_Bep.Name = "rtb_ChatMessages_Bep";
+            rtb_ChatMessages_Bep.ReadOnly = true;
+            rtb_ChatMessages_Bep.Size = new Size(947, 323);
+            rtb_ChatMessages_Bep.TabIndex = 2;
+            rtb_ChatMessages_Bep.Text = "";
+            // 
+            // panel_ChatInput_Bep
+            // 
+            panel_ChatInput_Bep.BackColor = Color.Cornsilk;
+            panel_ChatInput_Bep.Controls.Add(btn_SendChat_Bep);
+            panel_ChatInput_Bep.Controls.Add(txt_ChatMessage_Bep);
+            panel_ChatInput_Bep.Dock = DockStyle.Bottom;
+            panel_ChatInput_Bep.Location = new Point(0, 473);
+            panel_ChatInput_Bep.Name = "panel_ChatInput_Bep";
+            panel_ChatInput_Bep.Size = new Size(947, 116);
+            panel_ChatInput_Bep.TabIndex = 1;
+            // 
+            // btn_SendChat_Bep
+            // 
+            btn_SendChat_Bep.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btn_SendChat_Bep.Location = new Point(674, 42);
+            btn_SendChat_Bep.Name = "btn_SendChat_Bep";
+            btn_SendChat_Bep.Size = new Size(112, 34);
+            btn_SendChat_Bep.TabIndex = 1;
+            btn_SendChat_Bep.Text = "Gửi";
+            btn_SendChat_Bep.UseVisualStyleBackColor = true;
+            // 
+            // txt_ChatMessage_Bep
+            // 
+            txt_ChatMessage_Bep.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            txt_ChatMessage_Bep.Location = new Point(71, 38);
+            txt_ChatMessage_Bep.Name = "txt_ChatMessage_Bep";
+            txt_ChatMessage_Bep.Size = new Size(509, 31);
+            txt_ChatMessage_Bep.TabIndex = 0;
+            // 
+            // panel_ChatHeader_Bep
+            // 
+            panel_ChatHeader_Bep.BackColor = Color.PapayaWhip;
+            panel_ChatHeader_Bep.Controls.Add(lbl_ChatRole_Bep);
+            panel_ChatHeader_Bep.Controls.Add(label13);
+            panel_ChatHeader_Bep.Dock = DockStyle.Top;
+            panel_ChatHeader_Bep.Location = new Point(0, 0);
+            panel_ChatHeader_Bep.Name = "panel_ChatHeader_Bep";
+            panel_ChatHeader_Bep.Size = new Size(947, 150);
+            panel_ChatHeader_Bep.TabIndex = 0;
+            // 
+            // lbl_ChatRole_Bep
+            // 
+            lbl_ChatRole_Bep.AutoSize = true;
+            lbl_ChatRole_Bep.ForeColor = Color.LightGray;
+            lbl_ChatRole_Bep.Location = new Point(215, 89);
+            lbl_ChatRole_Bep.Name = "lbl_ChatRole_Bep";
+            lbl_ChatRole_Bep.Size = new Size(0, 25);
+            lbl_ChatRole_Bep.TabIndex = 1;
+            // 
+            // label13
+            // 
+            label13.AutoSize = true;
+            label13.Location = new Point(192, 25);
+            label13.Name = "label13";
+            label13.Size = new Size(199, 25);
+            label13.TabIndex = 0;
+            label13.Text = "💬 Chọn người để chat";
+            // 
+            // panel_UserList_Bep
+            // 
+            panel_UserList_Bep.BackColor = Color.NavajoWhite;
+            panel_UserList_Bep.Controls.Add(btn_ThongBao_Bep);
+            panel_UserList_Bep.Controls.Add(lbl_OnlineCount_Bep);
+            panel_UserList_Bep.Controls.Add(btn_RefreshUsers_Bep);
+            panel_UserList_Bep.Controls.Add(lv_Users_Bep);
+            panel_UserList_Bep.Controls.Add(chk_SendAll_Bep);
+            panel_UserList_Bep.Controls.Add(txt_SearchUser_Bep);
+            panel_UserList_Bep.Dock = DockStyle.Left;
+            panel_UserList_Bep.Location = new Point(4, 4);
+            panel_UserList_Bep.Name = "panel_UserList_Bep";
+            panel_UserList_Bep.Size = new Size(568, 589);
+            panel_UserList_Bep.TabIndex = 0;
+            // 
+            // lbl_OnlineCount_Bep
+            // 
+            lbl_OnlineCount_Bep.AutoSize = true;
+            lbl_OnlineCount_Bep.Location = new Point(61, 545);
+            lbl_OnlineCount_Bep.Name = "lbl_OnlineCount_Bep";
+            lbl_OnlineCount_Bep.Size = new Size(99, 25);
+            lbl_OnlineCount_Bep.TabIndex = 4;
+            lbl_OnlineCount_Bep.Text = "Online: 0/0";
+            lbl_OnlineCount_Bep.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // btn_RefreshUsers_Bep
+            // 
+            btn_RefreshUsers_Bep.Location = new Point(48, 494);
+            btn_RefreshUsers_Bep.Name = "btn_RefreshUsers_Bep";
+            btn_RefreshUsers_Bep.Size = new Size(170, 34);
+            btn_RefreshUsers_Bep.TabIndex = 3;
+            btn_RefreshUsers_Bep.Text = "🔄 Làm mới";
+            btn_RefreshUsers_Bep.UseVisualStyleBackColor = true;
+            // 
+            // lv_Users_Bep
+            // 
+            lv_Users_Bep.BackColor = Color.LemonChiffon;
+            lv_Users_Bep.FullRowSelect = true;
+            lv_Users_Bep.GridLines = true;
+            lv_Users_Bep.Location = new Point(7, 148);
+            lv_Users_Bep.Name = "lv_Users_Bep";
+            lv_Users_Bep.Size = new Size(558, 330);
+            lv_Users_Bep.TabIndex = 2;
+            lv_Users_Bep.UseCompatibleStateImageBehavior = false;
+            // 
+            // chk_SendAll_Bep
+            // 
+            chk_SendAll_Bep.AutoSize = true;
+            chk_SendAll_Bep.Location = new Point(48, 75);
+            chk_SendAll_Bep.Name = "chk_SendAll_Bep";
+            chk_SendAll_Bep.Size = new Size(121, 29);
+            chk_SendAll_Bep.TabIndex = 1;
+            chk_SendAll_Bep.Text = "checkBox1";
+            chk_SendAll_Bep.UseVisualStyleBackColor = true;
+            // 
+            // txt_SearchUser_Bep
+            // 
+            txt_SearchUser_Bep.Location = new Point(48, 23);
+            txt_SearchUser_Bep.Name = "txt_SearchUser_Bep";
+            txt_SearchUser_Bep.Size = new Size(260, 31);
+            txt_SearchUser_Bep.TabIndex = 0;
             // 
             // tabPage_taikhoan
             // 
@@ -860,9 +1004,9 @@
             tabPage_taikhoan.Controls.Add(label9);
             tabPage_taikhoan.Controls.Add(label8);
             tabPage_taikhoan.Location = new Point(4, 34);
-            tabPage_taikhoan.Margin = new Padding(4, 4, 4, 4);
+            tabPage_taikhoan.Margin = new Padding(4);
             tabPage_taikhoan.Name = "tabPage_taikhoan";
-            tabPage_taikhoan.Padding = new Padding(4, 4, 4, 4);
+            tabPage_taikhoan.Padding = new Padding(4);
             tabPage_taikhoan.Size = new Size(1523, 597);
             tabPage_taikhoan.TabIndex = 4;
             tabPage_taikhoan.Text = "Tài Khoản";
@@ -966,147 +1110,15 @@
             label8.TabIndex = 0;
             label8.Text = "Thông tin tài khoản";
             // 
-            // panel_UserList_Bep
+            // btn_ThongBao_Bep_Click
             // 
-            panel_UserList_Bep.BackColor = Color.NavajoWhite;
-            panel_UserList_Bep.Controls.Add(lbl_OnlineCount_Bep);
-            panel_UserList_Bep.Controls.Add(btn_RefreshUsers_Bep);
-            panel_UserList_Bep.Controls.Add(lv_Users_Bep);
-            panel_UserList_Bep.Controls.Add(chk_SendAll_Bep);
-            panel_UserList_Bep.Controls.Add(txt_SearchUser_Bep);
-            panel_UserList_Bep.Dock = DockStyle.Left;
-            panel_UserList_Bep.Location = new Point(4, 4);
-            panel_UserList_Bep.Name = "panel_UserList_Bep";
-            panel_UserList_Bep.Size = new Size(568, 589);
-            panel_UserList_Bep.TabIndex = 0;
-            // 
-            // txt_SearchUser_Bep
-            // 
-            txt_SearchUser_Bep.Location = new Point(48, 23);
-            txt_SearchUser_Bep.Name = "txt_SearchUser_Bep";
-            txt_SearchUser_Bep.Size = new Size(260, 31);
-            txt_SearchUser_Bep.TabIndex = 0;
-            // 
-            // chk_SendAll_Bep
-            // 
-            chk_SendAll_Bep.AutoSize = true;
-            chk_SendAll_Bep.Location = new Point(48, 75);
-            chk_SendAll_Bep.Name = "chk_SendAll_Bep";
-            chk_SendAll_Bep.Size = new Size(121, 29);
-            chk_SendAll_Bep.TabIndex = 1;
-            chk_SendAll_Bep.Text = "checkBox1";
-            chk_SendAll_Bep.UseVisualStyleBackColor = true;
-            // 
-            // lv_Users_Bep
-            // 
-            lv_Users_Bep.BackColor = Color.LemonChiffon;
-            lv_Users_Bep.FullRowSelect = true;
-            lv_Users_Bep.GridLines = true;
-            lv_Users_Bep.Location = new Point(7, 148);
-            lv_Users_Bep.Name = "lv_Users_Bep";
-            lv_Users_Bep.Size = new Size(558, 330);
-            lv_Users_Bep.TabIndex = 2;
-            lv_Users_Bep.UseCompatibleStateImageBehavior = false;
-            // 
-            // btn_RefreshUsers_Bep
-            // 
-            btn_RefreshUsers_Bep.Location = new Point(48, 494);
-            btn_RefreshUsers_Bep.Name = "btn_RefreshUsers_Bep";
-            btn_RefreshUsers_Bep.Size = new Size(170, 34);
-            btn_RefreshUsers_Bep.TabIndex = 3;
-            btn_RefreshUsers_Bep.Text = "🔄 Làm mới";
-            btn_RefreshUsers_Bep.UseVisualStyleBackColor = true;
-            // 
-            // lbl_OnlineCount_Bep
-            // 
-            lbl_OnlineCount_Bep.AutoSize = true;
-            lbl_OnlineCount_Bep.Location = new Point(61, 545);
-            lbl_OnlineCount_Bep.Name = "lbl_OnlineCount_Bep";
-            lbl_OnlineCount_Bep.Size = new Size(99, 25);
-            lbl_OnlineCount_Bep.TabIndex = 4;
-            lbl_OnlineCount_Bep.Text = "Online: 0/0";
-            lbl_OnlineCount_Bep.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // panel_ChatArea_Bep
-            // 
-            panel_ChatArea_Bep.Controls.Add(rtb_ChatMessages_Bep);
-            panel_ChatArea_Bep.Controls.Add(panel_ChatInput_Bep);
-            panel_ChatArea_Bep.Controls.Add(panel_ChatHeader_Bep);
-            panel_ChatArea_Bep.Dock = DockStyle.Fill;
-            panel_ChatArea_Bep.Location = new Point(572, 4);
-            panel_ChatArea_Bep.Name = "panel_ChatArea_Bep";
-            panel_ChatArea_Bep.Size = new Size(947, 589);
-            panel_ChatArea_Bep.TabIndex = 1;
-            // 
-            // panel_ChatHeader_Bep
-            // 
-            panel_ChatHeader_Bep.BackColor = Color.PapayaWhip;
-            panel_ChatHeader_Bep.Controls.Add(lbl_ChatRole_Bep);
-            panel_ChatHeader_Bep.Controls.Add(label13);
-            panel_ChatHeader_Bep.Dock = DockStyle.Top;
-            panel_ChatHeader_Bep.Location = new Point(0, 0);
-            panel_ChatHeader_Bep.Name = "panel_ChatHeader_Bep";
-            panel_ChatHeader_Bep.Size = new Size(947, 150);
-            panel_ChatHeader_Bep.TabIndex = 0;
-            // 
-            // label13
-            // 
-            label13.AutoSize = true;
-            label13.Location = new Point(192, 25);
-            label13.Name = "label13";
-            label13.Size = new Size(199, 25);
-            label13.TabIndex = 0;
-            label13.Text = "💬 Chọn người để chat";
-            // 
-            // lbl_ChatRole_Bep
-            // 
-            lbl_ChatRole_Bep.AutoSize = true;
-            lbl_ChatRole_Bep.ForeColor = Color.LightGray;
-            lbl_ChatRole_Bep.Location = new Point(215, 89);
-            lbl_ChatRole_Bep.Name = "lbl_ChatRole_Bep";
-            lbl_ChatRole_Bep.Size = new Size(0, 25);
-            lbl_ChatRole_Bep.TabIndex = 1;
-            // 
-            // panel_ChatInput_Bep
-            // 
-            panel_ChatInput_Bep.BackColor = Color.Cornsilk;
-            panel_ChatInput_Bep.Controls.Add(btn_SendChat_Bep);
-            panel_ChatInput_Bep.Controls.Add(txt_ChatMessage_Bep);
-            panel_ChatInput_Bep.Dock = DockStyle.Bottom;
-            panel_ChatInput_Bep.Location = new Point(0, 473);
-            panel_ChatInput_Bep.Name = "panel_ChatInput_Bep";
-            panel_ChatInput_Bep.Size = new Size(947, 116);
-            panel_ChatInput_Bep.TabIndex = 1;
-            // 
-            // txt_ChatMessage_Bep
-            // 
-            txt_ChatMessage_Bep.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            txt_ChatMessage_Bep.Location = new Point(71, 38);
-            txt_ChatMessage_Bep.Name = "txt_ChatMessage_Bep";
-            txt_ChatMessage_Bep.Size = new Size(509, 31);
-            txt_ChatMessage_Bep.TabIndex = 0;
-            // 
-            // btn_SendChat_Bep
-            // 
-            btn_SendChat_Bep.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btn_SendChat_Bep.Location = new Point(674, 42);
-            btn_SendChat_Bep.Name = "btn_SendChat_Bep";
-            btn_SendChat_Bep.Size = new Size(112, 34);
-            btn_SendChat_Bep.TabIndex = 1;
-            btn_SendChat_Bep.Text = "Gửi";
-            btn_SendChat_Bep.UseVisualStyleBackColor = true;
-            // 
-            // rtb_ChatMessages_Bep
-            // 
-            rtb_ChatMessages_Bep.BorderStyle = BorderStyle.None;
-            rtb_ChatMessages_Bep.Dock = DockStyle.Fill;
-            rtb_ChatMessages_Bep.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            rtb_ChatMessages_Bep.Location = new Point(0, 150);
-            rtb_ChatMessages_Bep.Name = "rtb_ChatMessages_Bep";
-            rtb_ChatMessages_Bep.ReadOnly = true;
-            rtb_ChatMessages_Bep.Size = new Size(947, 323);
-            rtb_ChatMessages_Bep.TabIndex = 2;
-            rtb_ChatMessages_Bep.Text = "";
+            btn_ThongBao_Bep.Location = new Point(275, 503);
+            btn_ThongBao_Bep.Name = "btn_ThongBao_Bep_Click";
+            btn_ThongBao_Bep.Size = new Size(112, 34);
+            btn_ThongBao_Bep.TabIndex = 5;
+            btn_ThongBao_Bep.Text = "Thông báo";
+            btn_ThongBao_Bep.UseVisualStyleBackColor = true;
+            this.btn_ThongBao_Bep.Click += new System.EventHandler(this.btn_ThongBao_Bep_Click);
             // 
             // NVBep
             // 
@@ -1114,7 +1126,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1538, 639);
             Controls.Add(tc_nvbep);
-            Margin = new Padding(4, 4, 4, 4);
+            Margin = new Padding(4);
             Name = "NVBep";
             Text = "NVBep";
             tc_nvbep.ResumeLayout(false);
@@ -1137,15 +1149,15 @@
             gb_fillterthongke.ResumeLayout(false);
             gb_fillterthongke.PerformLayout();
             tabPage_chat.ResumeLayout(false);
-            tabPage_taikhoan.ResumeLayout(false);
-            tabPage_taikhoan.PerformLayout();
-            panel_UserList_Bep.ResumeLayout(false);
-            panel_UserList_Bep.PerformLayout();
             panel_ChatArea_Bep.ResumeLayout(false);
-            panel_ChatHeader_Bep.ResumeLayout(false);
-            panel_ChatHeader_Bep.PerformLayout();
             panel_ChatInput_Bep.ResumeLayout(false);
             panel_ChatInput_Bep.PerformLayout();
+            panel_ChatHeader_Bep.ResumeLayout(false);
+            panel_ChatHeader_Bep.PerformLayout();
+            panel_UserList_Bep.ResumeLayout(false);
+            panel_UserList_Bep.PerformLayout();
+            tabPage_taikhoan.ResumeLayout(false);
+            tabPage_taikhoan.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -1238,5 +1250,6 @@
         private Label lbl_ChatRole_Bep;
         private RichTextBox rtb_ChatMessages_Bep;
         private Button btn_SendChat_Bep;
+        private Button btn_ThongBao_Bep;
     }
 }
