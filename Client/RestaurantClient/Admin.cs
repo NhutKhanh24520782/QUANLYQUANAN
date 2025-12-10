@@ -1710,5 +1710,10 @@ namespace RestaurantClient
                 MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        private void lbl_sumdoanhthu_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

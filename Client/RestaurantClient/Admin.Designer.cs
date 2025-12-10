@@ -28,6 +28,12 @@
         /// </summary>
         private void InitializeComponent()
         {
+            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle2 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle3 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
             panel2 = new Panel();
@@ -192,151 +198,199 @@
             // 
             // tabPage1
             // 
-            tabPage1.BackColor = Color.AntiqueWhite;
+            tabPage1.BackColor = Color.FromArgb(250, 247, 242);
             tabPage1.Controls.Add(panel2);
             tabPage1.Controls.Add(panel1);
             tabPage1.Location = new Point(4, 29);
             tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3);
+            tabPage1.Padding = new Padding(15);
             tabPage1.Size = new Size(972, 470);
             tabPage1.TabIndex = 0;
-            tabPage1.Text = "Doanh thu";
+            tabPage1.Text = "📊 Doanh thu";
             // 
             // panel2
             // 
-            panel2.BackColor = Color.AntiqueWhite;
+            panel2.BackColor = Color.FromArgb(255, 248, 240);
+            panel2.BorderStyle = BorderStyle.FixedSingle;
             panel2.Controls.Add(btn_xuatbaocao);
             panel2.Controls.Add(btn_XemDoanhThu);
             panel2.Controls.Add(dtp_denNgay);
             panel2.Controls.Add(label2);
             panel2.Controls.Add(label1);
             panel2.Controls.Add(dtp_tuNgay);
-            panel2.Location = new Point(5, 6);
+            panel2.Location = new Point(15, 15);
             panel2.Name = "panel2";
-            panel2.Size = new Size(961, 69);
+            panel2.Size = new Size(942, 90);
             panel2.TabIndex = 1;
             // 
             // btn_xuatbaocao
             // 
-            btn_xuatbaocao.BackColor = Color.Sienna;
+            btn_xuatbaocao.BackColor = Color.FromArgb(139, 90, 43);
+            btn_xuatbaocao.Cursor = Cursors.Hand;
+            btn_xuatbaocao.FlatAppearance.BorderColor = Color.FromArgb(101, 67, 33);
+            btn_xuatbaocao.FlatStyle = FlatStyle.Flat;
+            btn_xuatbaocao.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btn_xuatbaocao.ForeColor = Color.White;
-            btn_xuatbaocao.Location = new Point(816, 17);
+            btn_xuatbaocao.Location = new Point(778, 25);
             btn_xuatbaocao.Name = "btn_xuatbaocao";
-            btn_xuatbaocao.Size = new Size(132, 44);
+            btn_xuatbaocao.Size = new Size(159, 45);
             btn_xuatbaocao.TabIndex = 5;
-            btn_xuatbaocao.Text = "Xuất báo cáo";
+            btn_xuatbaocao.Text = "📄 Xuất báo cáo";
             btn_xuatbaocao.UseVisualStyleBackColor = false;
             btn_xuatbaocao.Click += btn_xuatbaocao_Click;
             // 
             // btn_XemDoanhThu
             // 
-            btn_XemDoanhThu.BackColor = Color.Sienna;
+            btn_XemDoanhThu.BackColor = Color.FromArgb(160, 82, 45);
+            btn_XemDoanhThu.Cursor = Cursors.Hand;
+            btn_XemDoanhThu.FlatAppearance.BorderColor = Color.FromArgb(101, 67, 33);
+            btn_XemDoanhThu.FlatStyle = FlatStyle.Flat;
+            btn_XemDoanhThu.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btn_XemDoanhThu.ForeColor = Color.White;
-            btn_XemDoanhThu.Location = new Point(659, 17);
+            btn_XemDoanhThu.Location = new Point(620, 25);
             btn_XemDoanhThu.Name = "btn_XemDoanhThu";
-            btn_XemDoanhThu.Size = new Size(132, 44);
+            btn_XemDoanhThu.Size = new Size(140, 45);
             btn_XemDoanhThu.TabIndex = 4;
-            btn_XemDoanhThu.Text = "Xem doanh thu";
+            btn_XemDoanhThu.Text = "🔍 Xem";
             btn_XemDoanhThu.UseVisualStyleBackColor = false;
             btn_XemDoanhThu.Click += btn_XemDoanhThu_ClickAsync;
             // 
             // dtp_denNgay
             // 
-            dtp_denNgay.Location = new Point(374, 24);
+            dtp_denNgay.Font = new Font("Segoe UI", 10F);
+            dtp_denNgay.Format = DateTimePickerFormat.Short;
+            dtp_denNgay.Location = new Point(380, 35);
             dtp_denNgay.Name = "dtp_denNgay";
-            dtp_denNgay.Size = new Size(247, 27);
+            dtp_denNgay.Size = new Size(200, 30);
             dtp_denNgay.TabIndex = 3;
             dtp_denNgay.Value = new DateTime(2025, 11, 17, 0, 0, 0, 0);
             // 
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(323, 29);
+            label2.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            label2.ForeColor = Color.FromArgb(101, 67, 33);
+            label2.Location = new Point(320, 38);
             label2.Name = "label2";
-            label2.Size = new Size(36, 20);
+            label2.Size = new Size(53, 25);
             label2.TabIndex = 2;
-            label2.Text = "Đến";
+            label2.Text = "Đến:";
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(8, 29);
+            label1.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            label1.ForeColor = Color.FromArgb(101, 67, 33);
+            label1.Location = new Point(20, 38);
             label1.Name = "label1";
-            label1.Size = new Size(26, 20);
+            label1.Size = new Size(41, 25);
             label1.TabIndex = 1;
-            label1.Text = "Từ";
+            label1.Text = "Từ:";
             // 
             // dtp_tuNgay
             // 
-            dtp_tuNgay.Location = new Point(40, 24);
+            dtp_tuNgay.Font = new Font("Segoe UI", 10F);
+            dtp_tuNgay.Format = DateTimePickerFormat.Short;
+            dtp_tuNgay.Location = new Point(70, 35);
             dtp_tuNgay.Name = "dtp_tuNgay";
-            dtp_tuNgay.Size = new Size(247, 27);
+            dtp_tuNgay.Size = new Size(200, 30);
             dtp_tuNgay.TabIndex = 0;
             dtp_tuNgay.Value = new DateTime(2025, 11, 17, 0, 0, 0, 0);
             // 
             // panel1
             // 
-            panel1.BackColor = Color.AntiqueWhite;
+            panel1.BackColor = Color.White;
+            panel1.BorderStyle = BorderStyle.FixedSingle;
             panel1.Controls.Add(lbl_sumdoanhthu);
             panel1.Controls.Add(label15);
             panel1.Controls.Add(dataGridView_doanhthu);
-            panel1.Location = new Point(0, 81);
+            panel1.Location = new Point(15, 115);
             panel1.Name = "panel1";
-            panel1.Size = new Size(969, 389);
+            panel1.Size = new Size(942, 340);
             panel1.TabIndex = 0;
             // 
             // lbl_sumdoanhthu
             // 
             lbl_sumdoanhthu.AutoSize = true;
-            lbl_sumdoanhthu.Location = new Point(164, 351);
+            lbl_sumdoanhthu.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            lbl_sumdoanhthu.ForeColor = Color.FromArgb(183, 65, 14);
+            lbl_sumdoanhthu.Location = new Point(262, 300);
             lbl_sumdoanhthu.Name = "lbl_sumdoanhthu";
-            lbl_sumdoanhthu.Size = new Size(39, 20);
+            lbl_sumdoanhthu.Size = new Size(88, 32);
             lbl_sumdoanhthu.TabIndex = 2;
-            lbl_sumdoanhthu.Text = "-----";
+            lbl_sumdoanhthu.Text = "0 VNĐ";
             // 
             // label15
             // 
             label15.AutoSize = true;
-            label15.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label15.Location = new Point(3, 343);
+            label15.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            label15.ForeColor = Color.FromArgb(101, 67, 33);
+            label15.Location = new Point(20, 300);
             label15.Name = "label15";
-            label15.Size = new Size(168, 28);
+            label15.Size = new Size(245, 32);
             label15.TabIndex = 1;
-            label15.Text = "Tổng doanh thu:";
+            label15.Text = "💰 Tổng doanh thu:";
             // 
             // dataGridView_doanhthu
             // 
             dataGridView_doanhthu.AllowUserToAddRows = false;
             dataGridView_doanhthu.AllowUserToDeleteRows = false;
             dataGridView_doanhthu.AllowUserToResizeRows = false;
+            dataGridViewCellStyle1.BackColor = Color.FromArgb(255, 248, 240);
+            dataGridView_doanhthu.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
             dataGridView_doanhthu.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dataGridView_doanhthu.BorderStyle = BorderStyle.Fixed3D;
-            dataGridView_doanhthu.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView_doanhthu.Location = new Point(3, 3);
+            dataGridView_doanhthu.BackgroundColor = Color.White;
+            dataGridView_doanhthu.BorderStyle = BorderStyle.None;
+            dataGridViewCellStyle2.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = Color.FromArgb(160, 82, 45);
+            dataGridViewCellStyle2.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            dataGridViewCellStyle2.ForeColor = Color.White;
+            dataGridViewCellStyle2.Padding = new Padding(5);
+            dataGridViewCellStyle2.SelectionBackColor = SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = DataGridViewTriState.True;
+            dataGridView_doanhthu.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
+            dataGridView_doanhthu.ColumnHeadersHeight = 40;
+            dataGridView_doanhthu.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dataGridViewCellStyle3.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle3.BackColor = SystemColors.Window;
+            dataGridViewCellStyle3.Font = new Font("Segoe UI", 9.5F);
+            dataGridViewCellStyle3.ForeColor = SystemColors.ControlText;
+            dataGridViewCellStyle3.Padding = new Padding(5);
+            dataGridViewCellStyle3.SelectionBackColor = Color.FromArgb(205, 133, 63);
+            dataGridViewCellStyle3.SelectionForeColor = Color.White;
+            dataGridViewCellStyle3.WrapMode = DataGridViewTriState.False;
+            dataGridView_doanhthu.DefaultCellStyle = dataGridViewCellStyle3;
+            dataGridView_doanhthu.EnableHeadersVisualStyles = false;
+            dataGridView_doanhthu.GridColor = Color.FromArgb(222, 184, 135);
+            dataGridView_doanhthu.Location = new Point(15, 15);
             dataGridView_doanhthu.Name = "dataGridView_doanhthu";
             dataGridView_doanhthu.ReadOnly = true;
             dataGridView_doanhthu.RowHeadersVisible = false;
             dataGridView_doanhthu.RowHeadersWidth = 51;
+            dataGridView_doanhthu.RowTemplate.Height = 35;
             dataGridView_doanhthu.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dataGridView_doanhthu.Size = new Size(963, 337);
+            dataGridView_doanhthu.Size = new Size(910, 270);
             dataGridView_doanhthu.TabIndex = 0;
             // 
             // tabPage2
             // 
-            tabPage2.BackColor = Color.AntiqueWhite;
+            tabPage2.BackColor = Color.FromArgb(250, 247, 242);
             tabPage2.Controls.Add(panel6);
             tabPage2.Controls.Add(panel5);
             tabPage2.Controls.Add(panel4);
             tabPage2.Controls.Add(panel3);
             tabPage2.Location = new Point(4, 29);
             tabPage2.Name = "tabPage2";
-            tabPage2.Padding = new Padding(3);
+            tabPage2.Padding = new Padding(15);
             tabPage2.Size = new Size(972, 470);
             tabPage2.TabIndex = 1;
-            tabPage2.Text = "Menu";
+            tabPage2.Text = "🍽️ Menu";
             // 
             // panel6
             // 
+            panel6.BackColor = Color.FromArgb(255, 248, 240);
+            panel6.BorderStyle = BorderStyle.FixedSingle;
             panel6.Controls.Add(tb_maloaimon);
             panel6.Controls.Add(label19);
             panel6.Controls.Add(cb_statusFood);
@@ -345,189 +399,259 @@
             panel6.Controls.Add(label4);
             panel6.Controls.Add(tb_nameFood);
             panel6.Controls.Add(label3);
-            panel6.Location = new Point(577, 77);
+            panel6.Location = new Point(595, 100);
             panel6.Name = "panel6";
-            panel6.Size = new Size(389, 390);
+            panel6.Size = new Size(362, 355);
             panel6.TabIndex = 3;
             // 
             // tb_maloaimon
             // 
-            tb_maloaimon.Location = new Point(140, 11);
+            tb_maloaimon.Font = new Font("Segoe UI", 10F);
+            tb_maloaimon.Location = new Point(15, 50);
             tb_maloaimon.Name = "tb_maloaimon";
-            tb_maloaimon.Size = new Size(240, 27);
+            tb_maloaimon.Size = new Size(330, 30);
             tb_maloaimon.TabIndex = 13;
             // 
             // label19
             // 
             label19.AutoSize = true;
-            label19.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label19.Location = new Point(3, 10);
+            label19.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            label19.ForeColor = Color.FromArgb(101, 67, 33);
+            label19.Location = new Point(15, 20);
             label19.Name = "label19";
-            label19.Size = new Size(131, 28);
+            label19.Size = new Size(128, 25);
             label19.TabIndex = 12;
-            label19.Text = "Mã loại món";
+            label19.Text = "Mã loại món:";
             // 
             // cb_statusFood
             // 
+            cb_statusFood.DropDownStyle = ComboBoxStyle.DropDownList;
+            cb_statusFood.Font = new Font("Segoe UI", 10F);
             cb_statusFood.FormattingEnabled = true;
-            cb_statusFood.Location = new Point(140, 185);
+            cb_statusFood.Location = new Point(15, 290);
             cb_statusFood.Name = "cb_statusFood";
-            cb_statusFood.Size = new Size(163, 28);
+            cb_statusFood.Size = new Size(200, 31);
             cb_statusFood.TabIndex = 11;
             // 
             // label16
             // 
             label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(3, 181);
+            label16.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            label16.ForeColor = Color.FromArgb(101, 67, 33);
+            label16.Location = new Point(15, 260);
             label16.Name = "label16";
-            label16.Size = new Size(108, 28);
+            label16.Size = new Size(107, 25);
             label16.TabIndex = 10;
-            label16.Text = "Trạng thái";
+            label16.Text = "Trạng thái:";
             // 
             // nm_priceFood
             // 
-            nm_priceFood.Location = new Point(140, 126);
+            nm_priceFood.Font = new Font("Segoe UI", 10F);
+            nm_priceFood.Location = new Point(15, 210);
             nm_priceFood.Maximum = new decimal(new int[] { 1000000000, 0, 0, 0 });
             nm_priceFood.Name = "nm_priceFood";
-            nm_priceFood.Size = new Size(163, 27);
+            nm_priceFood.Size = new Size(200, 30);
             nm_priceFood.TabIndex = 9;
+            nm_priceFood.ThousandsSeparator = true;
             // 
             // label4
             // 
             label4.AutoSize = true;
-            label4.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label4.Location = new Point(3, 125);
+            label4.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            label4.ForeColor = Color.FromArgb(101, 67, 33);
+            label4.Location = new Point(15, 180);
             label4.Name = "label4";
-            label4.Size = new Size(84, 28);
+            label4.Size = new Size(85, 25);
             label4.TabIndex = 8;
-            label4.Text = "Giá bán";
+            label4.Text = "Giá bán:";
             // 
             // tb_nameFood
             // 
-            tb_nameFood.Location = new Point(140, 68);
+            tb_nameFood.Font = new Font("Segoe UI", 10F);
+            tb_nameFood.Location = new Point(15, 130);
             tb_nameFood.Name = "tb_nameFood";
-            tb_nameFood.Size = new Size(240, 27);
+            tb_nameFood.Size = new Size(330, 30);
             tb_nameFood.TabIndex = 7;
             // 
             // label3
             // 
             label3.AutoSize = true;
-            label3.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label3.Location = new Point(3, 67);
+            label3.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            label3.ForeColor = Color.FromArgb(101, 67, 33);
+            label3.Location = new Point(15, 100);
             label3.Name = "label3";
-            label3.Size = new Size(93, 28);
+            label3.Size = new Size(94, 25);
             label3.TabIndex = 1;
-            label3.Text = "Tên món";
+            label3.Text = "Tên món:";
             // 
             // panel5
             // 
+            panel5.BackColor = Color.FromArgb(255, 248, 240);
+            panel5.BorderStyle = BorderStyle.FixedSingle;
             panel5.Controls.Add(tb_searchFood);
             panel5.Controls.Add(btn_searchFood);
-            panel5.Location = new Point(577, 6);
+            panel5.Location = new Point(595, 15);
             panel5.Name = "panel5";
-            panel5.Size = new Size(389, 65);
+            panel5.Size = new Size(362, 75);
             panel5.TabIndex = 2;
             // 
             // tb_searchFood
             // 
-            tb_searchFood.Location = new Point(3, 23);
+            tb_searchFood.Font = new Font("Segoe UI", 11F);
+            tb_searchFood.Location = new Point(15, 23);
             tb_searchFood.Name = "tb_searchFood";
-            tb_searchFood.Size = new Size(245, 27);
+            tb_searchFood.PlaceholderText = "Tìm kiếm món ăn...";
+            tb_searchFood.Size = new Size(200, 32);
             tb_searchFood.TabIndex = 5;
             // 
             // btn_searchFood
             // 
-            btn_searchFood.BackColor = Color.Sienna;
+            btn_searchFood.BackColor = Color.FromArgb(160, 82, 45);
+            btn_searchFood.Cursor = Cursors.Hand;
+            btn_searchFood.FlatAppearance.BorderColor = Color.FromArgb(101, 67, 33);
+            btn_searchFood.FlatStyle = FlatStyle.Flat;
+            btn_searchFood.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btn_searchFood.ForeColor = Color.White;
-            btn_searchFood.Location = new Point(254, 10);
+            btn_searchFood.Location = new Point(225, 15);
             btn_searchFood.Name = "btn_searchFood";
-            btn_searchFood.Size = new Size(132, 52);
+            btn_searchFood.Size = new Size(120, 45);
             btn_searchFood.TabIndex = 4;
-            btn_searchFood.Text = "Tìm";
+            btn_searchFood.Text = "🔍 Tìm";
             btn_searchFood.UseVisualStyleBackColor = false;
             btn_searchFood.Click += btn_searchFood_Click;
             // 
             // panel4
             // 
-            panel4.BackColor = Color.AntiqueWhite;
+            panel4.BackColor = Color.FromArgb(255, 248, 240);
+            panel4.BorderStyle = BorderStyle.FixedSingle;
             panel4.Controls.Add(btn_viewFood);
             panel4.Controls.Add(btn_editFood);
             panel4.Controls.Add(btn_deleteFood);
             panel4.Controls.Add(btn_addFood);
-            panel4.Location = new Point(6, 6);
+            panel4.Location = new Point(15, 15);
             panel4.Name = "panel4";
-            panel4.Size = new Size(565, 70);
+            panel4.Size = new Size(565, 75);
             panel4.TabIndex = 1;
             // 
             // btn_viewFood
             // 
-            btn_viewFood.BackColor = Color.Sienna;
+            btn_viewFood.BackColor = Color.FromArgb(139, 90, 43);
+            btn_viewFood.Cursor = Cursors.Hand;
+            btn_viewFood.FlatAppearance.BorderColor = Color.FromArgb(101, 67, 33);
+            btn_viewFood.FlatStyle = FlatStyle.Flat;
+            btn_viewFood.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btn_viewFood.ForeColor = Color.White;
-            btn_viewFood.Location = new Point(414, 13);
+            btn_viewFood.Location = new Point(420, 15);
             btn_viewFood.Name = "btn_viewFood";
-            btn_viewFood.Size = new Size(114, 47);
+            btn_viewFood.Size = new Size(120, 45);
             btn_viewFood.TabIndex = 3;
-            btn_viewFood.Text = "Xem";
+            btn_viewFood.Text = "👁️ Xem";
             btn_viewFood.UseVisualStyleBackColor = false;
             btn_viewFood.Click += btn_viewFood_Click;
             // 
             // btn_editFood
             // 
-            btn_editFood.BackColor = Color.Sienna;
+            btn_editFood.BackColor = Color.FromArgb(160, 82, 45);
+            btn_editFood.Cursor = Cursors.Hand;
+            btn_editFood.FlatAppearance.BorderColor = Color.FromArgb(101, 67, 33);
+            btn_editFood.FlatStyle = FlatStyle.Flat;
+            btn_editFood.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btn_editFood.ForeColor = Color.White;
-            btn_editFood.Location = new Point(284, 13);
+            btn_editFood.Location = new Point(285, 15);
             btn_editFood.Name = "btn_editFood";
-            btn_editFood.Size = new Size(114, 47);
+            btn_editFood.Size = new Size(120, 45);
             btn_editFood.TabIndex = 2;
-            btn_editFood.Text = "Sửa";
+            btn_editFood.Text = "✏️ Sửa";
             btn_editFood.UseVisualStyleBackColor = false;
             btn_editFood.Click += btn_editFood_Click;
             // 
             // btn_deleteFood
             // 
-            btn_deleteFood.BackColor = Color.Sienna;
+            btn_deleteFood.BackColor = Color.FromArgb(183, 65, 14);
+            btn_deleteFood.Cursor = Cursors.Hand;
+            btn_deleteFood.FlatAppearance.BorderColor = Color.FromArgb(101, 67, 33);
+            btn_deleteFood.FlatStyle = FlatStyle.Flat;
+            btn_deleteFood.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btn_deleteFood.ForeColor = Color.White;
-            btn_deleteFood.Location = new Point(140, 13);
+            btn_deleteFood.Location = new Point(150, 15);
             btn_deleteFood.Name = "btn_deleteFood";
-            btn_deleteFood.Size = new Size(120, 47);
+            btn_deleteFood.Size = new Size(120, 45);
             btn_deleteFood.TabIndex = 1;
-            btn_deleteFood.Text = "Xóa";
+            btn_deleteFood.Text = "🗑️ Xóa";
             btn_deleteFood.UseVisualStyleBackColor = false;
             btn_deleteFood.Click += btn_deleteFood_Click;
             // 
             // btn_addFood
             // 
-            btn_addFood.BackColor = Color.Sienna;
+            btn_addFood.BackColor = Color.FromArgb(139, 90, 43);
+            btn_addFood.Cursor = Cursors.Hand;
+            btn_addFood.FlatAppearance.BorderColor = Color.FromArgb(101, 67, 33);
+            btn_addFood.FlatStyle = FlatStyle.Flat;
+            btn_addFood.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btn_addFood.ForeColor = Color.White;
-            btn_addFood.Location = new Point(3, 13);
+            btn_addFood.Location = new Point(15, 15);
             btn_addFood.Name = "btn_addFood";
-            btn_addFood.Size = new Size(119, 47);
+            btn_addFood.Size = new Size(120, 45);
             btn_addFood.TabIndex = 0;
-            btn_addFood.Text = "Thêm";
+            btn_addFood.Text = "➕ Thêm";
             btn_addFood.UseVisualStyleBackColor = false;
             btn_addFood.Click += btn_addFood_Click;
             // 
             // panel3
             // 
+            panel3.BackColor = Color.White;
+            panel3.BorderStyle = BorderStyle.FixedSingle;
             panel3.Controls.Add(dataGridView_menu);
-            panel3.Location = new Point(6, 72);
+            panel3.Location = new Point(15, 100);
             panel3.Name = "panel3";
-            panel3.Size = new Size(565, 395);
+            panel3.Size = new Size(565, 355);
             panel3.TabIndex = 0;
             // 
             // dataGridView_menu
             // 
-            dataGridView_menu.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView_menu.Location = new Point(3, 5);
+            dataGridView_menu.AllowUserToAddRows = false;
+            dataGridView_menu.AllowUserToDeleteRows = false;
+            dataGridView_menu.AllowUserToResizeRows = false;
+            dataGridViewCellStyle4.BackColor = Color.FromArgb(255, 248, 240);
+            dataGridView_menu.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle4;
+            dataGridView_menu.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridView_menu.BackgroundColor = Color.White;
+            dataGridView_menu.BorderStyle = BorderStyle.None;
+            dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = Color.FromArgb(160, 82, 45);
+            dataGridViewCellStyle5.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            dataGridViewCellStyle5.ForeColor = Color.White;
+            dataGridViewCellStyle5.Padding = new Padding(5);
+            dataGridViewCellStyle5.SelectionBackColor = SystemColors.Highlight;
+            dataGridViewCellStyle5.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = DataGridViewTriState.True;
+            dataGridView_menu.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
+            dataGridView_menu.ColumnHeadersHeight = 40;
+            dataGridView_menu.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dataGridViewCellStyle6.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle6.BackColor = SystemColors.Window;
+            dataGridViewCellStyle6.Font = new Font("Segoe UI", 9.5F);
+            dataGridViewCellStyle6.ForeColor = SystemColors.ControlText;
+            dataGridViewCellStyle6.Padding = new Padding(5);
+            dataGridViewCellStyle6.SelectionBackColor = Color.FromArgb(205, 133, 63);
+            dataGridViewCellStyle6.SelectionForeColor = Color.White;
+            dataGridViewCellStyle6.WrapMode = DataGridViewTriState.False;
+            dataGridView_menu.DefaultCellStyle = dataGridViewCellStyle6;
+            dataGridView_menu.EnableHeadersVisualStyles = false;
+            dataGridView_menu.GridColor = Color.FromArgb(222, 184, 135);
+            dataGridView_menu.Location = new Point(10, 10);
             dataGridView_menu.Name = "dataGridView_menu";
+            dataGridView_menu.ReadOnly = true;
+            dataGridView_menu.RowHeadersVisible = false;
             dataGridView_menu.RowHeadersWidth = 51;
-            dataGridView_menu.Size = new Size(559, 390);
+            dataGridView_menu.RowTemplate.Height = 35;
+            dataGridView_menu.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView_menu.Size = new Size(545, 335);
             dataGridView_menu.TabIndex = 0;
             // 
             // tabPage3
             // 
-            tabPage3.BackColor = Color.AntiqueWhite;
+            tabPage3.BackColor = Color.FromArgb(250, 247, 242);
             tabPage3.Controls.Add(cb_statusTable);
             tabPage3.Controls.Add(panel9);
             tabPage3.Controls.Add(panel8);
@@ -537,10 +661,11 @@
             tabPage3.Padding = new Padding(3);
             tabPage3.Size = new Size(972, 470);
             tabPage3.TabIndex = 2;
-            tabPage3.Text = "Bàn ăn";
+            tabPage3.Text = "┬─┬ Bàn ăn";
             // 
             // cb_statusTable
             // 
+            cb_statusTable.BackColor = Color.FromArgb(255, 248, 240);
             cb_statusTable.Controls.Add(lbl_seat);
             cb_statusTable.Controls.Add(nm_seats);
             cb_statusTable.Controls.Add(cb_statusban);
@@ -549,15 +674,16 @@
             cb_statusTable.Controls.Add(label6);
             cb_statusTable.Controls.Add(tb_idban);
             cb_statusTable.Controls.Add(label5);
-            cb_statusTable.Location = new Point(578, 84);
+            cb_statusTable.Location = new Point(578, 102);
             cb_statusTable.Name = "cb_statusTable";
-            cb_statusTable.Size = new Size(388, 380);
+            cb_statusTable.Size = new Size(388, 362);
             cb_statusTable.TabIndex = 3;
             // 
             // lbl_seat
             // 
             lbl_seat.AutoSize = true;
             lbl_seat.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lbl_seat.ForeColor = Color.FromArgb(101, 67, 33);
             lbl_seat.Location = new Point(15, 214);
             lbl_seat.Name = "lbl_seat";
             lbl_seat.Size = new Size(123, 28);
@@ -583,6 +709,7 @@
             // 
             label7.AutoSize = true;
             label7.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label7.ForeColor = Color.FromArgb(101, 67, 33);
             label7.Location = new Point(15, 158);
             label7.Name = "label7";
             label7.Size = new Size(108, 28);
@@ -600,6 +727,7 @@
             // 
             label6.AutoSize = true;
             label6.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label6.ForeColor = Color.FromArgb(101, 67, 33);
             label6.Location = new Point(15, 96);
             label6.Name = "label6";
             label6.Size = new Size(86, 28);
@@ -617,6 +745,7 @@
             // 
             label5.AutoSize = true;
             label5.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label5.ForeColor = Color.FromArgb(101, 67, 33);
             label5.Location = new Point(15, 40);
             label5.Name = "label5";
             label5.Size = new Size(33, 28);
@@ -625,111 +754,123 @@
             // 
             // panel9
             // 
+            panel9.BackColor = Color.FromArgb(255, 248, 240);
             panel9.Controls.Add(dataGridView3);
-            panel9.Location = new Point(6, 84);
+            panel9.Location = new Point(6, 102);
             panel9.Name = "panel9";
-            panel9.Size = new Size(566, 380);
+            panel9.Size = new Size(566, 362);
             panel9.TabIndex = 2;
             // 
             // dataGridView3
             // 
             dataGridView3.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView3.Location = new Point(3, 6);
+            dataGridView3.Location = new Point(3, 3);
             dataGridView3.Name = "dataGridView3";
             dataGridView3.RowHeadersWidth = 51;
-            dataGridView3.Size = new Size(560, 374);
+            dataGridView3.Size = new Size(560, 377);
             dataGridView3.TabIndex = 0;
             // 
             // panel8
             // 
+            panel8.BackColor = Color.FromArgb(255, 248, 240);
             panel8.Controls.Add(btn_searchTable);
             panel8.Controls.Add(tb_searchTable);
             panel8.Location = new Point(578, 6);
             panel8.Name = "panel8";
-            panel8.Size = new Size(388, 72);
+            panel8.Size = new Size(388, 90);
             panel8.TabIndex = 1;
             // 
             // btn_searchTable
             // 
             btn_searchTable.BackColor = Color.Sienna;
+            btn_searchTable.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_searchTable.ForeColor = Color.White;
-            btn_searchTable.Location = new Point(274, 15);
+            btn_searchTable.Location = new Point(262, 24);
             btn_searchTable.Name = "btn_searchTable";
-            btn_searchTable.Size = new Size(111, 45);
+            btn_searchTable.Size = new Size(123, 45);
             btn_searchTable.TabIndex = 4;
-            btn_searchTable.Text = "Tìm";
+            btn_searchTable.Text = "🔍 Tìm";
             btn_searchTable.UseVisualStyleBackColor = false;
             btn_searchTable.Click += btn_searchTable_Click;
             // 
             // tb_searchTable
             // 
-            tb_searchTable.Location = new Point(15, 24);
+            tb_searchTable.Location = new Point(3, 33);
             tb_searchTable.Name = "tb_searchTable";
             tb_searchTable.Size = new Size(253, 27);
             tb_searchTable.TabIndex = 0;
             // 
             // panel7
             // 
+            panel7.BackColor = Color.FromArgb(255, 248, 240);
             panel7.Controls.Add(btn_viewTable);
             panel7.Controls.Add(btn_editTable);
             panel7.Controls.Add(btn_deleteTable);
             panel7.Controls.Add(btn_addTable);
             panel7.Location = new Point(6, 6);
             panel7.Name = "panel7";
-            panel7.Size = new Size(566, 72);
+            panel7.Size = new Size(566, 90);
             panel7.TabIndex = 0;
             // 
             // btn_viewTable
             // 
             btn_viewTable.BackColor = Color.Sienna;
+            btn_viewTable.FlatStyle = FlatStyle.Flat;
+            btn_viewTable.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_viewTable.ForeColor = Color.White;
-            btn_viewTable.Location = new Point(385, 15);
+            btn_viewTable.Location = new Point(413, 19);
             btn_viewTable.Name = "btn_viewTable";
-            btn_viewTable.Size = new Size(111, 45);
+            btn_viewTable.Size = new Size(124, 55);
             btn_viewTable.TabIndex = 3;
-            btn_viewTable.Text = "Xem";
+            btn_viewTable.Text = "👁️ Xem";
             btn_viewTable.UseVisualStyleBackColor = false;
             btn_viewTable.Click += btn_viewTable_Click;
             // 
             // btn_editTable
             // 
             btn_editTable.BackColor = Color.Sienna;
+            btn_editTable.FlatStyle = FlatStyle.Flat;
+            btn_editTable.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_editTable.ForeColor = Color.White;
-            btn_editTable.Location = new Point(257, 15);
+            btn_editTable.Location = new Point(273, 19);
             btn_editTable.Name = "btn_editTable";
-            btn_editTable.Size = new Size(111, 45);
+            btn_editTable.Size = new Size(122, 55);
             btn_editTable.TabIndex = 2;
-            btn_editTable.Text = "Sửa";
+            btn_editTable.Text = "✏️ Sửa";
             btn_editTable.UseVisualStyleBackColor = false;
             btn_editTable.Click += btn_editTable_Click;
             // 
             // btn_deleteTable
             // 
             btn_deleteTable.BackColor = Color.Sienna;
+            btn_deleteTable.FlatStyle = FlatStyle.Flat;
+            btn_deleteTable.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_deleteTable.ForeColor = Color.White;
-            btn_deleteTable.Location = new Point(130, 15);
+            btn_deleteTable.Location = new Point(146, 19);
             btn_deleteTable.Name = "btn_deleteTable";
-            btn_deleteTable.Size = new Size(111, 45);
+            btn_deleteTable.Size = new Size(121, 55);
             btn_deleteTable.TabIndex = 1;
-            btn_deleteTable.Text = "Xóa";
+            btn_deleteTable.Text = "🗑️ Xóa";
             btn_deleteTable.UseVisualStyleBackColor = false;
             btn_deleteTable.Click += btn_deleteTable_Click;
             // 
             // btn_addTable
             // 
             btn_addTable.BackColor = Color.Sienna;
+            btn_addTable.FlatStyle = FlatStyle.Flat;
+            btn_addTable.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_addTable.ForeColor = Color.White;
-            btn_addTable.Location = new Point(3, 15);
+            btn_addTable.Location = new Point(16, 19);
             btn_addTable.Name = "btn_addTable";
-            btn_addTable.Size = new Size(111, 45);
+            btn_addTable.Size = new Size(124, 55);
             btn_addTable.TabIndex = 0;
-            btn_addTable.Text = "Thêm";
+            btn_addTable.Text = "➕ Thêm";
             btn_addTable.UseVisualStyleBackColor = false;
             btn_addTable.Click += btn_addTable_Click;
             // 
             // tabPage4
             // 
-            tabPage4.BackColor = Color.AntiqueWhite;
+            tabPage4.BackColor = Color.FromArgb(250, 247, 242);
             tabPage4.Controls.Add(panel13);
             tabPage4.Controls.Add(panel12);
             tabPage4.Controls.Add(panel10);
@@ -738,10 +879,11 @@
             tabPage4.Padding = new Padding(3);
             tabPage4.Size = new Size(972, 470);
             tabPage4.TabIndex = 3;
-            tabPage4.Text = "Hóa đơn";
+            tabPage4.Text = "📋Hóa đơn";
             // 
             // panel13
             // 
+            panel13.BackColor = Color.FromArgb(255, 248, 240);
             panel13.Controls.Add(tb_dateBill);
             panel13.Controls.Add(label18);
             panel13.Controls.Add(tb_idTable);
@@ -768,6 +910,7 @@
             // 
             label18.AutoSize = true;
             label18.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label18.ForeColor = Color.FromArgb(101, 67, 33);
             label18.Location = new Point(14, 274);
             label18.Name = "label18";
             label18.Size = new Size(195, 28);
@@ -787,6 +930,7 @@
             // 
             label17.AutoSize = true;
             label17.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label17.ForeColor = Color.FromArgb(101, 67, 33);
             label17.Location = new Point(14, 181);
             label17.Name = "label17";
             label17.Size = new Size(112, 28);
@@ -806,6 +950,7 @@
             // 
             label9.AutoSize = true;
             label9.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label9.ForeColor = Color.FromArgb(101, 67, 33);
             label9.Location = new Point(14, 95);
             label9.Name = "label9";
             label9.Size = new Size(141, 28);
@@ -825,6 +970,7 @@
             // 
             label8.AutoSize = true;
             label8.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label8.ForeColor = Color.FromArgb(101, 67, 33);
             label8.Location = new Point(14, 19);
             label8.Name = "label8";
             label8.Size = new Size(127, 28);
@@ -833,6 +979,7 @@
             // 
             // panel12
             // 
+            panel12.BackColor = Color.FromArgb(255, 248, 240);
             panel12.Controls.Add(dataGridView_bill);
             panel12.Location = new Point(6, 87);
             panel12.Name = "panel12";
@@ -858,6 +1005,7 @@
             // 
             // panel10
             // 
+            panel10.BackColor = Color.FromArgb(255, 248, 240);
             panel10.Controls.Add(btn_searchBill);
             panel10.Controls.Add(btn_viewBill);
             panel10.Controls.Add(btn_resetBill);
@@ -870,36 +1018,42 @@
             // btn_searchBill
             // 
             btn_searchBill.BackColor = Color.Sienna;
+            btn_searchBill.FlatStyle = FlatStyle.Flat;
+            btn_searchBill.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_searchBill.ForeColor = Color.White;
-            btn_searchBill.Location = new Point(318, 15);
+            btn_searchBill.Location = new Point(321, 15);
             btn_searchBill.Name = "btn_searchBill";
             btn_searchBill.Size = new Size(116, 47);
             btn_searchBill.TabIndex = 4;
-            btn_searchBill.Text = "Tìm";
+            btn_searchBill.Text = "🔍 Tìm";
             btn_searchBill.UseVisualStyleBackColor = false;
             btn_searchBill.Click += btn_searchBill_Click;
             // 
             // btn_viewBill
             // 
             btn_viewBill.BackColor = Color.Sienna;
+            btn_viewBill.FlatStyle = FlatStyle.Flat;
+            btn_viewBill.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_viewBill.ForeColor = Color.White;
             btn_viewBill.Location = new Point(21, 15);
             btn_viewBill.Name = "btn_viewBill";
             btn_viewBill.Size = new Size(116, 47);
             btn_viewBill.TabIndex = 3;
-            btn_viewBill.Text = "Xem";
+            btn_viewBill.Text = "👁️ Xem";
             btn_viewBill.UseVisualStyleBackColor = false;
             btn_viewBill.Click += btn_viewBill_Click;
             // 
             // btn_resetBill
             // 
             btn_resetBill.BackColor = Color.Sienna;
+            btn_resetBill.FlatStyle = FlatStyle.Flat;
+            btn_resetBill.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_resetBill.ForeColor = Color.White;
             btn_resetBill.Location = new Point(163, 15);
             btn_resetBill.Name = "btn_resetBill";
             btn_resetBill.Size = new Size(116, 47);
             btn_resetBill.TabIndex = 2;
-            btn_resetBill.Text = "Reset";
+            btn_resetBill.Text = "⟳ Reset";
             btn_resetBill.UseVisualStyleBackColor = false;
             btn_resetBill.Click += btn_resetBill_Click;
             // 
@@ -912,7 +1066,7 @@
             // 
             // tabPage5
             // 
-            tabPage5.BackColor = Color.AntiqueWhite;
+            tabPage5.BackColor = Color.FromArgb(250, 247, 242);
             tabPage5.Controls.Add(panel17);
             tabPage5.Controls.Add(panel16);
             tabPage5.Controls.Add(panel15);
@@ -922,10 +1076,11 @@
             tabPage5.Padding = new Padding(3);
             tabPage5.Size = new Size(972, 470);
             tabPage5.TabIndex = 4;
-            tabPage5.Text = "Nhân viên";
+            tabPage5.Text = "👤Nhân viên";
             // 
             // panel17
             // 
+            panel17.BackColor = Color.FromArgb(255, 248, 240);
             panel17.Controls.Add(dateTimePicker3);
             panel17.Controls.Add(label14);
             panel17.Controls.Add(cb_position);
@@ -936,9 +1091,9 @@
             panel17.Controls.Add(label11);
             panel17.Controls.Add(tb_nameHuman);
             panel17.Controls.Add(label10);
-            panel17.Location = new Point(575, 84);
+            panel17.Location = new Point(564, 84);
             panel17.Name = "panel17";
-            panel17.Size = new Size(391, 380);
+            panel17.Size = new Size(402, 380);
             panel17.TabIndex = 3;
             // 
             // dateTimePicker3
@@ -952,6 +1107,7 @@
             // 
             label14.AutoSize = true;
             label14.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label14.ForeColor = Color.FromArgb(101, 67, 33);
             label14.Location = new Point(3, 231);
             label14.Name = "label14";
             label14.Size = new Size(143, 28);
@@ -971,6 +1127,7 @@
             // 
             label13.AutoSize = true;
             label13.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label13.ForeColor = Color.FromArgb(101, 67, 33);
             label13.Location = new Point(3, 182);
             label13.Name = "label13";
             label13.Size = new Size(59, 28);
@@ -988,6 +1145,7 @@
             // 
             label12.AutoSize = true;
             label12.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label12.ForeColor = Color.FromArgb(101, 67, 33);
             label12.Location = new Point(3, 122);
             label12.Name = "label12";
             label12.Size = new Size(102, 28);
@@ -1005,6 +1163,7 @@
             // 
             label11.AutoSize = true;
             label11.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label11.ForeColor = Color.FromArgb(101, 67, 33);
             label11.Location = new Point(3, 69);
             label11.Name = "label11";
             label11.Size = new Size(64, 28);
@@ -1022,6 +1181,7 @@
             // 
             label10.AutoSize = true;
             label10.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label10.ForeColor = Color.FromArgb(101, 67, 33);
             label10.Location = new Point(3, 18);
             label10.Name = "label10";
             label10.Size = new Size(144, 28);
@@ -1030,38 +1190,42 @@
             // 
             // panel16
             // 
+            panel16.BackColor = Color.FromArgb(255, 248, 240);
             panel16.Controls.Add(btn_searchHuman);
             panel16.Controls.Add(tb_searchHuman);
-            panel16.Location = new Point(550, 6);
+            panel16.Location = new Point(564, 6);
             panel16.Name = "panel16";
-            panel16.Size = new Size(416, 72);
+            panel16.Size = new Size(402, 72);
             panel16.TabIndex = 2;
             // 
             // btn_searchHuman
             // 
             btn_searchHuman.BackColor = Color.Sienna;
+            btn_searchHuman.FlatStyle = FlatStyle.Flat;
+            btn_searchHuman.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_searchHuman.ForeColor = Color.White;
-            btn_searchHuman.Location = new Point(289, 19);
+            btn_searchHuman.Location = new Point(276, 15);
             btn_searchHuman.Name = "btn_searchHuman";
-            btn_searchHuman.Size = new Size(118, 44);
+            btn_searchHuman.Size = new Size(118, 48);
             btn_searchHuman.TabIndex = 4;
-            btn_searchHuman.Text = "Tìm";
+            btn_searchHuman.Text = "🔍 Tìm";
             btn_searchHuman.UseVisualStyleBackColor = false;
             btn_searchHuman.Click += btn_searchHuman_Click;
             // 
             // tb_searchHuman
             // 
-            tb_searchHuman.Location = new Point(15, 28);
+            tb_searchHuman.Location = new Point(3, 28);
             tb_searchHuman.Name = "tb_searchHuman";
             tb_searchHuman.Size = new Size(268, 27);
             tb_searchHuman.TabIndex = 0;
             // 
             // panel15
             // 
+            panel15.BackColor = Color.FromArgb(255, 248, 240);
             panel15.Controls.Add(dataGridView_emp);
             panel15.Location = new Point(-4, 84);
             panel15.Name = "panel15";
-            panel15.Size = new Size(576, 383);
+            panel15.Size = new Size(562, 383);
             panel15.TabIndex = 1;
             // 
             // dataGridView_emp
@@ -1078,65 +1242,74 @@
             dataGridView_emp.RowHeadersVisible = false;
             dataGridView_emp.RowHeadersWidth = 51;
             dataGridView_emp.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dataGridView_emp.Size = new Size(568, 377);
+            dataGridView_emp.Size = new Size(554, 377);
             dataGridView_emp.TabIndex = 0;
             // 
             // panel14
             // 
+            panel14.BackColor = Color.FromArgb(255, 248, 240);
             panel14.Controls.Add(btn_viewHuman);
             panel14.Controls.Add(btn_editHuman);
             panel14.Controls.Add(btn_deleteHuman);
             panel14.Controls.Add(btn_addHuman);
             panel14.Location = new Point(6, 6);
             panel14.Name = "panel14";
-            panel14.Size = new Size(538, 72);
+            panel14.Size = new Size(552, 72);
             panel14.TabIndex = 0;
             // 
             // btn_viewHuman
             // 
             btn_viewHuman.BackColor = Color.Sienna;
+            btn_viewHuman.FlatStyle = FlatStyle.Flat;
+            btn_viewHuman.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_viewHuman.ForeColor = Color.White;
-            btn_viewHuman.Location = new Point(396, 15);
+            btn_viewHuman.Location = new Point(413, 15);
             btn_viewHuman.Name = "btn_viewHuman";
-            btn_viewHuman.Size = new Size(118, 44);
+            btn_viewHuman.Size = new Size(118, 48);
             btn_viewHuman.TabIndex = 3;
-            btn_viewHuman.Text = "Xem";
+            btn_viewHuman.Text = "👁️ Xem";
             btn_viewHuman.UseVisualStyleBackColor = false;
             btn_viewHuman.Click += btn_viewHuman_Click;
             // 
             // btn_editHuman
             // 
             btn_editHuman.BackColor = Color.Sienna;
+            btn_editHuman.FlatStyle = FlatStyle.Flat;
+            btn_editHuman.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_editHuman.ForeColor = Color.White;
-            btn_editHuman.Location = new Point(272, 15);
+            btn_editHuman.Location = new Point(289, 15);
             btn_editHuman.Name = "btn_editHuman";
-            btn_editHuman.Size = new Size(118, 44);
+            btn_editHuman.Size = new Size(118, 48);
             btn_editHuman.TabIndex = 2;
-            btn_editHuman.Text = "Sửa";
+            btn_editHuman.Text = "✏️ Sửa";
             btn_editHuman.UseVisualStyleBackColor = false;
             btn_editHuman.Click += btn_editHuman_Click;
             // 
             // btn_deleteHuman
             // 
             btn_deleteHuman.BackColor = Color.Sienna;
+            btn_deleteHuman.FlatStyle = FlatStyle.Flat;
+            btn_deleteHuman.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_deleteHuman.ForeColor = Color.White;
-            btn_deleteHuman.Location = new Point(138, 15);
+            btn_deleteHuman.Location = new Point(150, 15);
             btn_deleteHuman.Name = "btn_deleteHuman";
-            btn_deleteHuman.Size = new Size(118, 44);
+            btn_deleteHuman.Size = new Size(118, 48);
             btn_deleteHuman.TabIndex = 1;
-            btn_deleteHuman.Text = "Xóa";
+            btn_deleteHuman.Text = "🗑️ Xóa";
             btn_deleteHuman.UseVisualStyleBackColor = false;
             btn_deleteHuman.Click += btn_deleteHuman_Click;
             // 
             // btn_addHuman
             // 
             btn_addHuman.BackColor = Color.Sienna;
+            btn_addHuman.FlatStyle = FlatStyle.Flat;
+            btn_addHuman.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_addHuman.ForeColor = Color.White;
-            btn_addHuman.Location = new Point(3, 15);
+            btn_addHuman.Location = new Point(15, 15);
             btn_addHuman.Name = "btn_addHuman";
-            btn_addHuman.Size = new Size(118, 44);
+            btn_addHuman.Size = new Size(129, 48);
             btn_addHuman.TabIndex = 0;
-            btn_addHuman.Text = "Thêm";
+            btn_addHuman.Text = "➕ Thêm";
             btn_addHuman.UseVisualStyleBackColor = false;
             btn_addHuman.Click += btn_addHuman_Click;
             // 
@@ -1150,10 +1323,11 @@
             tabPage6.Padding = new Padding(3);
             tabPage6.Size = new Size(972, 470);
             tabPage6.TabIndex = 5;
-            tabPage6.Text = "Chat";
+            tabPage6.Text = "💬 Chat";
             // 
             // panel19
             // 
+            panel19.BackColor = Color.FromArgb(250, 247, 242);
             panel19.Controls.Add(dataGridView6);
             panel19.Location = new Point(3, 3);
             panel19.Name = "panel19";
@@ -1171,6 +1345,7 @@
             // 
             // panel18
             // 
+            panel18.BackColor = Color.FromArgb(255, 248, 240);
             panel18.Controls.Add(btn_send);
             panel18.Controls.Add(textBox2);
             panel18.Location = new Point(3, 405);
@@ -1181,7 +1356,8 @@
             // btn_send
             // 
             btn_send.BackColor = Color.Sienna;
-            btn_send.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_send.FlatStyle = FlatStyle.Flat;
+            btn_send.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_send.ForeColor = Color.White;
             btn_send.Location = new Point(811, 3);
             btn_send.Name = "btn_send";
@@ -1200,7 +1376,7 @@
             // 
             // tabPage7
             // 
-            tabPage7.BackColor = Color.AntiqueWhite;
+            tabPage7.BackColor = Color.FromArgb(255, 248, 240);
             tabPage7.Controls.Add(button_DangxuatAdmin);
             tabPage7.Controls.Add(textbox_role);
             tabPage7.Controls.Add(textbox_nameadmin);
@@ -1217,16 +1393,18 @@
             tabPage7.Padding = new Padding(2);
             tabPage7.Size = new Size(972, 470);
             tabPage7.TabIndex = 6;
-            tabPage7.Text = "Tài khoản";
+            tabPage7.Text = "ⓘ Tài khoản";
             // 
             // button_DangxuatAdmin
             // 
             button_DangxuatAdmin.BackColor = Color.Sienna;
+            button_DangxuatAdmin.FlatStyle = FlatStyle.Flat;
+            button_DangxuatAdmin.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             button_DangxuatAdmin.ForeColor = Color.White;
             button_DangxuatAdmin.Location = new Point(413, 389);
             button_DangxuatAdmin.Margin = new Padding(2);
             button_DangxuatAdmin.Name = "button_DangxuatAdmin";
-            button_DangxuatAdmin.Size = new Size(134, 45);
+            button_DangxuatAdmin.Size = new Size(144, 45);
             button_DangxuatAdmin.TabIndex = 9;
             button_DangxuatAdmin.Text = "Đăng xuất";
             button_DangxuatAdmin.UseVisualStyleBackColor = false;
@@ -1237,7 +1415,7 @@
             textbox_role.Location = new Point(422, 323);
             textbox_role.Margin = new Padding(2);
             textbox_role.Name = "textbox_role";
-            textbox_role.Size = new Size(198, 27);
+            textbox_role.Size = new Size(260, 27);
             textbox_role.TabIndex = 8;
             // 
             // textbox_nameadmin
@@ -1245,7 +1423,7 @@
             textbox_nameadmin.Location = new Point(424, 264);
             textbox_nameadmin.Margin = new Padding(2);
             textbox_nameadmin.Name = "textbox_nameadmin";
-            textbox_nameadmin.Size = new Size(196, 27);
+            textbox_nameadmin.Size = new Size(258, 27);
             textbox_nameadmin.TabIndex = 7;
             // 
             // textbox_emailadmin
@@ -1253,7 +1431,7 @@
             textbox_emailadmin.Location = new Point(422, 203);
             textbox_emailadmin.Margin = new Padding(2);
             textbox_emailadmin.Name = "textbox_emailadmin";
-            textbox_emailadmin.Size = new Size(198, 27);
+            textbox_emailadmin.Size = new Size(260, 27);
             textbox_emailadmin.TabIndex = 6;
             // 
             // textbox_usernameadmin
@@ -1261,13 +1439,14 @@
             textbox_usernameadmin.Location = new Point(422, 140);
             textbox_usernameadmin.Margin = new Padding(2);
             textbox_usernameadmin.Name = "textbox_usernameadmin";
-            textbox_usernameadmin.Size = new Size(198, 27);
+            textbox_usernameadmin.Size = new Size(260, 27);
             textbox_usernameadmin.TabIndex = 5;
             // 
             // label24
             // 
             label24.AutoSize = true;
             label24.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label24.ForeColor = Color.FromArgb(101, 67, 33);
             label24.Location = new Point(264, 317);
             label24.Margin = new Padding(2, 0, 2, 0);
             label24.Name = "label24";
@@ -1279,6 +1458,7 @@
             // 
             label23.AutoSize = true;
             label23.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label23.ForeColor = Color.FromArgb(101, 67, 33);
             label23.Location = new Point(264, 256);
             label23.Margin = new Padding(2, 0, 2, 0);
             label23.Name = "label23";
@@ -1290,6 +1470,7 @@
             // 
             label22.AutoSize = true;
             label22.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label22.ForeColor = Color.FromArgb(101, 67, 33);
             label22.Location = new Point(264, 198);
             label22.Margin = new Padding(2, 0, 2, 0);
             label22.Name = "label22";
@@ -1301,6 +1482,7 @@
             // 
             label21.AutoSize = true;
             label21.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label21.ForeColor = Color.FromArgb(101, 67, 33);
             label21.Location = new Point(264, 134);
             label21.Margin = new Padding(2, 0, 2, 0);
             label21.Name = "label21";
@@ -1312,7 +1494,7 @@
             // 
             label20.AutoSize = true;
             label20.Font = new Font("Segoe UI Black", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label20.Location = new Point(374, 25);
+            label20.Location = new Point(365, 63);
             label20.Margin = new Padding(2, 0, 2, 0);
             label20.Name = "label20";
             label20.Size = new Size(244, 32);
