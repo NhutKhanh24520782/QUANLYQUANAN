@@ -91,63 +91,9 @@ namespace RestaurantClient
             };
             _clockTimer.Start();
         }
-        private DateTime GetVietnamTime()
-        {
-            // Azure SQL lưu UTC, nên chúng ta cần chuyển đổi
-            try
-            {
-                TimeZoneInfo vietnamTimeZone;
-                try
-                {
-                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-                }
-                catch
-                {
-                    vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
-                        "Vietnam",
-                        TimeSpan.FromHours(7),
-                        "Vietnam Time",
-                        "Vietnam Time");
-                }
 
-                // Chuyển từ UTC sang Việt Nam
-                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
-            }
-            catch
-            {
-                // Fallback
-                return DateTime.Now;
-            }
-        }
 
         // Thêm hàm chuyển đổi khi gửi request
-        private DateTime ConvertToUtcForAzure(DateTime vietnamTime)
-        {
-            try
-            {
-                TimeZoneInfo vietnamTimeZone;
-                try
-                {
-                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-                }
-                catch
-                {
-                    vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
-                        "Vietnam",
-                        TimeSpan.FromHours(7),
-                        "Vietnam Time",
-                        "Vietnam Time");
-                }
-
-                // Chuyển từ Việt Nam sang UTC
-                return TimeZoneInfo.ConvertTimeToUtc(vietnamTime, vietnamTimeZone);
-            }
-            catch
-            {
-                // Fallback: trừ 7 giờ
-                return vietnamTime.AddHours(-7);
-            }
-        }
 
         private void NVBep_Load(object sender, EventArgs e)
         {
@@ -940,10 +886,9 @@ namespace RestaurantClient
                 return;
             }
 
+            // Lấy giờ Việt Nam hiện tại
             DateTime vietnamTime = GetVietnamTime();
-
-            // Hiển thị đầy đủ thông tin
-            lbl_userInfo.Text = $"👨‍🍳 {_currentUserName} • {vietnamTime:HH:mm:ss dd/MM/yyyy} (UTC+7)";
+            lbl_userInfo.Text = $"👨‍🍳 {_currentUserName} • {vietnamTime:HH:mm:ss dd/MM/yyyy} (VN)";
         }
         private async Task<ThongKeBepDayDuResult> GetThongKeBepFromServer(DateTime tuNgay, DateTime denNgay, int? maNhanVien = null)
         {
@@ -1117,6 +1062,25 @@ namespace RestaurantClient
 
             _selectedDish = dish;
 
+            // ============================================================
+            // ✅ SỬA LỖI HIỂN THỊ: Thêm vào items rồi mới chọn
+            // ============================================================
+
+            // 1. Cập nhật Tên Bàn
+            if (_currentOrderDetail != null)
+            {
+                cb_tenban.Items.Clear(); // Xóa danh sách cũ
+                cb_tenban.Items.Add(_currentOrderDetail.TenBan); // Thêm tên bàn hiện tại
+                cb_tenban.SelectedIndex = 0; // Chọn nó để hiển thị
+            }
+
+            // 2. Cập nhật Tên Món
+            cb_tenmon.Items.Clear(); // Xóa danh sách cũ
+            cb_tenmon.Items.Add(dish.TenMon); // Thêm tên món hiện tại
+            cb_tenmon.SelectedIndex = 0; // Chọn nó để hiển thị
+
+            // ============================================================
+
             // Cập nhật tiêu đề
             lbl_updateTitle.Text = $"⚙️ CẬP NHẬT TRẠNG THÁI: {dish.TenMon} ×{dish.SoLuong}";
 
@@ -1175,14 +1139,13 @@ namespace RestaurantClient
                 }
             }
 
-            // Làm mới danh sách thời gian dự kiến với giờ Việt Nam
+            // Làm mới danh sách thời gian dự kiến
             InitializeTimeComboBox();
 
-            // ✅ SỬA: Cập nhật thời gian dự kiến (nếu có) - CHUYỂN ĐỔI TỪ UTC SANG VIỆT NAM
+            // Cập nhật thời gian dự kiến (nếu có)
             if (dish.ThoiGianDuKien.HasValue)
             {
-                // Giả sử ThoiGianDuKien trong database là UTC, chuyển sang Việt Nam
-                DateTime thoiGianVietnam = ConvertFromUtcToVietnamTime(dish.ThoiGianDuKien.Value);
+                DateTime thoiGianVietnam = ConvertUtcToVietnam(dish.ThoiGianDuKien.Value);
                 string timeString = thoiGianVietnam.ToString("HH:mm");
 
                 bool found = false;
@@ -1214,40 +1177,7 @@ namespace RestaurantClient
         }
 
         // THÊM HÀM CHUYỂN ĐỔI TỪ UTC SANG GIỜ VIỆT NAM
-        private DateTime ConvertFromUtcToVietnamTime(DateTime utcTime)
-        {
-            try
-            {
-                TimeZoneInfo vietnamTimeZone;
-                try
-                {
-                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-                }
-                catch (TimeZoneNotFoundException)
-                {
-                    try
-                    {
-                        vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-                    }
-                    catch (TimeZoneNotFoundException)
-                    {
-                        // Fallback: tạo múi giờ UTC+7
-                        vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
-                            "Vietnam",
-                            TimeSpan.FromHours(7),
-                            "Vietnam Time",
-                            "Vietnam Time");
-                    }
-                }
 
-                return TimeZoneInfo.ConvertTimeFromUtc(utcTime, vietnamTimeZone);
-            }
-            catch
-            {
-                // Fallback: cộng 7 giờ
-                return utcTime.AddHours(7);
-            }
-        }
         // ==================== EVENT HANDLERS ====================
         private void DataGridView_Orders_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
@@ -1545,7 +1475,7 @@ namespace RestaurantClient
                         // Lấy giờ Việt Nam hiện tại
                         DateTime vietnamNow = GetVietnamTime();
 
-                        // Tạo thời gian Việt Nam
+                        // Tạo thời gian Việt Nam với giờ được chọn
                         DateTime vietnamTime = vietnamNow.Date.Add(timeOfDay);
 
                         // Nếu đã qua trong ngày, cộng thêm 1 ngày
@@ -1554,8 +1484,8 @@ namespace RestaurantClient
                             vietnamTime = vietnamTime.AddDays(1);
                         }
 
-                        // ✅ QUAN TRỌNG: Chuyển sang UTC trước khi gửi lên Azure
-                        thoiGianDuKienUtc = ConvertToUtcForAzure(vietnamTime);
+                        // Chuyển sang UTC để lưu vào Azure
+                        thoiGianDuKienUtc = ConvertVietnamToUtc(vietnamTime);
                     }
                 }
                 catch (Exception ex)
@@ -1614,39 +1544,7 @@ namespace RestaurantClient
                 }
             });
         }
-        private DateTime ConvertToUtc(DateTime vietnamTime)
-        {
-            try
-            {
-                TimeZoneInfo vietnamTimeZone;
-                try
-                {
-                    vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-                }
-                catch (TimeZoneNotFoundException)
-                {
-                    try
-                    {
-                        vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-                    }
-                    catch (TimeZoneNotFoundException)
-                    {
-                        vietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
-                            "Vietnam",
-                            TimeSpan.FromHours(7),
-                            "Vietnam Time",
-                            "Vietnam Time");
-                    }
-                }
 
-                return TimeZoneInfo.ConvertTimeToUtc(vietnamTime, vietnamTimeZone);
-            }
-            catch
-            {
-                // Fallback: trừ 7 giờ
-                return vietnamTime.AddHours(-7);
-            }
-        }
         private async void btn_huymon_Click(object sender, EventArgs e)
         {
             if (_selectedDish == null || _currentOrderDetail == null)
@@ -2849,7 +2747,8 @@ namespace RestaurantClient
                 return;
             }
 
-            string timeStr = DateTime.Now.ToString("HH:mm");
+            // ✅ SỬA: Dùng giờ Việt Nam thay vì DateTime.Now của máy tính
+            string timeStr = GetVietnamTime().ToString("HH:mm");
             string prefix = guiTatCa ? "[📢 TẤT CẢ] " : "";
 
             AppendColoredText($"[{timeStr}] ", Color.Gray, false);
@@ -2980,7 +2879,7 @@ namespace RestaurantClient
         /// <summary>
         /// Gửi thông báo tự động cho nhân viên Phục vụ khi cập nhật trạng thái món
         /// </summary>
-        
+
 
         /// <summary>
         /// Gửi thông báo nhanh qua chat (fallback nếu không có API riêng)
@@ -3268,7 +3167,133 @@ namespace RestaurantClient
                 ShowError($"Lỗi gửi thông báo: {ex.Message}");
             }
         }
+        #region TIMEZONE HELPERS
+
+        /// <summary>
+        /// Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7)
+        /// </summary>
+        private DateTime GetVietnamTime()
+        {
+            try
+            {
+                TimeZoneInfo vietnamZone;
+                try
+                {
+                    vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch
+                {
+                    try
+                    {
+                        vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    }
+                    catch
+                    {
+                        vietnamZone = TimeZoneInfo.CreateCustomTimeZone(
+                            "Vietnam", TimeSpan.FromHours(7), "Vietnam Time", "Vietnam Time");
+                    }
+                }
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamZone);
+            }
+            catch
+            {
+                return DateTime.UtcNow.AddHours(7);
+            }
+        }
+
+        /// <summary>
+        /// Chuyển giờ Việt Nam sang UTC (để lưu vào database)
+        /// </summary>
+        private DateTime ConvertVietnamToUtc(DateTime vietnamTime)
+        {
+            try
+            {
+                if (vietnamTime.Kind == DateTimeKind.Utc)
+                    return vietnamTime;
+                return vietnamTime.AddHours(-7);
+            }
+            catch
+            {
+                return vietnamTime.AddHours(-7);
+            }
+        }
+
+        /// <summary>
+        /// Chuyển UTC sang giờ Việt Nam (để hiển thị)
+        /// </summary>
+        private DateTime ConvertUtcToVietnam(DateTime utcTime)
+        {
+            try
+            {
+                if (utcTime.Kind == DateTimeKind.Local)
+                    return utcTime;
+                return utcTime.AddHours(7);
+            }
+            catch
+            {
+                return utcTime.AddHours(7);
+            }
+        }
+
+        private async void btn_sendmess_Click_1(object sender, EventArgs e)
+        {
+            try
+            {
+                // 1. Kiểm tra dữ liệu nguồn
+                // Ưu tiên lấy từ biến lưu trữ object để chính xác, nếu null mới lấy text trên form
+                string tenBan = _currentOrderDetail?.TenBan ?? cb_tenban.Text;
+                string tenMon = _selectedDish?.TenMon ?? cb_tenmon.Text;
+
+                // Trạng thái lấy trực tiếp từ Combobox để đúng với cái người dùng đang chọn hiện tại
+                string trangThai = cb_status.SelectedItem?.ToString() ?? cb_status.Text;
+                string ghiChu = tb_ghichu.Text.Trim();
+
+                // Validate cơ bản
+                if (string.IsNullOrEmpty(tenBan) || string.IsNullOrEmpty(tenMon))
+                {
+                    ShowWarning("Vui lòng chọn bàn và món ăn trước khi gửi thông báo!");
+                    return;
+                }
+
+                // 2. Xử lý format template
+                // Template: bàn 1_món phở_hoàn thành_(ghi chú)
+
+                // (Tuỳ chọn) Làm sạch trạng thái để bỏ icon (ví dụ: "✅ Hoàn thành" -> "Hoàn thành")
+                string trangThaiClean = trangThai
+                    .Replace("⏳ ", "").Replace("👨‍🍳 ", "")
+                    .Replace("✅ ", "").Replace("⚠️ ", "").Replace("❌ ", "").Trim();
+
+                string noiDungThongBao = $"Bàn {tenBan}_Món {tenMon}_{trangThaiClean}";
+
+                // Chỉ thêm ghi chú nếu có nội dung
+                if (!string.IsNullOrEmpty(ghiChu))
+                {
+                    noiDungThongBao += $"_({ghiChu})";
+                }
+
+                // 3. Gửi thông báo
+                // Sử dụng hàm SendChatNotificationAsync bạn đã viết sẵn
+                // Hàm này sẽ tự động tìm nhân viên "PhucVu" để gửi hoặc broadcast
+                btn_sendmess.Enabled = false; // Chặn click liên tục
+
+                await SendChatNotificationAsync(noiDungThongBao, "PhucVu");
+
+                ShowSuccess($"Đã gửi thông báo: {noiDungThongBao}");
+            }
+            catch (Exception ex)
+            {
+                ShowError("Lỗi gửi tin nhắn: " + ex.Message);
+            }
+            finally
+            {
+                btn_sendmess.Enabled = true;
+            }
+        }
+
+        #endregion
+        // ========== KẾT THÚC ĐOẠN CODE THÊM ==========
     }
-
-
 }
+    
+
+

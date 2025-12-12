@@ -59,25 +59,7 @@ namespace RestaurantServer
                     }
                 }
             }
-            public static DateTime SafeConvertFromDatabase(DateTime dbTime)
-            {
-                try
-                {
-                    int hour = dbTime.Hour;
-
-                    // Nếu giờ từ 0-16, có thể là UTC
-                    if (hour >= 0 && hour <= 16)
-                    {
-                        return dbTime.AddHours(7); // Chuyển từ UTC sang Vietnam
-                    }
-                    // Ngược lại, giữ nguyên (đã là giờ Việt Nam)
-                    return dbTime;
-                }
-                catch
-                {
-                    return dbTime;
-                }
-            }
+            
 
             // 🔥 THÊM HÀM: Kiểm tra thời gian debug
             public static void LogTimeInfo(string context, DateTime time)
@@ -1173,7 +1155,6 @@ namespace RestaurantServer
                             while (reader.Read())
                             {
                                 DateTime ngayDatabase = (DateTime)reader["NgayTao"];
-                                DateTime ngayVietNam = TimeHelper.SafeConvertFromDatabase(ngayDatabase);
                                 payments.Add(new PendingPaymentData
                                 {
                                     MaHD = (int)reader["MaHD"],
@@ -1181,7 +1162,6 @@ namespace RestaurantServer
                                     TenBan = reader["TenBan"].ToString(),
                                     MaNhanVien = (int)reader["MaNhanVien"],
                                     TenNhanVien = reader["TenNhanVien"].ToString(),
-                                    NgayTao = ngayVietNam, // Đã chuyển đổi sang giờ Việt Nam
                                     TongTien = Convert.ToDecimal(reader["TongTien"]),
                                     TrangThai = reader["TrangThai"].ToString(),
                                     SoMon = (int)reader["SoMon"]
@@ -2326,14 +2306,18 @@ namespace RestaurantServer
             try
             {
                 string insertQuery = @"
-            INSERT INTO TINNHAN (MaNguoiGui, MaNguoiNhan, NoiDung, ThoiGian, DaDoc)
-            VALUES (@MaNguoiGui, @MaNguoiNhan, @NoiDung, @ThoiGian, 0)";
+        INSERT INTO TINNHAN (MaNguoiGui, MaNguoiNhan, NoiDung, ThoiGian, DaDoc)
+        VALUES (@MaNguoiGui, @MaNguoiNhan, @NoiDung, @ThoiGian, 0)";
 
                 SqlCommand cmd = new SqlCommand(insertQuery, conn);
                 cmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
                 cmd.Parameters.AddWithValue("@MaNguoiNhan", maNguoiNhan);
                 cmd.Parameters.AddWithValue("@NoiDung", noiDung);
-                cmd.Parameters.AddWithValue("@ThoiGian", TimeHelper.GetVietnamTime()); // SỬA DÒNG NÀY
+
+                // ✅ QUAN TRỌNG: Lưu GetVietnamTime() thay vì UtcNow
+                // Hàm TimeHelper.GetVietnamTime() của bạn đã viết đúng (UTC+7)
+                cmd.Parameters.AddWithValue("@ThoiGian", TimeHelper.GetVietnamTime());
+
                 cmd.ExecuteNonQuery();
             }
             catch (Exception ex)
@@ -3321,27 +3305,20 @@ namespace RestaurantServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-
+                    // ... (Giữ nguyên phần query SQL của bạn) ...
                     string query = @"
-                SELECT TOP (@SoLuong)
-                    tn.MaTinNhan,
-                    tn.MaNguoiGui,
-                    gui.HoTen as TenNguoiGui,
-                    gui.VaiTro as VaiTroNguoiGui,
-                    tn.MaNguoiNhan,
-                    nhan.HoTen as TenNguoiNhan,
-                    tn.NoiDung,
-                    tn.ThoiGian,
-                    tn.DaDoc
-                FROM TINNHAN tn
-                INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
-                INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
-                WHERE (
-                    (tn.MaNguoiGui = @MaNguoiDung1 AND tn.MaNguoiNhan = @MaNguoiDung2)
-                    OR 
-                    (tn.MaNguoiGui = @MaNguoiDung2 AND tn.MaNguoiNhan = @MaNguoiDung1)
-                )
-                ORDER BY tn.ThoiGian DESC";
+            SELECT TOP (@SoLuong) 
+                tn.MaTinNhan, tn.MaNguoiGui, gui.HoTen as TenNguoiGui, gui.VaiTro as VaiTroNguoiGui,
+                tn.MaNguoiNhan, nhan.HoTen as TenNguoiNhan, tn.NoiDung, tn.ThoiGian, tn.DaDoc
+            FROM TINNHAN tn
+            INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+            INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+            WHERE (
+                (tn.MaNguoiGui = @MaNguoiDung1 AND tn.MaNguoiNhan = @MaNguoiDung2)
+                OR 
+                (tn.MaNguoiGui = @MaNguoiDung2 AND tn.MaNguoiNhan = @MaNguoiDung1)
+            )
+            ORDER BY tn.ThoiGian DESC";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
@@ -3355,8 +3332,8 @@ namespace RestaurantServer
                         {
                             while (reader.Read())
                             {
+                                // 🔴 SỬA TẠI ĐÂY: Đọc trực tiếp, KHÔNG dùng SafeConvertFromDatabase
                                 DateTime thoiGianDB = (DateTime)reader["ThoiGian"];
-                                DateTime thoiGianVN = TimeHelper.SafeConvertFromDatabase(thoiGianDB);
 
                                 messages.Add(new ChatMessageData
                                 {
@@ -3367,34 +3344,21 @@ namespace RestaurantServer
                                     MaNguoiNhan = (int)reader["MaNguoiNhan"],
                                     TenNguoiNhan = reader["TenNguoiNhan"].ToString(),
                                     NoiDung = reader["NoiDung"].ToString(),
-                                    ThoiGian = thoiGianVN,
+
+                                    // Gán trực tiếp
+                                    ThoiGian = thoiGianDB,
+
                                     DaDoc = (bool)reader["DaDoc"],
                                     LaTinBroadcast = reader["NoiDung"].ToString().StartsWith("[📢 TẤT CẢ]")
                                 });
                             }
                         }
-
-                        // Đảo ngược để tin cũ ở trên, tin mới ở dưới
                         messages.Reverse();
-
-                        return new ChatMessagesResult
-                        {
-                            Success = true,
-                            Messages = messages,
-                            TongSoTinNhan = messages.Count,
-                            Message = $"Lấy được {messages.Count} tin nhắn"
-                        };
+                        return new ChatMessagesResult { Success = true, Messages = messages, TongSoTinNhan = messages.Count };
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                return new ChatMessagesResult
-                {
-                    Success = false,
-                    Message = $"Lỗi lấy tin nhắn: {ex.Message}"
-                };
-            }
+            catch (Exception ex) { return new ChatMessagesResult { Success = false, Message = ex.Message }; }
         }
 
         /// <summary>
@@ -3524,40 +3488,28 @@ namespace RestaurantServer
                 {
                     conn.Open();
 
-                    // Chuyển thời gian về UTC để so sánh với database
-                    DateTime utcTime = TimeHelper.ConvertVietnamTimeToUtc(tuThoiGian);
-
+                    // 🔴 SỬA: Dùng trực tiếp thời gian Client gửi lên, không convert
                     string query = @"
-                SELECT 
-                    tn.MaTinNhan,
-                    tn.MaNguoiGui,
-                    gui.HoTen as TenNguoiGui,
-                    gui.VaiTro as VaiTroNguoiGui,
-                    tn.MaNguoiNhan,
-                    nhan.HoTen as TenNguoiNhan,
-                    tn.NoiDung,
-                    tn.ThoiGian,
-                    tn.DaDoc
-                FROM TINNHAN tn
-                INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
-                INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
-                WHERE tn.MaNguoiNhan = @MaNguoiDung
-                AND tn.ThoiGian > @TuThoiGian
-                ORDER BY tn.ThoiGian ASC";
+            SELECT tn.MaTinNhan, tn.MaNguoiGui, gui.HoTen as TenNguoiGui, gui.VaiTro as VaiTroNguoiGui,
+                   tn.MaNguoiNhan, nhan.HoTen as TenNguoiNhan, tn.NoiDung, tn.ThoiGian, tn.DaDoc
+            FROM TINNHAN tn
+            INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+            INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+            WHERE tn.MaNguoiNhan = @MaNguoiDung AND tn.ThoiGian > @TuThoiGian
+            ORDER BY tn.ThoiGian ASC";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
-                        cmd.Parameters.AddWithValue("@TuThoiGian", utcTime);
+                        cmd.Parameters.AddWithValue("@TuThoiGian", tuThoiGian);
 
                         var messages = new List<ChatMessageData>();
-
                         using (SqlDataReader reader = cmd.ExecuteReader())
                         {
                             while (reader.Read())
                             {
+                                // 🔴 SỬA TẠI ĐÂY: Đọc trực tiếp
                                 DateTime thoiGianDB = (DateTime)reader["ThoiGian"];
-                                DateTime thoiGianVN = TimeHelper.SafeConvertFromDatabase(thoiGianDB);
 
                                 messages.Add(new ChatMessageData
                                 {
@@ -3568,34 +3520,25 @@ namespace RestaurantServer
                                     MaNguoiNhan = (int)reader["MaNguoiNhan"],
                                     TenNguoiNhan = reader["TenNguoiNhan"].ToString(),
                                     NoiDung = reader["NoiDung"].ToString(),
-                                    ThoiGian = thoiGianVN,
+
+                                    ThoiGian = thoiGianDB, // Gán trực tiếp
+
                                     DaDoc = (bool)reader["DaDoc"],
                                     LaTinBroadcast = reader["NoiDung"].ToString().StartsWith("[📢 TẤT CẢ]")
                                 });
                             }
                         }
-
                         return new CheckNewMessagesResult
                         {
                             Success = true,
                             CoTinMoi = messages.Count > 0,
                             SoTinMoi = messages.Count,
-                            TinNhanMoi = messages,
-                            Message = messages.Count > 0 ?
-                                $"Có {messages.Count} tin nhắn mới" :
-                                "Không có tin nhắn mới"
+                            TinNhanMoi = messages
                         };
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                return new CheckNewMessagesResult
-                {
-                    Success = false,
-                    Message = $"Lỗi kiểm tra tin nhắn mới: {ex.Message}"
-                };
-            }
+            catch (Exception ex) { return new CheckNewMessagesResult { Success = false, Message = ex.Message }; }
         }
 
         #endregion

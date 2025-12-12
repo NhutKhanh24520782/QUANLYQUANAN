@@ -99,6 +99,7 @@
             lbl_ChatRole_Bep = new Label();
             label13 = new Label();
             panel_UserList_Bep = new Panel();
+            btn_ThongBao_Bep = new Button();
             lbl_OnlineCount_Bep = new Label();
             btn_RefreshUsers_Bep = new Button();
             lv_Users_Bep = new ListView();
@@ -115,7 +116,10 @@
             label10 = new Label();
             label9 = new Label();
             label8 = new Label();
-            btn_ThongBao_Bep = new Button();
+            label14 = new Label();
+            label15 = new Label();
+            cb_tenmon = new ComboBox();
+            cb_tenban = new ComboBox();
             tc_nvbep.SuspendLayout();
             tp_quanlyvaxuly.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
@@ -331,6 +335,10 @@
             // 
             // panel_update
             // 
+            panel_update.Controls.Add(cb_tenban);
+            panel_update.Controls.Add(cb_tenmon);
+            panel_update.Controls.Add(label15);
+            panel_update.Controls.Add(label14);
             panel_update.Controls.Add(btn_huymon);
             panel_update.Controls.Add(btn_sendmess);
             panel_update.Controls.Add(btn_luuthaydoi);
@@ -374,6 +382,7 @@
             btn_sendmess.TabIndex = 12;
             btn_sendmess.Text = "Gửi tin nhắn";
             btn_sendmess.UseVisualStyleBackColor = true;
+            btn_sendmess.Click += btn_sendmess_Click_1;
             // 
             // btn_luuthaydoi
             // 
@@ -450,7 +459,7 @@
             // cb_uutien
             // 
             cb_uutien.FormattingEnabled = true;
-            cb_uutien.Location = new Point(405, 65);
+            cb_uutien.Location = new Point(412, 65);
             cb_uutien.Margin = new Padding(2);
             cb_uutien.Name = "cb_uutien";
             cb_uutien.Size = new Size(192, 33);
@@ -944,6 +953,16 @@
             panel_UserList_Bep.Size = new Size(568, 589);
             panel_UserList_Bep.TabIndex = 0;
             // 
+            // btn_ThongBao_Bep
+            // 
+            btn_ThongBao_Bep.Location = new Point(275, 503);
+            btn_ThongBao_Bep.Name = "btn_ThongBao_Bep";
+            btn_ThongBao_Bep.Size = new Size(112, 34);
+            btn_ThongBao_Bep.TabIndex = 5;
+            btn_ThongBao_Bep.Text = "Thông báo";
+            btn_ThongBao_Bep.UseVisualStyleBackColor = true;
+            btn_ThongBao_Bep.Click += btn_ThongBao_Bep_Click;
+            // 
             // lbl_OnlineCount_Bep
             // 
             lbl_OnlineCount_Bep.AutoSize = true;
@@ -1110,15 +1129,41 @@
             label8.TabIndex = 0;
             label8.Text = "Thông tin tài khoản";
             // 
-            // btn_ThongBao_Bep_Click
+            // label14
             // 
-            btn_ThongBao_Bep.Location = new Point(275, 503);
-            btn_ThongBao_Bep.Name = "btn_ThongBao_Bep_Click";
-            btn_ThongBao_Bep.Size = new Size(112, 34);
-            btn_ThongBao_Bep.TabIndex = 5;
-            btn_ThongBao_Bep.Text = "Thông báo";
-            btn_ThongBao_Bep.UseVisualStyleBackColor = true;
-            this.btn_ThongBao_Bep.Click += new System.EventHandler(this.btn_ThongBao_Bep_Click);
+            label14.AutoSize = true;
+            label14.Font = new Font("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label14.Location = new Point(315, 141);
+            label14.Name = "label14";
+            label14.Size = new Size(102, 30);
+            label14.TabIndex = 14;
+            label14.Text = "Tên món:";
+            // 
+            // label15
+            // 
+            label15.AutoSize = true;
+            label15.Font = new Font("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label15.Location = new Point(323, 209);
+            label15.Name = "label15";
+            label15.Size = new Size(94, 30);
+            label15.TabIndex = 15;
+            label15.Text = "Tên bàn:";
+            // 
+            // cb_tenmon
+            // 
+            cb_tenmon.FormattingEnabled = true;
+            cb_tenmon.Location = new Point(415, 141);
+            cb_tenmon.Name = "cb_tenmon";
+            cb_tenmon.Size = new Size(182, 33);
+            cb_tenmon.TabIndex = 16;
+            // 
+            // cb_tenban
+            // 
+            cb_tenban.FormattingEnabled = true;
+            cb_tenban.Location = new Point(415, 209);
+            cb_tenban.Name = "cb_tenban";
+            cb_tenban.Size = new Size(182, 33);
+            cb_tenban.TabIndex = 17;
             // 
             // NVBep
             // 
@@ -1251,5 +1296,9 @@
         private RichTextBox rtb_ChatMessages_Bep;
         private Button btn_SendChat_Bep;
         private Button btn_ThongBao_Bep;
+        private ComboBox cb_tenban;
+        private ComboBox cb_tenmon;
+        private Label label15;
+        private Label label14;
     }
 }

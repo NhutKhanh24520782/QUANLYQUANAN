@@ -78,30 +78,7 @@ namespace RestaurantClient
 
         }
         // 🔥 THÊM HÀM CHUYỂN ĐỔI MÚI GIỜ
-        private DateTime ConvertToVietnamTime(DateTime dateTime)
-        {
-            try
-            {
-                // Nếu là UTC, chuyển sang GMT+7 (Vietnam)
-                if (dateTime.Kind == DateTimeKind.Utc)
-                {
-                    return dateTime.AddHours(7);
-                }
-
-                // Nếu là Local time (máy tính), giữ nguyên
-                if (dateTime.Kind == DateTimeKind.Local)
-                {
-                    return dateTime;
-                }
-
-                // Nếu không xác định, giả sử là UTC và chuyển đổi
-                return dateTime.AddHours(7);
-            }
-            catch
-            {
-                return dateTime;
-            }
-        }
+        
         private void InitializeClockTimer()
         {
             _clockTimer = new System.Windows.Forms.Timer();
@@ -908,12 +885,11 @@ namespace RestaurantClient
 
                 if (response?.Success == true)
                 {
-                    // ✅ SỬA 1: Gán lại giá trị đã chuyển đổi vào từng đối tượng
                     var convertedPayments = response.PendingPayments
                         .Select(p =>
                         {
-                            // Áp dụng chuyển đổi múi giờ cho từng đối tượng NgayTao
-                            p.NgayTao = ConvertToVietnamTime(p.NgayTao);
+                            // Chuyển từ UTC sang giờ Việt Nam để hiển thị
+                            p.NgayTao = ConvertUtcToVietnam(p.NgayTao);
                             return p;
                         })
                         .OrderBy(p => p.MaHD)
@@ -966,7 +942,9 @@ namespace RestaurantClient
                 return;
             }
 
-            lbl_userInfo.Text = $"Chào, {_currentUserName} • {DateTime.Now:HH:mm:ss dd/MM/yyyy}";
+            // Dùng giờ Việt Nam thay vì DateTime.Now
+            DateTime vietnamTime = GetVietnamTime();
+            lbl_userInfo.Text = $"Chào, {_currentUserName} • {vietnamTime:HH:mm:ss dd/MM/yyyy}";
         }
 
         // ==================== EVENT HANDLERS ====================
@@ -1014,8 +992,9 @@ namespace RestaurantClient
             {
                 if (DateTime.TryParse(e.Value.ToString(), out DateTime date))
                 {
-
-                    e.Value = date.ToString("HH:mm dd/MM/yyyy");
+                    // Chuyển sang giờ Việt Nam trước khi hiển thị
+                    DateTime vnTime = ConvertUtcToVietnam(date);
+                    e.Value = vnTime.ToString("HH:mm dd/MM/yyyy");
                     e.FormattingApplied = true;
                 }
             }
@@ -1037,11 +1016,10 @@ namespace RestaurantClient
                     return;
                 }
                 // 🔥 SỬA LỖI: Đảm bảo hiển thị đúng thời gian đã được chuyển đổi
-                if (tb_dateBill != null && payment.NgayTao != null)
+                if (tb_dateBill != null)
                 {
-                    //// Kiểm tra DateTime Kind và chuyển đổi nếu cần
-                    DateTime displayTime = payment.NgayTao;
-
+                    // Hiển thị giờ Việt Nam
+                    DateTime displayTime = ConvertUtcToVietnam(payment.NgayTao);
                     tb_dateBill.Text = displayTime.ToString("HH:mm dd/MM/yyyy");
                 }
 
@@ -1623,7 +1601,7 @@ namespace RestaurantClient
                             MaBanAn = maBan,
                             MaNhanVien = _currentUserId,
                             TongTien = tongTien,
-                            NgayOrder = DateTime.Now, // 🔥 THÊM DÒNG NÀY
+                            NgayOrder = ConvertVietnamToUtc(GetVietnamTime()),  // ← ĐÚNG: Lưu UTC
                             ChiTietOrder = _gioHang.Select(item => new ChiTietOrder
                             {
                                 MaMon = item.MaMon,
@@ -2881,8 +2859,8 @@ namespace RestaurantClient
         {
             try
             {
-                // Chỉ kiểm tra nếu đang ở tab Chat
-                if (tabControl1?.SelectedTab?.Name != "tabPage1") return;
+                // Chỉ kiểm tra nếu đang ở tab Chat HOẶC cần nhận thông báo nền
+                // if (tc_main.SelectedTab.Name != "tabChat") return; // (Tuỳ logic của bạn)
 
                 var request = new CheckNewMessagesRequest
                 {
@@ -2898,33 +2876,34 @@ namespace RestaurantClient
 
                     foreach (var msg in response.TinNhanMoi)
                     {
-                        // ✅ QUAN TRỌNG: Kiểm tra tin nhắn đã hiển thị chưa
-                        if (_displayedMessageIds.Contains(msg.MaTinNhan))
-                        {
-                            continue; // Bỏ qua tin đã hiển thị
-                        }
+                        if (_displayedMessageIds.Contains(msg.MaTinNhan)) continue;
 
-                        // Đánh dấu đã hiển thị
                         _displayedMessageIds.Add(msg.MaTinNhan);
                         hasNewMessages = true;
 
-                        // Nếu tin nhắn từ người đang chat HOẶC là tin broadcast -> hiển thị
+                        if (msg.ThoiGian > _lastMessageTime) _lastMessageTime = msg.ThoiGian;
+
+                        // 1. Nếu đang chat với người này -> Hiện vào khung chat
                         if (msg.MaNguoiGui == _selectedChatUserId || msg.LaTinBroadcast)
                         {
                             AppendReceivedMessage(msg);
                         }
 
-                        // Cập nhật thời gian
-                        if (msg.ThoiGian > _lastMessageTime)
+                        // 2. Nếu tin nhắn từ người khác (ví dụ từ Bếp) -> Hiện THÔNG BÁO
+                        if (msg.MaNguoiGui != _selectedChatUserId)
                         {
-                            _lastMessageTime = msg.ThoiGian;
-                        }
-                    }
+                            // Cập nhật danh sách (để hiện số đỏ)
+                            LoadChatUsers(txt_SearchUser.Text);
 
-                    // Chỉ refresh danh sách user nếu có tin mới thực sự
-                    if (hasNewMessages)
-                    {
-                        LoadChatUsers(txt_SearchUser?.Text ?? "");
+                            // ✅ THÊM: Hiện Popup thông báo nếu là tin từ Bếp hoặc có icon chuông
+                            if (msg.NoiDung.Contains("🔔") || msg.VaiTroNguoiGui == "Bep")
+                            {
+                                // Dùng MessageBox hoặc ShowSuccess của bạn
+                                // Hoặc NotifyIcon nếu bạn có
+                                string thongBao = $"🔔 BẾP NHẮN: {msg.TenNguoiGui}\n{msg.NoiDung}";
+                                MessageBox.Show(thongBao, "Thông báo món ăn", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }
                     }
                 }
             }
@@ -2939,26 +2918,28 @@ namespace RestaurantClient
         /// </summary>
         private void AppendReceivedMessage(ChatMessageData msg)
         {
-            if (rtb_ChatMessages == null) return;
-
             if (rtb_ChatMessages.InvokeRequired)
             {
                 rtb_ChatMessages.Invoke(new Action(() => AppendReceivedMessage(msg)));
                 return;
             }
 
+            // Màu sắc theo vai trò
             Color nameColor = msg.VaiTroNguoiGui switch
             {
                 "Admin" => Color.DarkRed,
-                "Bep" => Color.DarkOrange,
+                "Bep" => Color.DarkOrange, // Màu cam cho Bếp
                 _ => Color.DarkBlue
             };
 
+            string broadcastPrefix = msg.LaTinBroadcast ? "[📢 TẤT CẢ] " : "";
+
+            // ✅ QUAN TRỌNG: msg.ThoiGianDisplay đã được xử lý đúng ở Server/DBAccess
+            // Không dùng DateTime.Now ở đây
             AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
             AppendColoredText($"{msg.TenNguoiGui}: ", nameColor, true);
-            AppendColoredText($"{msg.NoiDung}\n", Color.Black, false);
+            AppendColoredText($"{broadcastPrefix}{msg.NoiDung}\n", Color.Black, false);
 
-            // Cuộn xuống cuối
             rtb_ChatMessages.SelectionStart = rtb_ChatMessages.Text.Length;
             rtb_ChatMessages.ScrollToCaret();
         }
@@ -3304,5 +3285,77 @@ namespace RestaurantClient
                 ShowError($"Lỗi gửi thông báo: {ex.Message}");
             }
         }
+
+        #region TIMEZONE HELPERS
+
+        /// <summary>
+        /// Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7)
+        /// </summary>
+        private DateTime GetVietnamTime()
+        {
+            try
+            {
+                TimeZoneInfo vietnamZone;
+                try
+                {
+                    vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch
+                {
+                    try
+                    {
+                        vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    }
+                    catch
+                    {
+                        vietnamZone = TimeZoneInfo.CreateCustomTimeZone(
+                            "Vietnam", TimeSpan.FromHours(7), "Vietnam Time", "Vietnam Time");
+                    }
+                }
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamZone);
+            }
+            catch
+            {
+                return DateTime.UtcNow.AddHours(7);
+            }
+        }
+
+        /// <summary>
+        /// Chuyển giờ Việt Nam sang UTC (để lưu vào database)
+        /// </summary>
+        private DateTime ConvertVietnamToUtc(DateTime vietnamTime)
+        {
+            try
+            {
+                if (vietnamTime.Kind == DateTimeKind.Utc)
+                    return vietnamTime;
+                return vietnamTime.AddHours(-7);
+            }
+            catch
+            {
+                return vietnamTime.AddHours(-7);
+            }
+        }
+
+        /// <summary>
+        /// Chuyển UTC sang giờ Việt Nam (để hiển thị)
+        /// </summary>
+        private DateTime ConvertUtcToVietnam(DateTime utcTime)
+        {
+            try
+            {
+                if (utcTime.Kind == DateTimeKind.Local)
+                    return utcTime;
+                return utcTime.AddHours(7);
+            }
+            catch
+            {
+                return utcTime.AddHours(7);
+            }
+        }
+
+        #endregion
+        // ========== KẾT THÚC ĐOẠN CODE THÊM ==========
     }
 }
+    
