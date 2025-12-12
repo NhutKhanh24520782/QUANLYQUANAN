@@ -1961,7 +1961,7 @@ namespace RestaurantClient
                 }
 
                 bool isMine = msg.MaNguoiGui == myId;
-                string broadcast = msg.LaTinBroadcast ? "[📢 TẤT CẢ] " : "";
+                string broadcast = "";
 
                 if (isMine)
                 {
