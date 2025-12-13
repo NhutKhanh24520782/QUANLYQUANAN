@@ -160,22 +160,23 @@
             // 
             // tp_phucvuqly
             // 
+            tp_phucvuqly.BackColor = Color.FromArgb(250, 247, 242);
             tp_phucvuqly.Controls.Add(lbl_userInfo);
             tp_phucvuqly.Controls.Add(lbl_title);
             tp_phucvuqly.Controls.Add(gb_thucdonorder);
             tp_phucvuqly.Controls.Add(gb_thongtinban);
             tp_phucvuqly.Location = new Point(4, 29);
             tp_phucvuqly.Name = "tp_phucvuqly";
-            tp_phucvuqly.Padding = new Padding(3, 3, 3, 3);
+            tp_phucvuqly.Padding = new Padding(3);
             tp_phucvuqly.Size = new Size(1389, 605);
             tp_phucvuqly.TabIndex = 0;
-            tp_phucvuqly.Text = "Order món và đặt bàn";
-            tp_phucvuqly.UseVisualStyleBackColor = true;
+            tp_phucvuqly.Text = "\U0001f6d2 Order món và đặt bàn";
             // 
             // lbl_userInfo
             // 
             lbl_userInfo.AutoSize = true;
             lbl_userInfo.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lbl_userInfo.ForeColor = Color.FromArgb(101, 67, 33);
             lbl_userInfo.Location = new Point(154, 34);
             lbl_userInfo.Margin = new Padding(2, 0, 2, 0);
             lbl_userInfo.Name = "lbl_userInfo";
@@ -187,6 +188,7 @@
             // 
             lbl_title.AutoSize = true;
             lbl_title.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lbl_title.ForeColor = Color.FromArgb(101, 67, 33);
             lbl_title.Location = new Point(141, 6);
             lbl_title.Margin = new Padding(2, 0, 2, 0);
             lbl_title.Name = "lbl_title";
@@ -196,6 +198,7 @@
             // 
             // gb_thucdonorder
             // 
+            gb_thucdonorder.BackColor = Color.FromArgb(255, 248, 240);
             gb_thucdonorder.Controls.Add(nm_soluong);
             gb_thucdonorder.Controls.Add(dataGridView_mon);
             gb_thucdonorder.Controls.Add(btn_guiorder);
@@ -204,6 +207,7 @@
             gb_thucdonorder.Controls.Add(label3);
             gb_thucdonorder.Controls.Add(cb_nameDish);
             gb_thucdonorder.Font = new Font("Segoe UI", 10.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            gb_thucdonorder.ForeColor = Color.FromArgb(101, 67, 33);
             gb_thucdonorder.Location = new Point(700, 6);
             gb_thucdonorder.Name = "gb_thucdonorder";
             gb_thucdonorder.Size = new Size(683, 596);
@@ -230,35 +234,44 @@
             // 
             // btn_guiorder
             // 
-            btn_guiorder.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_guiorder.Location = new Point(555, 442);
+            btn_guiorder.BackColor = Color.Sienna;
+            btn_guiorder.FlatStyle = FlatStyle.Flat;
+            btn_guiorder.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_guiorder.ForeColor = Color.White;
+            btn_guiorder.Location = new Point(524, 442);
             btn_guiorder.Name = "btn_guiorder";
-            btn_guiorder.Size = new Size(95, 65);
+            btn_guiorder.Size = new Size(126, 51);
             btn_guiorder.TabIndex = 10;
-            btn_guiorder.Text = "Gửi Order";
-            btn_guiorder.UseVisualStyleBackColor = true;
+            btn_guiorder.Text = "➤ Gửi Order";
+            btn_guiorder.UseVisualStyleBackColor = false;
             btn_guiorder.Click += btn_guiorder_Click;
             // 
             // btn_xoamon
             // 
-            btn_xoamon.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_xoamon.Location = new Point(423, 442);
+            btn_xoamon.BackColor = Color.Sienna;
+            btn_xoamon.FlatStyle = FlatStyle.Flat;
+            btn_xoamon.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_xoamon.ForeColor = Color.White;
+            btn_xoamon.Location = new Point(393, 442);
             btn_xoamon.Name = "btn_xoamon";
-            btn_xoamon.Size = new Size(95, 65);
+            btn_xoamon.Size = new Size(125, 51);
             btn_xoamon.TabIndex = 9;
-            btn_xoamon.Text = "Xóa Món";
-            btn_xoamon.UseVisualStyleBackColor = true;
+            btn_xoamon.Text = "🗑️ Xóa Món";
+            btn_xoamon.UseVisualStyleBackColor = false;
             btn_xoamon.Click += btn_xoamon_Click;
             // 
             // btn_themmon
             // 
-            btn_themmon.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_themmon.Location = new Point(293, 442);
+            btn_themmon.BackColor = Color.Sienna;
+            btn_themmon.FlatStyle = FlatStyle.Flat;
+            btn_themmon.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_themmon.ForeColor = Color.White;
+            btn_themmon.Location = new Point(254, 442);
             btn_themmon.Name = "btn_themmon";
-            btn_themmon.Size = new Size(95, 65);
+            btn_themmon.Size = new Size(133, 51);
             btn_themmon.TabIndex = 8;
-            btn_themmon.Text = "Thêm món";
-            btn_themmon.UseVisualStyleBackColor = true;
+            btn_themmon.Text = "➕Thêm món";
+            btn_themmon.UseVisualStyleBackColor = false;
             btn_themmon.Click += btn_themmon_Click;
             // 
             // label3
@@ -282,6 +295,7 @@
             // 
             // gb_thongtinban
             // 
+            gb_thongtinban.BackColor = Color.FromArgb(255, 248, 240);
             gb_thongtinban.Controls.Add(label11);
             gb_thongtinban.Controls.Add(dataGridView_giohang);
             gb_thongtinban.Controls.Add(lbl_trangthaiban);
@@ -293,6 +307,7 @@
             gb_thongtinban.Controls.Add(cb_banOrder);
             gb_thongtinban.Controls.Add(lbl_chonban);
             gb_thongtinban.Font = new Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            gb_thongtinban.ForeColor = Color.FromArgb(101, 67, 33);
             gb_thongtinban.Location = new Point(20, 73);
             gb_thongtinban.Name = "gb_thongtinban";
             gb_thongtinban.Size = new Size(674, 520);
@@ -330,24 +345,30 @@
             // 
             // btn_huyban
             // 
-            btn_huyban.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_huyban.BackColor = Color.Sienna;
+            btn_huyban.FlatStyle = FlatStyle.Flat;
+            btn_huyban.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_huyban.ForeColor = Color.White;
             btn_huyban.Location = new Point(455, 88);
             btn_huyban.Name = "btn_huyban";
             btn_huyban.Size = new Size(112, 41);
             btn_huyban.TabIndex = 6;
             btn_huyban.Text = "Hủy bàn";
-            btn_huyban.UseVisualStyleBackColor = true;
+            btn_huyban.UseVisualStyleBackColor = false;
             btn_huyban.Click += btn_huyban_Click;
             // 
             // btn_datban
             // 
-            btn_datban.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_datban.BackColor = Color.Sienna;
+            btn_datban.FlatStyle = FlatStyle.Flat;
+            btn_datban.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_datban.ForeColor = Color.White;
             btn_datban.Location = new Point(455, 30);
             btn_datban.Name = "btn_datban";
             btn_datban.Size = new Size(112, 41);
             btn_datban.TabIndex = 5;
             btn_datban.Text = "Đặt bàn";
-            btn_datban.UseVisualStyleBackColor = true;
+            btn_datban.UseVisualStyleBackColor = false;
             btn_datban.Click += btn_datban_Click;
             // 
             // lbl_trangthai
@@ -403,14 +424,15 @@
             tp_thanhtoan.Controls.Add(label4);
             tp_thanhtoan.Location = new Point(4, 29);
             tp_thanhtoan.Name = "tp_thanhtoan";
-            tp_thanhtoan.Padding = new Padding(3, 3, 3, 3);
+            tp_thanhtoan.Padding = new Padding(3);
             tp_thanhtoan.Size = new Size(1389, 605);
             tp_thanhtoan.TabIndex = 1;
-            tp_thanhtoan.Text = "Thanh toán";
+            tp_thanhtoan.Text = "💲 Thanh toán";
             tp_thanhtoan.UseVisualStyleBackColor = true;
             // 
             // gb_thanhtoan
             // 
+            gb_thanhtoan.BackColor = Color.FromArgb(250, 247, 242);
             gb_thanhtoan.Controls.Add(pb_QR);
             gb_thanhtoan.Controls.Add(panel8);
             gb_thanhtoan.Controls.Add(btn_refresh);
@@ -430,6 +452,7 @@
             gb_thanhtoan.Controls.Add(label_tongtien);
             gb_thanhtoan.Controls.Add(label12);
             gb_thanhtoan.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            gb_thanhtoan.ForeColor = Color.FromArgb(101, 67, 33);
             gb_thanhtoan.Location = new Point(6, 6);
             gb_thanhtoan.Name = "gb_thanhtoan";
             gb_thanhtoan.Size = new Size(1377, 599);
@@ -460,12 +483,15 @@
             // 
             // btn_searchBill
             // 
+            btn_searchBill.BackColor = Color.Sienna;
+            btn_searchBill.FlatStyle = FlatStyle.Flat;
+            btn_searchBill.ForeColor = Color.White;
             btn_searchBill.Location = new Point(230, 24);
             btn_searchBill.Name = "btn_searchBill";
             btn_searchBill.Size = new Size(98, 36);
             btn_searchBill.TabIndex = 4;
-            btn_searchBill.Text = "Tìm";
-            btn_searchBill.UseVisualStyleBackColor = true;
+            btn_searchBill.Text = "🔍Tìm";
+            btn_searchBill.UseVisualStyleBackColor = false;
             btn_searchBill.Click += btn_searchBill_Click;
             // 
             // tb_searchBill
@@ -478,12 +504,15 @@
             // btn_refresh
             // 
             btn_refresh.AutoSize = true;
-            btn_refresh.Location = new Point(256, 513);
+            btn_refresh.BackColor = Color.Sienna;
+            btn_refresh.FlatStyle = FlatStyle.Flat;
+            btn_refresh.ForeColor = Color.White;
+            btn_refresh.Location = new Point(222, 513);
             btn_refresh.Name = "btn_refresh";
             btn_refresh.Size = new Size(130, 42);
             btn_refresh.TabIndex = 30;
-            btn_refresh.Text = "Làm mới";
-            btn_refresh.UseVisualStyleBackColor = true;
+            btn_refresh.Text = "⟳ Làm mới";
+            btn_refresh.UseVisualStyleBackColor = false;
             btn_refresh.Click += btn_lammoi_Click;
             // 
             // tb_tongtien
@@ -605,12 +634,15 @@
             // btn_ttoan
             // 
             btn_ttoan.AutoSize = true;
+            btn_ttoan.BackColor = Color.Sienna;
+            btn_ttoan.FlatStyle = FlatStyle.Flat;
+            btn_ttoan.ForeColor = Color.White;
             btn_ttoan.Location = new Point(35, 513);
             btn_ttoan.Name = "btn_ttoan";
-            btn_ttoan.Size = new Size(153, 42);
+            btn_ttoan.Size = new Size(166, 42);
             btn_ttoan.TabIndex = 13;
-            btn_ttoan.Text = "Thanh toán";
-            btn_ttoan.UseVisualStyleBackColor = true;
+            btn_ttoan.Text = "💵 Thanh toán";
+            btn_ttoan.UseVisualStyleBackColor = false;
             btn_ttoan.Click += btn_ttoan_Click;
             // 
             // label_tongtien
@@ -645,14 +677,15 @@
             tb_chat.Controls.Add(groupBox1);
             tb_chat.Location = new Point(4, 29);
             tb_chat.Name = "tb_chat";
-            tb_chat.Padding = new Padding(3, 3, 3, 3);
+            tb_chat.Padding = new Padding(3);
             tb_chat.Size = new Size(1389, 605);
             tb_chat.TabIndex = 2;
-            tb_chat.Text = "Theo dõi đơn hàng";
+            tb_chat.Text = "📢 Theo dõi đơn hàng";
             tb_chat.UseVisualStyleBackColor = true;
             // 
             // groupBox1
             // 
+            groupBox1.BackColor = Color.FromArgb(250, 247, 242);
             groupBox1.Controls.Add(splitContainer1);
             groupBox1.Controls.Add(btn_xoahet);
             groupBox1.Controls.Add(cb_banan);
@@ -663,6 +696,7 @@
             groupBox1.Controls.Add(label8);
             groupBox1.Controls.Add(label7);
             groupBox1.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            groupBox1.ForeColor = Color.FromArgb(101, 67, 33);
             groupBox1.Location = new Point(6, 6);
             groupBox1.Name = "groupBox1";
             groupBox1.Size = new Size(1377, 593);
@@ -714,12 +748,15 @@
             // 
             // btn_xoahet
             // 
-            btn_xoahet.Location = new Point(1202, 50);
+            btn_xoahet.BackColor = Color.Sienna;
+            btn_xoahet.FlatStyle = FlatStyle.Flat;
+            btn_xoahet.ForeColor = Color.White;
+            btn_xoahet.Location = new Point(1184, 50);
             btn_xoahet.Name = "btn_xoahet";
             btn_xoahet.Size = new Size(152, 48);
             btn_xoahet.TabIndex = 9;
-            btn_xoahet.Text = "Xóa hết";
-            btn_xoahet.UseVisualStyleBackColor = true;
+            btn_xoahet.Text = "🗑️ Xóa hết";
+            btn_xoahet.UseVisualStyleBackColor = false;
             btn_xoahet.Click += btn_xoahet_Click;
             // 
             // cb_banan
@@ -742,12 +779,15 @@
             // 
             // btn_lammoi
             // 
+            btn_lammoi.BackColor = Color.Sienna;
+            btn_lammoi.FlatStyle = FlatStyle.Flat;
+            btn_lammoi.ForeColor = Color.White;
             btn_lammoi.Location = new Point(1002, 50);
             btn_lammoi.Name = "btn_lammoi";
             btn_lammoi.Size = new Size(152, 48);
             btn_lammoi.TabIndex = 5;
-            btn_lammoi.Text = "Làm mới";
-            btn_lammoi.UseVisualStyleBackColor = true;
+            btn_lammoi.Text = "⟳ Làm mới";
+            btn_lammoi.UseVisualStyleBackColor = false;
             btn_lammoi.Click += btn_lammoi_Click_1;
             // 
             // cb_trangthai
@@ -794,10 +834,10 @@
             tabPage1.Controls.Add(panel_UserList);
             tabPage1.Location = new Point(4, 29);
             tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3, 3, 3, 3);
+            tabPage1.Padding = new Padding(3);
             tabPage1.Size = new Size(1389, 605);
             tabPage1.TabIndex = 3;
-            tabPage1.Text = "Chat";
+            tabPage1.Text = "💬 Chat";
             tabPage1.UseVisualStyleBackColor = true;
             // 
             // panel_ChatArea
@@ -808,7 +848,7 @@
             panel_ChatArea.Controls.Add(panel_ChatHeader);
             panel_ChatArea.Dock = DockStyle.Fill;
             panel_ChatArea.Location = new Point(377, 3);
-            panel_ChatArea.Margin = new Padding(2, 2, 2, 2);
+            panel_ChatArea.Margin = new Padding(2);
             panel_ChatArea.Name = "panel_ChatArea";
             panel_ChatArea.Size = new Size(1009, 599);
             panel_ChatArea.TabIndex = 1;
@@ -817,7 +857,7 @@
             // 
             rtb_ChatMessages.Dock = DockStyle.Fill;
             rtb_ChatMessages.Location = new Point(0, 120);
-            rtb_ChatMessages.Margin = new Padding(2, 2, 2, 2);
+            rtb_ChatMessages.Margin = new Padding(2);
             rtb_ChatMessages.Name = "rtb_ChatMessages";
             rtb_ChatMessages.Size = new Size(1009, 359);
             rtb_ChatMessages.TabIndex = 2;
@@ -825,11 +865,12 @@
             // 
             // panel_ChatInput
             // 
+            panel_ChatInput.BackColor = Color.FromArgb(250, 247, 242);
             panel_ChatInput.Controls.Add(btn_SendChat);
             panel_ChatInput.Controls.Add(txt_ChatMessage);
             panel_ChatInput.Dock = DockStyle.Bottom;
             panel_ChatInput.Location = new Point(0, 479);
-            panel_ChatInput.Margin = new Padding(2, 2, 2, 2);
+            panel_ChatInput.Margin = new Padding(2);
             panel_ChatInput.Name = "panel_ChatInput";
             panel_ChatInput.Size = new Size(1009, 120);
             panel_ChatInput.TabIndex = 1;
@@ -837,12 +878,14 @@
             // btn_SendChat
             // 
             btn_SendChat.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btn_SendChat.BackColor = Color.DodgerBlue;
-            btn_SendChat.ForeColor = SystemColors.Control;
-            btn_SendChat.Location = new Point(676, 57);
-            btn_SendChat.Margin = new Padding(2, 2, 2, 2);
+            btn_SendChat.BackColor = Color.Sienna;
+            btn_SendChat.FlatStyle = FlatStyle.Flat;
+            btn_SendChat.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_SendChat.ForeColor = Color.White;
+            btn_SendChat.Location = new Point(586, 50);
+            btn_SendChat.Margin = new Padding(2);
             btn_SendChat.Name = "btn_SendChat";
-            btn_SendChat.Size = new Size(153, 27);
+            btn_SendChat.Size = new Size(120, 39);
             btn_SendChat.TabIndex = 1;
             btn_SendChat.Text = "Gửi";
             btn_SendChat.UseVisualStyleBackColor = false;
@@ -852,19 +895,19 @@
             txt_ChatMessage.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             txt_ChatMessage.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             txt_ChatMessage.Location = new Point(50, 54);
-            txt_ChatMessage.Margin = new Padding(2, 2, 2, 2);
+            txt_ChatMessage.Margin = new Padding(2);
             txt_ChatMessage.Name = "txt_ChatMessage";
             txt_ChatMessage.Size = new Size(518, 30);
             txt_ChatMessage.TabIndex = 0;
             // 
             // panel_ChatHeader
             // 
-            panel_ChatHeader.BackColor = Color.LightSteelBlue;
+            panel_ChatHeader.BackColor = Color.FromArgb(250, 247, 242);
             panel_ChatHeader.Controls.Add(lbl_ChatRole);
             panel_ChatHeader.Controls.Add(lbl_ChatTitle);
             panel_ChatHeader.Dock = DockStyle.Top;
             panel_ChatHeader.Location = new Point(0, 0);
-            panel_ChatHeader.Margin = new Padding(2, 2, 2, 2);
+            panel_ChatHeader.Margin = new Padding(2);
             panel_ChatHeader.Name = "panel_ChatHeader";
             panel_ChatHeader.Size = new Size(1009, 120);
             panel_ChatHeader.TabIndex = 0;
@@ -891,7 +934,7 @@
             // 
             // panel_UserList
             // 
-            panel_UserList.BackColor = Color.WhiteSmoke;
+            panel_UserList.BackColor = Color.FromArgb(250, 247, 242);
             panel_UserList.BorderStyle = BorderStyle.Fixed3D;
             panel_UserList.Controls.Add(btn_ThongBao_PhucVu);
             panel_UserList.Controls.Add(lbl_OnlineCount);
@@ -901,20 +944,24 @@
             panel_UserList.Controls.Add(txt_SearchUser);
             panel_UserList.Dock = DockStyle.Left;
             panel_UserList.Location = new Point(3, 3);
-            panel_UserList.Margin = new Padding(2, 2, 2, 2);
+            panel_UserList.Margin = new Padding(2);
             panel_UserList.Name = "panel_UserList";
             panel_UserList.Size = new Size(374, 599);
             panel_UserList.TabIndex = 0;
             // 
             // btn_ThongBao_PhucVu
             // 
-            btn_ThongBao_PhucVu.Location = new Point(236, 532);
-            btn_ThongBao_PhucVu.Margin = new Padding(2, 2, 2, 2);
+            btn_ThongBao_PhucVu.BackColor = Color.Sienna;
+            btn_ThongBao_PhucVu.FlatStyle = FlatStyle.Flat;
+            btn_ThongBao_PhucVu.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_ThongBao_PhucVu.ForeColor = Color.White;
+            btn_ThongBao_PhucVu.Location = new Point(202, 518);
+            btn_ThongBao_PhucVu.Margin = new Padding(2);
             btn_ThongBao_PhucVu.Name = "btn_ThongBao_PhucVu";
-            btn_ThongBao_PhucVu.Size = new Size(90, 27);
+            btn_ThongBao_PhucVu.Size = new Size(142, 43);
             btn_ThongBao_PhucVu.TabIndex = 5;
-            btn_ThongBao_PhucVu.Text = "Thông báo";
-            btn_ThongBao_PhucVu.UseVisualStyleBackColor = true;
+            btn_ThongBao_PhucVu.Text = "🔔Thông báo";
+            btn_ThongBao_PhucVu.UseVisualStyleBackColor = false;
             btn_ThongBao_PhucVu.Click += btn_ThongBao_PhucVu_Click;
             // 
             // lbl_OnlineCount
@@ -929,13 +976,17 @@
             // 
             // btn_RefreshUsers
             // 
-            btn_RefreshUsers.Location = new Point(43, 532);
-            btn_RefreshUsers.Margin = new Padding(2, 2, 2, 2);
+            btn_RefreshUsers.BackColor = Color.Sienna;
+            btn_RefreshUsers.FlatStyle = FlatStyle.Flat;
+            btn_RefreshUsers.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btn_RefreshUsers.ForeColor = Color.White;
+            btn_RefreshUsers.Location = new Point(33, 518);
+            btn_RefreshUsers.Margin = new Padding(2);
             btn_RefreshUsers.Name = "btn_RefreshUsers";
-            btn_RefreshUsers.Size = new Size(128, 27);
+            btn_RefreshUsers.Size = new Size(143, 43);
             btn_RefreshUsers.TabIndex = 3;
             btn_RefreshUsers.Text = "🔄 Làm mới";
-            btn_RefreshUsers.UseVisualStyleBackColor = true;
+            btn_RefreshUsers.UseVisualStyleBackColor = false;
             // 
             // lv_Users
             // 
@@ -943,9 +994,9 @@
             lv_Users.FullRowSelect = true;
             lv_Users.GridLines = true;
             lv_Users.Location = new Point(-2, 115);
-            lv_Users.Margin = new Padding(2, 2, 2, 2);
+            lv_Users.Margin = new Padding(2);
             lv_Users.Name = "lv_Users";
-            lv_Users.Size = new Size(370, 403);
+            lv_Users.Size = new Size(370, 387);
             lv_Users.TabIndex = 2;
             lv_Users.UseCompatibleStateImageBehavior = false;
             lv_Users.View = View.Details;
@@ -969,7 +1020,7 @@
             // 
             chk_SendAll.AutoSize = true;
             chk_SendAll.Location = new Point(79, 77);
-            chk_SendAll.Margin = new Padding(2, 2, 2, 2);
+            chk_SendAll.Margin = new Padding(2);
             chk_SendAll.Name = "chk_SendAll";
             chk_SendAll.Size = new Size(148, 24);
             chk_SendAll.TabIndex = 1;
@@ -979,13 +1030,14 @@
             // txt_SearchUser
             // 
             txt_SearchUser.Location = new Point(79, 30);
-            txt_SearchUser.Margin = new Padding(2, 2, 2, 2);
+            txt_SearchUser.Margin = new Padding(2);
             txt_SearchUser.Name = "txt_SearchUser";
             txt_SearchUser.Size = new Size(121, 27);
             txt_SearchUser.TabIndex = 0;
             // 
             // tabPage2
             // 
+            tabPage2.BackColor = Color.FromArgb(250, 247, 242);
             tabPage2.Controls.Add(button_DangXuatPhucVu);
             tabPage2.Controls.Add(textbox_rolepv);
             tabPage2.Controls.Add(textbox_tenphucvu);
@@ -996,63 +1048,67 @@
             tabPage2.Controls.Add(label15);
             tabPage2.Controls.Add(label14);
             tabPage2.Controls.Add(label13);
+            tabPage2.ForeColor = Color.FromArgb(101, 67, 33);
             tabPage2.Location = new Point(4, 29);
             tabPage2.Margin = new Padding(2);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(2);
             tabPage2.Size = new Size(1389, 605);
             tabPage2.TabIndex = 4;
-            tabPage2.Text = "Tài khoản";
-            tabPage2.UseVisualStyleBackColor = true;
+            tabPage2.Text = "ⓘ Tài khoản";
             // 
             // button_DangXuatPhucVu
             // 
-            button_DangXuatPhucVu.Location = new Point(1113, 510);
+            button_DangXuatPhucVu.BackColor = Color.Sienna;
+            button_DangXuatPhucVu.FlatStyle = FlatStyle.Flat;
+            button_DangXuatPhucVu.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            button_DangXuatPhucVu.ForeColor = Color.White;
+            button_DangXuatPhucVu.Location = new Point(546, 495);
             button_DangXuatPhucVu.Margin = new Padding(2);
             button_DangXuatPhucVu.Name = "button_DangXuatPhucVu";
-            button_DangXuatPhucVu.Size = new Size(143, 34);
+            button_DangXuatPhucVu.Size = new Size(157, 44);
             button_DangXuatPhucVu.TabIndex = 9;
             button_DangXuatPhucVu.Text = "Đăng xuất";
-            button_DangXuatPhucVu.UseVisualStyleBackColor = true;
+            button_DangXuatPhucVu.UseVisualStyleBackColor = false;
             button_DangXuatPhucVu.Click += button_DangXuatPhucVu_Click;
             // 
             // textbox_rolepv
             // 
-            textbox_rolepv.Location = new Point(569, 503);
+            textbox_rolepv.Location = new Point(546, 419);
             textbox_rolepv.Margin = new Padding(2);
             textbox_rolepv.Name = "textbox_rolepv";
-            textbox_rolepv.Size = new Size(235, 27);
+            textbox_rolepv.Size = new Size(268, 27);
             textbox_rolepv.TabIndex = 8;
             // 
             // textbox_tenphucvu
             // 
-            textbox_tenphucvu.Location = new Point(569, 409);
+            textbox_tenphucvu.Location = new Point(546, 335);
             textbox_tenphucvu.Margin = new Padding(2);
             textbox_tenphucvu.Name = "textbox_tenphucvu";
-            textbox_tenphucvu.Size = new Size(235, 27);
+            textbox_tenphucvu.Size = new Size(268, 27);
             textbox_tenphucvu.TabIndex = 7;
             // 
             // textbox_emailphucvu
             // 
-            textbox_emailphucvu.Location = new Point(569, 303);
+            textbox_emailphucvu.Location = new Point(546, 257);
             textbox_emailphucvu.Margin = new Padding(2);
             textbox_emailphucvu.Name = "textbox_emailphucvu";
-            textbox_emailphucvu.Size = new Size(235, 27);
+            textbox_emailphucvu.Size = new Size(268, 27);
             textbox_emailphucvu.TabIndex = 6;
             // 
             // textbox_usernamephucvu
             // 
-            textbox_usernamephucvu.Location = new Point(569, 205);
+            textbox_usernamephucvu.Location = new Point(546, 184);
             textbox_usernamephucvu.Margin = new Padding(2);
             textbox_usernamephucvu.Name = "textbox_usernamephucvu";
-            textbox_usernamephucvu.Size = new Size(235, 27);
+            textbox_usernamephucvu.Size = new Size(268, 27);
             textbox_usernamephucvu.TabIndex = 5;
             // 
             // label19
             // 
             label19.AutoSize = true;
             label19.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label19.Location = new Point(343, 498);
+            label19.Location = new Point(385, 413);
             label19.Margin = new Padding(2, 0, 2, 0);
             label19.Name = "label19";
             label19.Size = new Size(106, 32);
@@ -1063,7 +1119,7 @@
             // 
             label16.AutoSize = true;
             label16.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(343, 403);
+            label16.Location = new Point(385, 330);
             label16.Margin = new Padding(2, 0, 2, 0);
             label16.Name = "label16";
             label16.Size = new Size(54, 32);
@@ -1074,7 +1130,7 @@
             // 
             label15.AutoSize = true;
             label15.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label15.Location = new Point(343, 303);
+            label15.Location = new Point(385, 251);
             label15.Margin = new Padding(2, 0, 2, 0);
             label15.Name = "label15";
             label15.Size = new Size(76, 32);
@@ -1085,7 +1141,7 @@
             // 
             label14.AutoSize = true;
             label14.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label14.Location = new Point(343, 201);
+            label14.Location = new Point(385, 178);
             label14.Margin = new Padding(2, 0, 2, 0);
             label14.Name = "label14";
             label14.Size = new Size(128, 32);
@@ -1096,7 +1152,7 @@
             // 
             label13.AutoSize = true;
             label13.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label13.Location = new Point(550, 50);
+            label13.Location = new Point(480, 82);
             label13.Margin = new Padding(2, 0, 2, 0);
             label13.Name = "label13";
             label13.Size = new Size(334, 46);
