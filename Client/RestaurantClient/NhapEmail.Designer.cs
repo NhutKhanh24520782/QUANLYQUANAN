@@ -87,8 +87,9 @@
             Controls.Add(tb_email);
             Controls.Add(label1);
             Controls.Add(btn_send);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "NhapEmail";
-            Text = "NhapEmail";
+            Text = "Nhập email";
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ResumeLayout(false);
             PerformLayout();

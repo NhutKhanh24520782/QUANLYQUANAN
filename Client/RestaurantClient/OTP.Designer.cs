@@ -124,6 +124,7 @@
             Controls.Add(btnXacNhanOTP);
             Controls.Add(llResendCode);
             Controls.Add(linkLabel1);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "OTP";
             Text = "OTP";
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();

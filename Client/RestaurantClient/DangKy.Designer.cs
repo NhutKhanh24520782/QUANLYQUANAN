@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DangKy));
             lbl_title = new Label();
             lbl_hoten = new Label();
             lbl_passwd = new Label();
@@ -289,6 +290,7 @@
             BackColor = Color.BurlyWood;
             ClientSize = new Size(1004, 630);
             Controls.Add(panel1);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "DangKy";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Smartdine - Đăng ký";

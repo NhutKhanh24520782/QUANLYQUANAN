@@ -28,10 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NVBep));
             tc_nvbep = new TabControl();
             tp_quanlyvaxuly = new TabPage();
             btn_xemthongke = new Button();
-            btn_caidat = new Button();
             btn_refresh = new Button();
             lbl_thongke = new Label();
             dataGridView1 = new DataGridView();
@@ -157,7 +157,6 @@
             // 
             tp_quanlyvaxuly.BackColor = Color.FromArgb(250, 247, 242);
             tp_quanlyvaxuly.Controls.Add(btn_xemthongke);
-            tp_quanlyvaxuly.Controls.Add(btn_caidat);
             tp_quanlyvaxuly.Controls.Add(btn_refresh);
             tp_quanlyvaxuly.Controls.Add(lbl_thongke);
             tp_quanlyvaxuly.Controls.Add(dataGridView1);
@@ -192,21 +191,6 @@
             btn_xemthongke.Text = "📊 Xem thống kê";
             btn_xemthongke.UseVisualStyleBackColor = false;
             btn_xemthongke.Click += btn_xemthongke_Click;
-            // 
-            // btn_caidat
-            // 
-            btn_caidat.BackColor = Color.Sienna;
-            btn_caidat.FlatStyle = FlatStyle.Flat;
-            btn_caidat.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btn_caidat.ForeColor = Color.White;
-            btn_caidat.Location = new Point(1093, 412);
-            btn_caidat.Margin = new Padding(2);
-            btn_caidat.Name = "btn_caidat";
-            btn_caidat.Size = new Size(107, 40);
-            btn_caidat.TabIndex = 32;
-            btn_caidat.Text = "🌣 Cài đặt";
-            btn_caidat.UseVisualStyleBackColor = false;
-            btn_caidat.Click += btn_caidat_Click;
             // 
             // btn_refresh
             // 
@@ -802,7 +786,7 @@
             btn_xuatbaocao.BackColor = Color.Sienna;
             btn_xuatbaocao.FlatStyle = FlatStyle.Flat;
             btn_xuatbaocao.ForeColor = Color.White;
-            btn_xuatbaocao.Location = new Point(361, 143);
+            btn_xuatbaocao.Location = new Point(268, 145);
             btn_xuatbaocao.Name = "btn_xuatbaocao";
             btn_xuatbaocao.Size = new Size(158, 40);
             btn_xuatbaocao.TabIndex = 8;
@@ -815,7 +799,7 @@
             btn_lammoi.BackColor = Color.Sienna;
             btn_lammoi.FlatStyle = FlatStyle.Flat;
             btn_lammoi.ForeColor = Color.White;
-            btn_lammoi.Location = new Point(197, 143);
+            btn_lammoi.Location = new Point(138, 143);
             btn_lammoi.Name = "btn_lammoi";
             btn_lammoi.Size = new Size(117, 42);
             btn_lammoi.TabIndex = 7;
@@ -825,9 +809,9 @@
             // 
             // btn_taithongke
             // 
-            btn_taithongke.Location = new Point(361, 86);
+            btn_taithongke.Location = new Point(285, 88);
             btn_taithongke.Name = "btn_taithongke";
-            btn_taithongke.Size = new Size(115, 36);
+            btn_taithongke.Size = new Size(117, 33);
             btn_taithongke.TabIndex = 6;
             btn_taithongke.Text = "📊 TẢI";
             btn_taithongke.UseVisualStyleBackColor = true;
@@ -1234,8 +1218,9 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1230, 511);
             Controls.Add(tc_nvbep);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "NVBep";
-            Text = "NVBep";
+            Text = "Nhân viên bếp";
             tc_nvbep.ResumeLayout(false);
             tp_quanlyvaxuly.ResumeLayout(false);
             tp_quanlyvaxuly.PerformLayout();
@@ -1284,7 +1269,6 @@
         private TextBox tb_numberTable;
         private Label lbl_thongke;
         private Button btn_xemthongke;
-        private Button btn_caidat;
         private Button btn_refresh;
         private Label lbl_orderinfo;
         private DataGridView dataGridView_dishs;

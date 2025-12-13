@@ -222,8 +222,9 @@
             Controls.Add(panel2);
             Controls.Add(panel1);
             ForeColor = Color.DarkBlue;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "DangNhap";
-            Text = "DangNhap";
+            Text = "Smartdine - Đăng nhập";
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
             panel4.ResumeLayout(false);

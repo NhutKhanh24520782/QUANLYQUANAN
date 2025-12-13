@@ -121,6 +121,7 @@
             Controls.Add(tb_confirmPass);
             Controls.Add(label2);
             Controls.Add(btn_hoanTat);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MatKhauMoi";
             Text = "MatKhauMoi";
             Load += MatKhauMoi_Load;
