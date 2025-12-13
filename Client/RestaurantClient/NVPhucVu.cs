@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+//using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace RestaurantClient
 {
@@ -28,7 +29,19 @@ namespace RestaurantClient
         private List<CartItem> _gioHang = new List<CartItem>();
         private GridViewManager<PendingPaymentData> _billManager;
         private GridViewManager<MenuItemData> _ordermonManager;
+        private System.Windows.Forms.Timer _checkPaymentTimer;
+        private int _pendingMaHD = 0; // Lưu mã HD đang chờ
         private System.Windows.Forms.Timer _autoRefreshTimer; // 🔥 ĐÃ ĐƯỢC SỬ DỤNG
+        private System.Windows.Forms.Timer? _clockTimer; // ✅ THÊM DÒNG NÀY
+        #region CHAT FIELDS
+        private System.Windows.Forms.Timer _chatRefreshTimer;      // Timer polling tin nhắn mới
+        private int _selectedChatUserId = 0;                        // ID user đang chat
+        private string _selectedChatUserName = "";                  // Tên user đang chat
+        private DateTime _lastMessageTime = DateTime.MinValue;      // Thời gian tin nhắn cuối
+        private List<ChatUserData> _chatUsers = new List<ChatUserData>();
+        private const int CHAT_REFRESH_INTERVAL = 3000;             // 3 giây polling
+        private HashSet<int> _displayedMessageIds = new HashSet<int>();
+        #endregion
 
         // ==================== INITIALIZATION ====================
         public NVPhucVu(int userId, string userName)
@@ -38,16 +51,176 @@ namespace RestaurantClient
             InitializeComponent();
             cb_trangthai.Items.Clear();
             cb_trangthai.DropDownStyle = ComboBoxStyle.DropDownList;
-            cb_trangthai.Items.AddRange(new string[] { "Trống", "Có người", "Đã đặt" });
+            cb_trangthai.Items.AddRange(new string[] { "Tất cả", "Hoàn thành", "Đang chế biến" });
+            //cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged;
+            //cb_banan.SelectedIndexChanged += OnFilterChanged;
+            //cb_trangthai.SelectedIndexChanged += OnFilterChanged;
+            cb_banan.SelectedIndex = -1;
+            cb_trangthai.SelectedIndex = -1;
+            // Đăng ký sự kiện click cho PictureBox
+            pb_QR.Click += pb_QR_Click;
+            cb_trangthai.SelectedIndexChanged += (s, e) => btn_lammoi_Click_1(null, null);
+            SetupMasterDetailView();
             InitializeGridViewManager();
             InitializePaymentControls();
             InitializeAutoRefreshTimer(); // 🔥 BỔ SUNG: Khởi tạo Timer
+            _checkPaymentTimer = new System.Windows.Forms.Timer();
+            _checkPaymentTimer.Interval = 3000; // Kiểm tra mỗi 3 giây
+            _checkPaymentTimer.Tick += CheckPaymentTimer_Tick;
             LoadPendingBills();
             LoadMenuItems();
             InitializeCategoryComboBox();
             InitializeTableComboBox();
+            InitializeClockTimer(); // ✅ THÊM DÒNG NÀY
+            UpdateUserInfo();
+            LoadNVInfo();
+            InitializeChatFeature();
+
+        }
+        // 🔥 THÊM HÀM CHUYỂN ĐỔI MÚI GIỜ
+        
+        private void InitializeClockTimer()
+        {
+            _clockTimer = new System.Windows.Forms.Timer();
+            _clockTimer.Interval = 1000; // Cập nhật mỗi giây
+            _clockTimer.Tick += (s, e) =>
+            {
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(UpdateUserInfo));
+                }
+                else
+                {
+                    UpdateUserInfo();
+                }
+            };
+            _clockTimer.Start();
+        }
+        private void SetupMasterDetailView()
+        {
+            // --- CẤU HÌNH BẢNG ĐƠN HÀNG (BÊN TRÁI) ---
+            dgv_DonHangTongQuan.AutoGenerateColumns = false;
+            dgv_DonHangTongQuan.Columns.Clear();
+            dgv_DonHangTongQuan.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+
+            // Đăng ký sự kiện tô màu (QUAN TRỌNG)
+            dgv_DonHangTongQuan.CellFormatting -= Dgv_DonHangTongQuan_CellFormatting; // Xóa cũ để tránh trùng
+            dgv_DonHangTongQuan.CellFormatting += Dgv_DonHangTongQuan_CellFormatting; // Thêm mới
+
+            // Thêm các cột (DataPropertyName phải khớp với KitchenOrderData)
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "MaDonHang", HeaderText = "Mã Đơn", Width = 80 });
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TenBan", HeaderText = "Bàn", Width = 70 });
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ThoiGianDisplay", HeaderText = "Giờ gọi", Width = 100 });
+
+            // Cột trạng thái (Width 140 để đủ chỗ hiển thị chữ)
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TrangThaiDon", HeaderText = "Trạng Thái", Width = 250 });
+
+            dgv_DonHangTongQuan.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TongSoMon", HeaderText = "Số Món", Width = 60 });
+
+            dgv_DonHangTongQuan.SelectionChanged += Dgv_DonHangTongQuan_SelectionChanged;
+
+            // --- CẤU HÌNH BẢNG CHI TIẾT (BÊN PHẢI) ---
+            lv_ChiTietDon.Columns.Clear();
+            lv_ChiTietDon.View = View.Details;
+            lv_ChiTietDon.GridLines = true;
+            lv_ChiTietDon.FullRowSelect = true;
+
+            lv_ChiTietDon.Columns.Add("Tên Món", 220);
+            lv_ChiTietDon.Columns.Add("SL", 40);
+            lv_ChiTietDon.Columns.Add("Ghi Chú", 400);
+            lv_ChiTietDon.Columns.Add("Trạng Thái", 120);
+
+            // Tạo Group
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("HoanThanh", "[1] MÓN ĐÃ HOÀN THÀNH"));
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("DangCheBien", "[2] MÓN ĐANG CHẾ BIẾN"));
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("ChoXacNhan", "[3] MÓN CHỜ XÁC NHẬN"));
+            lv_ChiTietDon.Groups.Add(new ListViewGroup("CoVanDe", "[4] MÓN CÓ VẤN ĐỀ / HỦY"));
         }
 
+        private async void Dgv_DonHangTongQuan_SelectionChanged(object sender, EventArgs e)
+        {
+            if (dgv_DonHangTongQuan.SelectedRows.Count == 0) return;
+
+            // Lấy object data từ dòng đang chọn
+            var selectedOrder = dgv_DonHangTongQuan.SelectedRows[0].DataBoundItem as KitchenOrderData;
+            if (selectedOrder == null) return;
+
+            await LoadOrderDetailToListView(selectedOrder.MaDonHang);
+        }
+
+        private async Task LoadOrderDetailToListView(int maDonHang)
+        {
+            try
+            {
+                var request = new GetOrderDetailRequest { MaDonHang = maDonHang };
+                var response = await SendRequest<GetOrderDetailRequest, GetOrderDetailResponse>(request);
+
+                if (response != null && response.Success && response.ChiTietDonHang != null)
+                {
+                    lv_ChiTietDon.Items.Clear();
+                    var details = response.ChiTietDonHang.DanhSachMon;
+
+                    foreach (var item in details)
+                    {
+                        // Tạo dòng cho ListView
+                        ListViewItem row = new ListViewItem(item.TenMon);
+                        row.SubItems.Add(item.SoLuong.ToString());
+                        row.SubItems.Add(item.GhiChuKhach); // Hoặc GhiChuBep
+                        row.SubItems.Add(TranslateStatus(item.TrangThai));
+
+                        // 1. PHÂN NHÓM (GROUP)
+                        switch (item.TrangThai)
+                        {
+                            case "HoanThanh":
+                                row.Group = lv_ChiTietDon.Groups["HoanThanh"];
+                                row.ForeColor = Color.DarkGreen; // Chữ xanh
+                                row.BackColor = Color.LightGreen;   // Nền xanh nhạt
+                                row.ImageKey = "check"; // Nếu bạn có ImageList
+                                break;
+
+                            case "DangCheBien":
+                                row.Group = lv_ChiTietDon.Groups["DangCheBien"];
+                                row.ForeColor = Color.DarkGoldenrod; // Chữ vàng đậm
+                                row.BackColor = Color.LightYellow;   // Nền vàng nhạt
+                                break;
+
+                            case "ChoXacNhan":
+                                row.Group = lv_ChiTietDon.Groups["ChoXacNhan"];
+                                row.ForeColor = Color.Gray;
+                                row.BackColor = Color.LightGray; // Nền xám nhạt
+                                break;
+
+                            case "CoVanDe":
+                            case "Huy":
+                                row.Group = lv_ChiTietDon.Groups["CoVanDe"];
+                                row.ForeColor = Color.DarkRed;
+                                row.BackColor = Color.LightCoral; // Nền đỏ nhạt
+                                row.Font = new Font(lv_ChiTietDon.Font, FontStyle.Strikeout); // Gạch ngang nếu hủy
+                                break;
+                        }
+
+                        lv_ChiTietDon.Items.Add(row);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi tải chi tiết: " + ex.Message);
+            }
+        }
+
+        private string TranslateStatus(string status)
+        {
+            return status switch
+            {
+                "HoanThanh" => "Đã xong",
+                "DangCheBien" => "Đang làm",
+                "ChoXacNhan" => "Chờ bếp",
+                "CoVanDe" => "Có sự cố",
+                "Huy" => "Đã hủy",
+                _ => status
+            };
+        }
         private void InitializeGridViewManager()
         {
             // Khởi tạo GridViewManager với PendingPaymentData
@@ -108,12 +281,12 @@ namespace RestaurantClient
                     if (status == "ConMon")
                     {
                         row.DefaultCellStyle.BackColor = Color.LightGreen;
-                        row.DefaultCellStyle.SelectionBackColor = Color.Green; 
+                        row.DefaultCellStyle.SelectionBackColor = Color.Green;
                     }
                     else if (status == "HetMon")
                     {
                         row.DefaultCellStyle.BackColor = Color.LightSalmon;
-                        row.DefaultCellStyle.SelectionBackColor = Color.Red; 
+                        row.DefaultCellStyle.SelectionBackColor = Color.Red;
                     }
                 }
             }
@@ -263,7 +436,7 @@ namespace RestaurantClient
             cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged;
 
             LoadTables();
-            
+
         }
         private async void LoadTables()
         {
@@ -293,8 +466,9 @@ namespace RestaurantClient
                     if (_danhSachBan.Count > 0)
                     {
                         cb_banOrder.SelectedIndex = 0;
-                        cb_banan.SelectedIndex = 0;
+
                     }
+                    cb_banan.SelectedIndex = -1;
                 }
             }
             catch (Exception ex)
@@ -696,6 +870,8 @@ namespace RestaurantClient
         }
 
         // ==================== DATA LOADING ====================
+        // Trong NVPhucVu.cs
+
         private async Task<List<PendingPaymentData>> LoadPendingBillsFromServer()
         {
             try
@@ -709,13 +885,18 @@ namespace RestaurantClient
 
                 if (response?.Success == true)
                 {
-                    // Sắp xếp tăng dần theo mã hóa đơn trước khi trả về
-                    var sortedPayments = response.PendingPayments
+                    var convertedPayments = response.PendingPayments
+                        .Select(p =>
+                        {
+                            // Chuyển từ UTC sang giờ Việt Nam để hiển thị
+                            p.NgayTao = ConvertUtcToVietnam(p.NgayTao);
+                            return p;
+                        })
                         .OrderBy(p => p.MaHD)
                         .ToList();
 
-                    UpdateStatusLabel(sortedPayments.Count);
-                    return sortedPayments;
+                    UpdateStatusLabel(convertedPayments.Count);
+                    return convertedPayments;
                 }
                 else
                 {
@@ -729,7 +910,6 @@ namespace RestaurantClient
                 return new List<PendingPaymentData>();
             }
         }
-
         private void UpdateStatusLabel(int count)
         {
             // Tìm status label trong controls
@@ -752,6 +932,19 @@ namespace RestaurantClient
                     statusLabel.Font = new Font("Segoe UI", 9f, FontStyle.Regular); // Không in đậm
                 }
             }
+        }
+        // ✅ SỬA HÀM UpdateUserInfo để hiển thị giây
+        private void UpdateUserInfo()
+        {
+            if (lbl_userInfo.InvokeRequired)
+            {
+                lbl_userInfo.Invoke(new Action(UpdateUserInfo));
+                return;
+            }
+
+            // Dùng giờ Việt Nam thay vì DateTime.Now
+            DateTime vietnamTime = GetVietnamTime();
+            lbl_userInfo.Text = $"Chào, {_currentUserName} • {vietnamTime:HH:mm:ss dd/MM/yyyy}";
         }
 
         // ==================== EVENT HANDLERS ====================
@@ -795,12 +988,13 @@ namespace RestaurantClient
                 }
             }
 
-            // Định dạng cột ngày tháng
             if (e.ColumnIndex == dataGridView_thanhtoan.Columns["NgayTao"].Index && e.Value != null)
             {
                 if (DateTime.TryParse(e.Value.ToString(), out DateTime date))
                 {
-                    e.Value = date.ToString("HH:mm dd/MM/yyyy");
+                    // Chuyển sang giờ Việt Nam trước khi hiển thị
+                    DateTime vnTime = ConvertUtcToVietnam(date);
+                    e.Value = vnTime.ToString("HH:mm dd/MM/yyyy");
                     e.FormattingApplied = true;
                 }
             }
@@ -821,8 +1015,14 @@ namespace RestaurantClient
                     this.Invoke(new Action<PendingPaymentData>(ShowBillDetails), payment);
                     return;
                 }
+                // 🔥 SỬA LỖI: Đảm bảo hiển thị đúng thời gian đã được chuyển đổi
+                if (tb_dateBill != null)
+                {
+                    // Hiển thị giờ Việt Nam
+                    DateTime displayTime = ConvertUtcToVietnam(payment.NgayTao);
+                    tb_dateBill.Text = displayTime.ToString("HH:mm dd/MM/yyyy");
+                }
 
-                // HIỂN THỊ THÔNG TIN CHI TIẾT VÀO CÁC TEXTBOX
                 if (tb_idBill != null)
                 {
                     tb_idBill.Text = payment.MaHD.ToString();
@@ -833,10 +1033,6 @@ namespace RestaurantClient
                     tb_idTable.Text = payment.MaBanAn.ToString();
                 }
 
-                if (tb_dateBill != null)
-                {
-                    tb_dateBill.Text = payment.NgayTao.ToString("HH:mm dd/MM/yyyy");
-                }
 
                 if (tb_tongtien != null)
                 {
@@ -877,7 +1073,6 @@ namespace RestaurantClient
         }
 
         // ==================== PAYMENT METHODS ====================
-        // ==================== PAYMENT METHODS ====================
         private async void btn_ttoan_Click(object sender, EventArgs e)
         {
             var selectedPayment = _billManager.GetSelectedItem();
@@ -895,6 +1090,10 @@ namespace RestaurantClient
             }
 
             string paymentMethod = checkBox_tienmat.Checked ? "TienMat" : "ChuyenKhoan";
+            if (paymentMethod == "TienMat")
+            {
+                pb_QR.Visible = false; // Chọn tiền mặt thì ẩn QR đi
+            }
 
             // Xác nhận thanh toán
             if (!Confirm($"Xác nhận thanh toán hóa đơn #{selectedPayment.MaHD}?\n" +
@@ -924,14 +1123,16 @@ namespace RestaurantClient
 
                     if (response?.Success == true)
                     {
-                        string successMessage = $"Thanh toán thành công!\nMã giao dịch: {response.MaGiaoDich}";
+                        //string successMessage = $"Thanh toán thành công!\nMã giao dịch: {response.MaGiaoDich}";
 
                         if (paymentMethod == "TienMat" && response.SoTienThua > 0)
                         {
-                            successMessage += $"\nTiền thừa: {response.SoTienThua:N0} VNĐ";
+                            string successMessage1 = $"Thanh toán thành công!\nMã giao dịch: {response.MaGiaoDich}";
+                            successMessage1 += $"\nTiền thừa: {response.SoTienThua:N0} VNĐ";
+                            ShowSuccess(successMessage1);
                         }
 
-                        ShowSuccess(successMessage);
+                        //ShowSuccess(successMessage);
 
                         // 🔥 QUAN TRỌNG: Refresh danh sách -> hóa đơn đã thanh toán sẽ ẩn đi
                         await _billManager.RefreshAsync();
@@ -943,7 +1144,40 @@ namespace RestaurantClient
                         // Hiển thị QR code nếu là chuyển khoản
                         if (paymentMethod == "ChuyenKhoan")
                         {
-                            ShowQRCode(selectedPayment.TongTien, response.MaGiaoDich.ToString() ?? "N/A");
+                            if (!Confirm($"Xác nhận thanh toán CK cho bàn {selectedPayment.TenBan}?")) return;
+
+                            await ExecuteAsync(btn_ttoan, "Đang lấy QR...", async () =>
+                            {
+                                // Gọi API tạo thanh toán (Server sẽ trả về DangXuLy)
+                                var request = new ProcessPaymentRequest
+                                {
+                                    MaHD = selectedPayment.MaHD,
+                                    MaNhanVien = _currentUserId,
+                                    PhuongThucThanhToan = "ChuyenKhoan",
+                                    SoTienThanhToan = selectedPayment.TongTien
+                                };
+
+                                var response = await SendRequest<ProcessPaymentRequest, ProcessPaymentResponse>(request);
+
+                                if (response?.Success == true)
+                                {
+                                    // 1. Hiện QR
+                                    HienThiMaQR(selectedPayment.TongTien, $"HD{selectedPayment.MaHD}");
+                                    if (panel_qrthanhtoan != null) panel_qrthanhtoan.Visible = true;
+
+                                    // 2. Thông báo trạng thái chờ
+                                    ShowInfo("Vui lòng đợi khách quét QR. Hệ thống sẽ tự động xác nhận khi tiền về.");
+
+                                    // 3. BẮT ĐẦU ĐẾM GIỜ KIỂM TRA
+                                    _pendingMaHD = selectedPayment.MaHD;
+                                    _checkPaymentTimer.Start();
+                                    btn_ttoan.Enabled = false; // Khóa nút lại
+                                }
+                                else
+                                {
+                                    ShowError(response?.Message ?? "Lỗi tạo giao dịch");
+                                }
+                            });
                         }
                     }
                     else
@@ -978,9 +1212,48 @@ namespace RestaurantClient
 
                     ShowError(errorMessage);
                 }
+
             });
         }
+        private async void CheckPaymentTimer_Tick(object sender, EventArgs e)
+        {
+            if (_pendingMaHD == 0) return;
 
+            try
+            {
+                // Gửi request hỏi Server
+                var request = new CheckTransferStatusRequest { MaHD = _pendingMaHD };
+
+                // Lưu ý: Cần viết hàm SendRequest nhẹ hơn không block UI, 
+                // nhưng tạm thời dùng hàm cũ cũng được.
+                var response = await SendRequest<CheckTransferStatusRequest, CheckTransferStatusResponse>(request);
+
+                if (response != null && response.IsPaid)
+                {
+                    // === THANH TOÁN THÀNH CÔNG ===
+                    _checkPaymentTimer.Stop(); // Dừng kiểm tra
+                    _pendingMaHD = 0;
+
+                    // Ẩn QR và báo thành công
+                    if (panel_qrthanhtoan != null) panel_qrthanhtoan.Visible = false;
+                    ShowSuccess("Thanh toán thành công! Tiền đã về tài khoản.");
+
+                    // Làm mới danh sách và mở lại nút
+                    await _billManager.RefreshAsync();
+                    ClearBillDetails();
+                    btn_ttoan.Enabled = true;
+                }
+                else
+                {
+                    // Chưa có tiền -> Console log nhẹ (không hiện popup làm phiền)
+                    Console.WriteLine("Đang đợi tiền về...");
+                }
+            }
+            catch
+            {
+                // Lỗi mạng thì cứ lờ đi, chờ lần check sau
+            }
+        }
         private void ShowQRCode(decimal amount, string transactionNo)
         {
             try
@@ -1176,7 +1449,7 @@ namespace RestaurantClient
             }
         }
 
-        private async Task ExecuteAsync(Button button, string loadingText, Func<Task> action)
+        private async Task ExecuteAsync(System.Windows.Forms.Button button, string loadingText, Func<Task> action)
         {
             string originalText = button.Text;
             button.Enabled = false;
@@ -1243,8 +1516,17 @@ namespace RestaurantClient
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            _autoRefreshTimer?.Stop(); // 🔥 ĐẢM BẢO DỪNG TIMER
+            // Stop the auto refresh timer
+            _autoRefreshTimer?.Stop();
             _autoRefreshTimer?.Dispose();
+
+            // ✅ THÊM: Stop the clock timer
+            if (_clockTimer != null)
+            {
+                _clockTimer.Stop();
+                _clockTimer.Dispose();
+            }
+            CleanupChatResources();
             base.OnFormClosing(e);
         }
 
@@ -1319,6 +1601,7 @@ namespace RestaurantClient
                             MaBanAn = maBan,
                             MaNhanVien = _currentUserId,
                             TongTien = tongTien,
+                            NgayOrder = ConvertVietnamToUtc(GetVietnamTime()),  // ← ĐÚNG: Lưu UTC
                             ChiTietOrder = _gioHang.Select(item => new ChiTietOrder
                             {
                                 MaMon = item.MaMon,
@@ -1333,6 +1616,10 @@ namespace RestaurantClient
                         {
                             ShowSuccess($"Đã gửi order thành công!\nMã hóa đơn: {response.MaHoaDon}");
 
+                            // ✅ THÊM: Gửi thông báo tự động cho Bếp
+                            int soMon = _gioHang.Sum(item => item.SoLuong);
+                            await SendNotificationToBepAsync(selectedTable.TenBan, soMon, tongTien);
+
                             // Cập nhật trạng thái bàn thành "CoNguoi"
                             await UpdateTableStatus(maBan, "CoNguoi");
 
@@ -1342,6 +1629,7 @@ namespace RestaurantClient
                             // Refresh danh sách bàn
                             await RefreshTableList();
                         }
+
                         else
                         {
                             ShowError(response?.Message ?? "Lỗi gửi order!");
@@ -1566,5 +1854,1508 @@ namespace RestaurantClient
         {
 
         }
+
+        private void cb_trangthai_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+        /*private async Task LoadTableDetailsToListView(int maBan, string trangThai)
+        {
+            try
+            {
+                // Setup Cột (Thêm cột Bàn vào đầu tiên)
+                if (listView1.Columns.Count == 0)
+                {
+                    listView1.View = View.Details;
+                    listView1.GridLines = true;
+                    listView1.FullRowSelect = true;
+
+                    listView1.Columns.Add("Bàn", 50);       // 🔥 Cột 0: Mã Bàn
+                    listView1.Columns.Add("Tên Món", 250);
+                    listView1.Columns.Add("SL", 50);
+                    listView1.Columns.Add("Đơn Giá", 250);
+                    listView1.Columns.Add("Thành Tiền", 250);
+                    listView1.Columns.Add("Thời Gian", 150);
+                    listView1.Columns.Add("Trạng Thái Món", 350);
+                }
+
+                listView1.Items.Clear();
+
+                var request = new GetTableDetailRequest { MaBanAn = maBan, TrangThai = trangThai };
+                var response = await SendRequest<GetTableDetailRequest, GetTableDetailResponse>(request);
+
+                if (response != null && response.Success)
+                {
+                    var danhSachDaGop = response.Orders
+                .GroupBy(x => new
+                {
+                    x.MaBanAn,
+                    x.TenMon,
+                    x.DonGia,
+                    x.TrangThai,
+                    // Mẹo: Chuyển thời gian sang chuỗi "ngày-giờ-phút" để gộp hết các dòng lệch giây lại
+                    ThoiGianKey = x.ThoiGianGoi.ToString("yyyyMMddHHmm")
+                })
+                .Select(g => new TableOrderDetailData
+                {
+                    MaBanAn = g.Key.MaBanAn,
+                    TenMon = g.Key.TenMon,
+                    DonGia = g.Key.DonGia,
+                    TrangThai = g.Key.TrangThai,
+
+                    // Cộng dồn số lượng
+                    SoLuong = g.Sum(x => x.SoLuong),
+
+                    // Lấy thời gian của dòng đầu tiên để hiển thị
+                    ThoiGianGoi = g.First().ThoiGianGoi
+                })
+                .OrderByDescending(x => x.ThoiGianGoi) // Sắp xếp mới nhất lên đầu cho gọn
+                .ToList();
+                    foreach (var item in response.Orders)
+                    {
+                        // 🔥 Đổ Mã Bàn vào cột đầu tiên
+                        ListViewItem row = new ListViewItem(item.MaBanAn.ToString());
+
+                        row.SubItems.Add(item.TenMon);
+                        row.SubItems.Add(item.SoLuong.ToString());
+                        row.SubItems.Add(item.DonGia.ToString("N0"));
+                        row.SubItems.Add(item.ThanhTien.ToString("N0"));
+                        row.SubItems.Add(item.ThoiGianGoi.ToString("HH:mm"));
+                        string tenHienThi = "";
+                        switch (item.TrangThai)
+                        {
+                            case "ChuaLenMon": tenHienThi = "Chưa lên món"; break;
+                            case "HoanThanh": tenHienThi = "Đã lên món"; break;
+                            //case "DaDat": tenHienThi = "Đã đặt trước"; break;
+                            default: tenHienThi = item.TrangThai; break; // Nếu lạ thì hiện nguyên gốc
+                        }
+                        row.SubItems.Add(tenHienThi);
+                        if (item.TrangThai == "Đã lên món")
+                        {
+                            // Màu xanh lá (dùng LightGreen để chữ đen vẫn dễ đọc)
+                            row.BackColor = Color.LightGreen;
+                        }
+                        else if (item.TrangThai == "Chưa lên món")
+                        {
+                            // (Tùy chọn) Màu vàng nhạt cho món chưa lên để dễ phân biệt
+                            row.BackColor = Color.LightYellow;
+                        }
+                        else
+                        {
+                            // Màu trắng mặc định
+                            row.BackColor = Color.White;
+                        }
+                        listView1.Items.Add(row);
+                    }
+                }
+
+                // Thêm vào bảng
+                //listView1.Items.Add(row);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi: " + ex.Message);
+            }
+        }*/
+        // 1. Thêm từ khóa 'async' vào trước 'void' 👇
+        private async void cb_banan_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+            // Kiểm tra null để tránh lỗi vặt
+            if (cb_banan.SelectedValue == null) return;
+
+            // Lấy Mã bàn
+            if (int.TryParse(cb_banan.SelectedValue.ToString(), out int maBan))
+            {
+                // 2. Lấy trạng thái hiện tại (nếu chưa chọn thì mặc định là lấy hết "")
+                string trangThai = "";
+                if (cb_trangthai.SelectedItem != null)
+                {
+                    // Logic đơn giản để lấy code trạng thái
+                    string val = cb_trangthai.SelectedItem.ToString();
+                    if (val == "Chưa thanh toán") trangThai = "ChuaThanhToan";
+                    else if (val == "Đã thanh toán") trangThai = "DaThanhToan";
+                    else if (val == "Đã đặt trước") trangThai = "DaDat";
+                }
+
+                // 3. Gọi hàm (Đã sửa để truyền đủ 2 tham số: Mã Bàn + Trạng Thái)
+                //await LoadTableDetailsToListView(maBan, trangThai);
+            }
+        }
+
+        // 1. Hàm quy đổi trạng thái
+        // [NVPhucVu.cs]
+        // [NVPhucVu.cs] - Tìm hàm GetTrangThaiTuComboBox
+
+        private string GetTrangThaiTuComboBox()
+        {
+            if (cb_trangthai.SelectedItem == null) return "";
+
+            string luaChon = cb_trangthai.SelectedItem.ToString();
+            switch (luaChon)
+            {
+                case "Tất cả":
+                    return ""; // Lấy hết
+
+                // 🔥 SỬA: Map chữ "Đang chế biến" trên giao diện thành mã "DangCheBien" trong SQL
+                case "Đang chế biến":
+                    return "DangCheBien";
+
+                // 🔥 SỬA: Map chữ "Hoàn thành" trên giao diện thành mã "HoanThanh" trong SQL
+                case "Hoàn thành":
+                    return "HoanThanh";
+
+                default:
+                    return "";
+            }
+        }
+        // 2. Sự kiện bộ lọc chung (Dùng cho cả cb_banan và cb_trangthai)
+        /*private async void OnFilterChanged(object sender, EventArgs e)
+        {
+            // Lấy mã bàn
+            int maBan = 0;
+            if (cb_banan.SelectedValue != null)
+            {
+                int.TryParse(cb_banan.SelectedValue.ToString(), out maBan);
+            }
+
+            // Lấy trạng thái
+            string trangThai = GetTrangThaiTuComboBox();
+
+            // 🔥 SỬA ĐIỀU KIỆN: Chỉ cần KHÔNG CHỌN BÀN là xóa trắng ngay
+            if (maBan == 0)
+            {
+                listView1.Items.Clear();
+                return; // Dừng, không tải gì cả
+            }
+
+            // Nếu đã chọn bàn thì mới tải
+           // await LoadTableDetailsToListView(maBan, trangThai);
+        }*/
+
+        private async void btn_lammoi_Click_1(object sender, EventArgs e)
+        {
+            try
+            {
+                // 1. Lấy mã bàn đang được chọn (nếu có)
+                int maBan = 0;
+                if (cb_banan.SelectedValue != null)
+                {
+                    if (int.TryParse(cb_banan.SelectedValue.ToString(), out int id))
+                    {
+                        maBan = id;
+                    }
+                }
+
+                // 2. Lấy trạng thái lọc đang chọn (nếu có)
+                // Hàm GetTrangThaiTuComboBox() chúng ta đã viết ở các bước trước
+                string trangThai = GetTrangThaiTuComboBox();
+
+                // 3. Tải lại dữ liệu vào DataGridView
+                // (Đây là hàm hiển thị có ảnh và màu sắc bạn đã làm)
+                await LoadTableDetailsToGrid(maBan, trangThai);
+
+                // 4. (Tùy chọn) Cập nhật lại danh sách bàn để xem bàn nào mới có khách/trống
+                // LoadTables(); 
+
+                // Thông báo nhẹ dưới Console để biết đã chạy (hoặc dùng MessageBox nếu muốn)
+                Console.WriteLine($"Đã làm mới dữ liệu lúc {DateTime.Now:HH:mm:ss}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi làm mới: " + ex.Message);
+            }
+        }
+        // Hàm tải dữ liệu chi tiết món ăn lên DataGridView (hoặc ListView)
+        // Hàm này nằm trong class NVPhucVu
+        // [NVPhucVu.cs]
+
+        private async Task LoadTableDetailsToGrid(int maBan, string trangThai)
+        {
+            try
+            {
+                // 1. Lấy tên bàn để tìm kiếm (vì API GetKitchenOrders dùng tên bàn chứ không dùng ID)
+                string tenBanCanTim = "";
+
+                // Tìm object bàn trong danh sách đã tải để lấy tên
+                var banObj = _danhSachBan?.FirstOrDefault(b => b.MaBanAn == maBan);
+                if (banObj != null)
+                {
+                    tenBanCanTim = banObj.TenBan;
+                }
+
+                // 2. Tạo request lấy danh sách ĐƠN HÀNG (đúng chuẩn cho dgv_DonHangTongQuan)
+                var request = new GetKitchenOrdersRequest
+                {
+                    TrangThai = string.IsNullOrEmpty(trangThai) ? "TatCa" : trangThai,
+                    TimKiemBan = tenBanCanTim, // Server sẽ tìm theo tên bàn (LIKE query)
+                    SapXep = "ThoiGian"
+                };
+
+                // 3. Gọi Server
+                var response = await SendRequest<GetKitchenOrdersRequest, GetKitchenOrdersResponse>(request);
+
+                if (response != null && response.Success)
+                {
+                    dgv_DonHangTongQuan.AutoGenerateColumns = false; // Giữ nguyên cột đã design
+
+                    // Đổ đúng dữ liệu KitchenOrderData vào Grid
+                    dgv_DonHangTongQuan.DataSource = response.DonHang;
+                }
+                else
+                {
+                    dgv_DonHangTongQuan.DataSource = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi tải dữ liệu: " + ex.Message);
+            }
+        }
+        // [NVPhucVu.cs] - Thêm hàm này vào trong class
+
+        // [NVPhucVu.cs]
+
+        private void Dgv_DonHangTongQuan_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            // Chỉ xử lý khi có dữ liệu và đúng cột cần thiết
+            if (e.RowIndex < 0 || e.Value == null) return;
+
+            // Lấy dòng hiện tại
+            DataGridViewRow row = dgv_DonHangTongQuan.Rows[e.RowIndex];
+
+            // --- XỬ LÝ CỘT TRẠNG THÁI (Hiển thị chữ Tiếng Việt) ---
+            if (dgv_DonHangTongQuan.Columns[e.ColumnIndex].DataPropertyName == "TrangThaiDon")
+            {
+                string rawStatus = e.Value.ToString();
+
+                switch (rawStatus)
+                {
+                    case "DangCheBien":
+                        e.Value = "Đang chế biến";
+                        e.CellStyle.ForeColor = Color.Blue;
+                        // Tô màu nền VÀNG NHẠT cho dòng đang chế biến
+                        row.DefaultCellStyle.BackColor = Color.LightYellow;
+                        break;
+
+                    case "HoanThanh":
+                        e.Value = "Hoàn thành";
+                        e.CellStyle.ForeColor = Color.DarkGreen;
+                        // Tô màu nền XANH LÁ NHẠT cho dòng đã xong
+                        row.DefaultCellStyle.BackColor = Color.LightGreen;
+                        break;
+
+                    case "ChoXacNhan":
+                        e.Value = "Chờ xác nhận";
+                        e.CellStyle.ForeColor = Color.DarkOrange;
+                        row.DefaultCellStyle.BackColor = Color.White;
+                        break;
+
+                    case "Huy":
+                        e.Value = "Đã hủy";
+                        e.CellStyle.ForeColor = Color.Gray;
+                        row.DefaultCellStyle.BackColor = Color.WhiteSmoke;
+                        break;
+                }
+
+                // In đậm chữ trạng thái
+                e.CellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+                e.FormattingApplied = true;
+            }
+        }
+        private void btn_xoahet_Click(object sender, EventArgs e)
+        {
+            // 1. Đưa các bộ lọc về mặc định (Rỗng)
+            // Việc này sẽ tự động kích hoạt sự kiện SelectedIndexChanged
+            // và code xử lý của chúng ta đã có check null nên nó sẽ tự dừng tải dữ liệu.
+            cb_banan.SelectedIndex = -1;
+            cb_trangthai.SelectedIndex = -1;
+
+            // 2. Xóa dữ liệu trong bảng danh sách đơn hàng (Bảng bên trái)
+            // Lưu ý: Thay 'dgv_DonHangTongQuan' bằng tên DataGridView thực tế của bạn
+            if (dgv_DonHangTongQuan.DataSource != null)
+            {
+                dgv_DonHangTongQuan.DataSource = null;
+            }
+            else
+            {
+                dgv_DonHangTongQuan.Rows.Clear();
+            }
+
+            // 3. Xóa dữ liệu phần Chi tiết (Bên phải)
+            // --- NẾU BẠN DÙNG LISTVIEW (Master-Detail) ---
+            if (lv_ChiTietDon != null)
+            {
+                lv_ChiTietDon.Items.Clear();
+            }
+
+            // --- NẾU BẠN DÙNG PANEL ẢNH (Cách cũ) ---
+            // (Bỏ comment phần này nếu bạn dùng Panel ảnh)
+            /*
+            if (lbl_TenMonCT != null) lbl_TenMonCT.Text = "";
+            if (lbl_GiaCT != null) lbl_GiaCT.Text = "";
+            if (lbl_TrangThaiCT != null) lbl_TrangThaiCT.Text = "";
+            if (pb_MonAn != null) pb_MonAn.Image = null;
+            */
+        }
+        //=============== QR =============================
+        // Hàm hiển thị QR Code sử dụng API VietQR
+        // Hàm gọi API VietQR và hiển thị lên PictureBox
+        private void HienThiMaQR(decimal soTien, string noiDung)
+        {
+            try
+            {
+                // Bắt buộc dùng TLS 1.2 để tải ảnh từ https
+                System.Net.ServicePointManager.SecurityProtocol =
+                    System.Net.SecurityProtocolType.Tls12 |
+                    System.Net.SecurityProtocolType.Tls11 |
+                    System.Net.SecurityProtocolType.Tls;
+
+                // 1. Cấu hình tài khoản (Thay bằng thông tin của bạn)
+                string nganHang = "ICB"; // VietinBank
+                string soTaiKhoan = "0933200298";
+                string tenChuTaiKhoan = "NGUYEN QUOC TRUONG";
+
+                // 2. Xử lý dữ liệu
+                string amount = ((int)soTien).ToString();
+
+                // Encode nội dung sang định dạng URL (để tránh lỗi ký tự đặc biệt)
+                // VietQR sẽ tự động hiển thị đúng khi quét
+                string addInfo = Uri.EscapeDataString(noiDung);
+                string accountName = Uri.EscapeDataString(tenChuTaiKhoan);
+
+                // 3. Tạo link API VietQR (Dùng template compact2 cho đẹp và chuẩn)
+                string apiUrl = $"https://img.vietqr.io/image/{nganHang}-{soTaiKhoan}-compact2.png?amount={amount}&addInfo={addInfo}&accountName={accountName}";
+
+                // 4. Hiển thị lên UI
+                if (panel_qrthanhtoan != null) panel_qrthanhtoan.Visible = true;
+
+                pb_QR.Visible = true;
+                pb_QR.Image = null; // Xóa ảnh cũ để tránh nhầm lẫn
+                pb_QR.SizeMode = PictureBoxSizeMode.Zoom;
+                pb_QR.BringToFront();
+
+                // Tải ảnh bất đồng bộ
+                pb_QR.LoadAsync(apiUrl);
+
+                Console.WriteLine("Link QR đã tạo: " + apiUrl);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi tạo QR: " + ex.Message);
+            }
+        }
+
+        private void pb_QR_Click(object sender, EventArgs e)
+        {
+            if (pb_QR.Image == null) return;
+
+            Form zoomForm = new Form();
+            zoomForm.StartPosition = FormStartPosition.CenterScreen;
+            zoomForm.Size = new Size(600, 600);
+            zoomForm.FormBorderStyle = FormBorderStyle.None;
+            zoomForm.BackColor = Color.White;
+
+            PictureBox pbZoom = new PictureBox();
+            pbZoom.Image = pb_QR.Image;
+            pbZoom.Dock = DockStyle.Fill;
+            pbZoom.SizeMode = PictureBoxSizeMode.Zoom;
+            pbZoom.Cursor = Cursors.Hand;
+
+            // Bấm vào ảnh to hoặc bấm ESC thì tắt
+            pbZoom.Click += (s, args) => zoomForm.Close();
+            zoomForm.KeyDown += (s, args) => { if (args.KeyCode == Keys.Escape) zoomForm.Close(); };
+
+            zoomForm.Controls.Add(pbZoom);
+            zoomForm.ShowDialog();
+        }
+
+        private void checkBox_chuyenkhoan_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+        private void LoadNVInfo()
+        {
+            try
+            {
+                // Gán dữ liệu từ CurrentUser
+                textbox_usernamephucvu.Text = CurrentUser.Username ?? "";
+                textbox_emailphucvu.Text = CurrentUser.Email ?? "";
+                textbox_tenphucvu.Text = CurrentUser.FullName ?? "";
+                textbox_rolepv.Text = CurrentUser.Role ?? "PhucVu";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi hiển thị thông tin tài khoản: " + ex.Message);
+            }
+        }
+
+        private void button_DangXuatPhucVu_Click(object sender, EventArgs e)
+        {
+            // Hộp thoại xác nhận
+            var confirm = MessageBox.Show(
+                "Bạn có chắc muốn đăng xuất?",
+                "Xác nhận",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (confirm != DialogResult.Yes)
+                return;
+
+            try
+            {
+                // Reset CurrentUser
+                CurrentUser.Id = 0;
+                CurrentUser.Username = "";
+                CurrentUser.Email = "";
+                CurrentUser.FullName = "";
+                CurrentUser.Role = "";
+
+                // Mở lại form đăng nhập
+                var loginForm = new DangNhap();
+                loginForm.StartPosition = FormStartPosition.CenterScreen;
+                loginForm.Show();
+
+                // Đóng form NVPhucVu
+                this.Close();   // Nếu app tắt luôn, đổi thành this.Hide()
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message,
+                                "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void dgv_DonHangTongQuan_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void dataGridView_thanhtoan_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+        #region CHAT INITIALIZATION
+
+        /// <summary>
+        /// Khởi tạo chức năng Chat
+        /// </summary>
+        private void InitializeChatFeature()
+        {
+            try
+            {
+                // Setup ListView Users
+                SetupChatUserListView();
+
+                // Setup RichTextBox Messages
+                SetupChatMessagesBox();
+
+                // Setup Controls
+                SetupChatControls();
+
+                // Đăng ký sự kiện
+                RegisterChatEvents();
+
+                // Khởi tạo Timer polling
+                InitializeChatRefreshTimer();
+
+                // Load danh sách user
+                LoadChatUsers();
+
+                Console.WriteLine("✅ Khởi tạo Chat thành công");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi khởi tạo Chat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Setup ListView hiển thị danh sách user
+        /// </summary>
+        private void SetupChatUserListView()
+        {
+            if (lv_Users == null) return;
+
+            lv_Users.View = View.Details;
+            lv_Users.FullRowSelect = true;
+            lv_Users.GridLines = true;
+            lv_Users.MultiSelect = false;
+
+            // Xóa cột cũ và thêm cột mới
+            lv_Users.Columns.Clear();
+            lv_Users.Columns.Add("Tên", 180);
+            lv_Users.Columns.Add("Vai trò", 100);
+            lv_Users.Columns.Add("", 40); // Cột trạng thái online + số tin chưa đọc
+
+            // Cho phép sắp xếp
+            lv_Users.Sorting = SortOrder.None;
+        }
+
+        /// <summary>
+        /// Setup RichTextBox hiển thị tin nhắn
+        /// </summary>
+        private void SetupChatMessagesBox()
+        {
+            if (rtb_ChatMessages == null) return;
+
+            rtb_ChatMessages.ReadOnly = true;
+            rtb_ChatMessages.BackColor = Color.White;
+            rtb_ChatMessages.Font = new Font("Segoe UI", 10f);
+            rtb_ChatMessages.BorderStyle = BorderStyle.None;
+
+            // Hiển thị thông báo ban đầu
+            rtb_ChatMessages.Clear();
+            AppendColoredText("💬 Chọn một người để bắt đầu chat\n", Color.Gray, true);
+        }
+
+        /// <summary>
+        /// Setup các controls khác
+        /// </summary>
+        private void SetupChatControls()
+        {
+            // TextBox tìm kiếm
+            if (txt_SearchUser != null)
+            {
+                txt_SearchUser.PlaceholderText = "🔍 Tìm kiếm...";
+                txt_SearchUser.Font = new Font("Segoe UI", 9f);
+            }
+
+            // TextBox nhập tin nhắn
+            if (txt_ChatMessage != null)
+            {
+                txt_ChatMessage.PlaceholderText = "Nhập tin nhắn...";
+                txt_ChatMessage.Font = new Font("Segoe UI", 10f);
+                txt_ChatMessage.Enabled = false; // Disable cho đến khi chọn người chat
+            }
+
+            // Button gửi
+            if (btn_SendChat != null)
+            {
+                btn_SendChat.Enabled = false;
+                btn_SendChat.BackColor = Color.DodgerBlue;
+                btn_SendChat.ForeColor = Color.White;
+                btn_SendChat.FlatStyle = FlatStyle.Flat;
+            }
+
+            // CheckBox gửi tất cả
+            if (chk_SendAll != null)
+            {
+                chk_SendAll.Text = "📢 Gửi cho tất cả";
+            }
+
+            // Label header
+            if (lbl_ChatTitle != null)
+            {
+                lbl_ChatTitle.Text = "💬 Chọn người để chat";
+                lbl_ChatTitle.Font = new Font("Segoe UI", 11f, FontStyle.Bold);
+            }
+
+            if (lbl_ChatRole != null)
+            {
+                lbl_ChatRole.Text = "";
+                lbl_ChatRole.ForeColor = Color.DimGray;
+            }
+
+            // Label online count
+            UpdateOnlineCount();
+        }
+
+        /// <summary>
+        /// Đăng ký các sự kiện
+        /// </summary>
+        private void RegisterChatEvents()
+        {
+            // Sự kiện chọn user trong ListView
+            if (lv_Users != null)
+            {
+                lv_Users.SelectedIndexChanged += LvUsers_SelectedIndexChanged;
+                lv_Users.DoubleClick += LvUsers_DoubleClick;
+            }
+
+            // Sự kiện gửi tin nhắn
+            if (btn_SendChat != null)
+            {
+                btn_SendChat.Click += BtnSendChat_Click;
+            }
+
+            // Sự kiện nhấn Enter để gửi
+            if (txt_ChatMessage != null)
+            {
+                txt_ChatMessage.KeyPress += TxtChatMessage_KeyPress;
+            }
+
+            // Sự kiện tìm kiếm
+            if (txt_SearchUser != null)
+            {
+                txt_SearchUser.TextChanged += TxtSearchUser_TextChanged;
+            }
+
+            // Sự kiện checkbox gửi tất cả
+            if (chk_SendAll != null)
+            {
+                chk_SendAll.CheckedChanged += ChkSendAll_CheckedChanged;
+            }
+
+            // Sự kiện làm mới
+            if (btn_RefreshUsers != null)
+            {
+                btn_RefreshUsers.Click += BtnRefreshUsers_Click;
+            }
+        }
+
+        /// <summary>
+        /// Khởi tạo Timer polling tin nhắn mới
+        /// </summary>
+        private void InitializeChatRefreshTimer()
+        {
+            _chatRefreshTimer = new System.Windows.Forms.Timer();
+            _chatRefreshTimer.Interval = CHAT_REFRESH_INTERVAL;
+            _chatRefreshTimer.Tick += async (s, e) => await CheckNewMessagesAsync();
+            _chatRefreshTimer.Start();
+        }
+
+        #endregion
+
+        #region CHAT DATA LOADING
+
+        /// <summary>
+        /// Load danh sách user để chat
+        /// </summary>
+        private async void LoadChatUsers(string searchKeyword = "")
+        {
+            try
+            {
+                var request = new GetChatUsersRequest
+                {
+                    MaNguoiDungHienTai = _currentUserId,
+                    TimKiem = searchKeyword
+                };
+
+                var response = await SendRequest<GetChatUsersRequest, GetChatUsersResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    _chatUsers = response.Users;
+                    DisplayChatUsers(_chatUsers);
+                    UpdateOnlineCount();
+                }
+                else
+                {
+                    Console.WriteLine($"Lỗi load chat users: {response?.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi LoadChatUsers: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Hiển thị danh sách user lên ListView
+        /// </summary>
+        private void DisplayChatUsers(List<ChatUserData> users)
+        {
+            if (lv_Users == null) return;
+
+            if (lv_Users.InvokeRequired)
+            {
+                lv_Users.Invoke(new Action(() => DisplayChatUsers(users)));
+                return;
+            }
+
+            lv_Users.Items.Clear();
+
+            foreach (var user in users)
+            {
+                ListViewItem item = new ListViewItem(user.HoTen);
+                item.SubItems.Add(user.VaiTroDisplay);
+
+                // Hiển thị số tin chưa đọc hoặc trạng thái online
+                string statusText = user.SoTinChuaDoc > 0 ?
+                    $"({user.SoTinChuaDoc})" :
+                    (user.DangOnline ? "●" : "○");
+                item.SubItems.Add(statusText);
+
+                // Màu sắc theo vai trò
+                switch (user.VaiTro)
+                {
+                    case "Admin":
+                        item.ForeColor = Color.DarkRed;
+                        break;
+                    case "Bep":
+                        item.ForeColor = Color.DarkOrange;
+                        break;
+                    case "PhucVu":
+                        item.ForeColor = Color.DarkBlue;
+                        break;
+                }
+
+                // Highlight nếu có tin chưa đọc
+                if (user.SoTinChuaDoc > 0)
+                {
+                    item.BackColor = Color.LightYellow;
+                    item.Font = new Font(lv_Users.Font, FontStyle.Bold);
+                }
+
+                // Lưu MaNguoiDung vào Tag
+                item.Tag = user.MaNguoiDung;
+
+                lv_Users.Items.Add(item);
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật số user online
+        /// </summary>
+        private void UpdateOnlineCount()
+        {
+            if (lbl_OnlineCount == null) return;
+
+            if (lbl_OnlineCount.InvokeRequired)
+            {
+                lbl_OnlineCount.Invoke(new Action(UpdateOnlineCount));
+                return;
+            }
+
+            int online = _chatUsers?.Count(u => u.DangOnline) ?? 0;
+            int total = _chatUsers?.Count ?? 0;
+            lbl_OnlineCount.Text = $"Online: {online}/{total}";
+        }
+
+        /// <summary>
+        /// Load tin nhắn chat với user được chọn
+        /// </summary>
+        private async Task LoadChatMessagesAsync(int maNguoiChat)
+        {
+            try
+            {
+                var request = new GetChatMessagesRequest
+                {
+                    MaNguoiDung1 = _currentUserId,
+                    MaNguoiDung2 = maNguoiChat,
+                    SoLuong = 100
+                };
+
+                var response = await SendRequest<GetChatMessagesRequest, GetChatMessagesResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    DisplayChatMessages(response.Messages);
+
+                    // Cập nhật thời gian tin nhắn cuối
+                    if (response.Messages.Count > 0)
+                    {
+                        _lastMessageTime = response.Messages.Max(m => m.ThoiGian);
+                    }
+
+                    // Đánh dấu đã đọc
+                    await MarkMessagesAsReadAsync(maNguoiChat);
+
+                    // Refresh lại danh sách user để cập nhật số tin chưa đọc
+                    LoadChatUsers(txt_SearchUser?.Text ?? "");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi LoadChatMessages: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Hiển thị tin nhắn lên RichTextBox
+        /// </summary>
+        private void DisplayChatMessages(List<ChatMessageData> messages)
+        {
+            if (rtb_ChatMessages == null) return;
+
+            if (rtb_ChatMessages.InvokeRequired)
+            {
+                rtb_ChatMessages.Invoke(new Action(() => DisplayChatMessages(messages)));
+                return;
+            }
+
+            rtb_ChatMessages.Clear();
+            _displayedMessageIds.Clear();  // ✅ THÊM: Reset danh sách tin đã hiển thị
+
+            if (messages.Count == 0)
+            {
+                AppendColoredText("💬 Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!\n", Color.Gray, true);
+                return;
+            }
+
+            DateTime? lastDate = null;
+
+            foreach (var msg in messages)
+            {
+                // ✅ THÊM: Đánh dấu tin nhắn đã hiển thị
+                _displayedMessageIds.Add(msg.MaTinNhan);
+
+                // Hiển thị ngày nếu khác ngày trước
+                if (!lastDate.HasValue || msg.ThoiGian.Date != lastDate.Value.Date)
+                {
+                    AppendColoredText($"\n─── {msg.ThoiGian:dd/MM/yyyy} ───\n", Color.Gray, true);
+                    lastDate = msg.ThoiGian.Date;
+                }
+
+                bool isMine = msg.MaNguoiGui == _currentUserId;
+                string broadcastPrefix = msg.LaTinBroadcast ? "[📢 TẤT CẢ] " : "";
+
+                if (isMine)
+                {
+                    AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+                    AppendColoredText("Bạn: ", Color.DarkGreen, true);
+                    AppendColoredText($"{broadcastPrefix}{msg.NoiDung}\n", Color.Black, false);
+                }
+                else
+                {
+                    AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+
+                    Color nameColor = msg.VaiTroNguoiGui switch
+                    {
+                        "Admin" => Color.DarkRed,
+                        "Bep" => Color.DarkOrange,
+                        _ => Color.DarkBlue
+                    };
+
+                    AppendColoredText($"{msg.TenNguoiGui}: ", nameColor, true);
+                    AppendColoredText($"{broadcastPrefix}{msg.NoiDung}\n", Color.Black, false);
+                }
+            }
+
+            // Cuộn xuống cuối
+            rtb_ChatMessages.SelectionStart = rtb_ChatMessages.Text.Length;
+            rtb_ChatMessages.ScrollToCaret();
+        }
+
+        /// <summary>
+        /// Thêm text có màu vào RichTextBox
+        /// </summary>
+        private void AppendColoredText(string text, Color color, bool bold)
+        {
+            if (rtb_ChatMessages == null) return;
+
+            int start = rtb_ChatMessages.TextLength;
+            rtb_ChatMessages.AppendText(text);
+            rtb_ChatMessages.Select(start, text.Length);
+            rtb_ChatMessages.SelectionColor = color;
+
+            if (bold)
+            {
+                rtb_ChatMessages.SelectionFont = new Font(rtb_ChatMessages.Font, FontStyle.Bold);
+            }
+            else
+            {
+                rtb_ChatMessages.SelectionFont = new Font(rtb_ChatMessages.Font, FontStyle.Regular);
+            }
+
+            rtb_ChatMessages.SelectionLength = 0;
+        }
+
+        #endregion
+
+        #region CHAT SEND & RECEIVE
+
+        /// <summary>
+        /// Gửi tin nhắn chat
+        /// </summary>
+        private async Task SendChatMessageAsync()
+        {
+            try
+            {
+                string noiDung = txt_ChatMessage?.Text?.Trim() ?? "";
+
+                if (string.IsNullOrEmpty(noiDung))
+                {
+                    return;
+                }
+
+                bool guiTatCa = chk_SendAll?.Checked ?? false;
+
+                // Kiểm tra: phải chọn người nhận hoặc chọn gửi tất cả
+                if (!guiTatCa && _selectedChatUserId == 0)
+                {
+                    ShowWarning("Vui lòng chọn người nhận hoặc chọn 'Gửi cho tất cả'!");
+                    return;
+                }
+
+                // Disable controls khi đang gửi
+                if (btn_SendChat != null) btn_SendChat.Enabled = false;
+                if (txt_ChatMessage != null) txt_ChatMessage.Enabled = false;
+
+                var request = new SendChatMessageRequest
+                {
+                    MaNguoiGui = _currentUserId,
+                    MaNguoiNhan = guiTatCa ? 0 : _selectedChatUserId,
+                    NoiDung = noiDung,
+                    GuiTatCa = guiTatCa
+                };
+
+                var response = await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    // Xóa textbox
+                    if (txt_ChatMessage != null) txt_ChatMessage.Clear();
+
+                    // Thêm tin nhắn vào hiển thị ngay lập tức
+                    AppendSentMessage(noiDung, guiTatCa);
+
+                    // Cập nhật thời gian tin nhắn cuối
+                    _lastMessageTime = response.ThoiGianGui;
+
+                    Console.WriteLine($"✅ Đã gửi tin nhắn: {noiDung.Substring(0, Math.Min(20, noiDung.Length))}...");
+                }
+                else
+                {
+                    ShowError(response?.Message ?? "Lỗi gửi tin nhắn");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi gửi tin nhắn: {ex.Message}");
+            }
+            finally
+            {
+                // Enable lại controls
+                if (btn_SendChat != null) btn_SendChat.Enabled = true;
+                if (txt_ChatMessage != null)
+                {
+                    txt_ChatMessage.Enabled = true;
+                    txt_ChatMessage.Focus();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Thêm tin nhắn vừa gửi vào RichTextBox
+        /// </summary>
+        private void AppendSentMessage(string noiDung, bool guiTatCa)
+        {
+            if (rtb_ChatMessages == null) return;
+
+            if (rtb_ChatMessages.InvokeRequired)
+            {
+                rtb_ChatMessages.Invoke(new Action(() => AppendSentMessage(noiDung, guiTatCa)));
+                return;
+            }
+
+            string timeStr = DateTime.Now.ToString("HH:mm");
+            string prefix = guiTatCa ? "[📢 TẤT CẢ] " : "";
+
+            AppendColoredText($"[{timeStr}] ", Color.Gray, false);
+            AppendColoredText("Bạn: ", Color.DarkGreen, true);
+            AppendColoredText($"{prefix}{noiDung}\n", Color.Black, false);
+
+            // Cuộn xuống cuối
+            rtb_ChatMessages.SelectionStart = rtb_ChatMessages.Text.Length;
+            rtb_ChatMessages.ScrollToCaret();
+        }
+
+        /// <summary>
+        /// Kiểm tra tin nhắn mới (polling)
+        /// </summary>
+        private async Task CheckNewMessagesAsync()
+        {
+            try
+            {
+                // Chỉ kiểm tra nếu đang ở tab Chat HOẶC cần nhận thông báo nền
+                // if (tc_main.SelectedTab.Name != "tabChat") return; // (Tuỳ logic của bạn)
+
+                var request = new CheckNewMessagesRequest
+                {
+                    MaNguoiDung = _currentUserId,
+                    TuThoiGian = _lastMessageTime
+                };
+
+                var response = await SendRequest<CheckNewMessagesRequest, CheckNewMessagesResponse>(request);
+
+                if (response?.Success == true && response.CoTinMoi)
+                {
+                    bool hasNewMessages = false;
+
+                    foreach (var msg in response.TinNhanMoi)
+                    {
+                        if (_displayedMessageIds.Contains(msg.MaTinNhan)) continue;
+
+                        _displayedMessageIds.Add(msg.MaTinNhan);
+                        hasNewMessages = true;
+
+                        if (msg.ThoiGian > _lastMessageTime) _lastMessageTime = msg.ThoiGian;
+
+                        // 1. Nếu đang chat với người này -> Hiện vào khung chat
+                        if (msg.MaNguoiGui == _selectedChatUserId || msg.LaTinBroadcast)
+                        {
+                            AppendReceivedMessage(msg);
+                        }
+
+                        // 2. Nếu tin nhắn từ người khác (ví dụ từ Bếp) -> Hiện THÔNG BÁO
+                        if (msg.MaNguoiGui != _selectedChatUserId)
+                        {
+                            // Cập nhật danh sách (để hiện số đỏ)
+                            LoadChatUsers(txt_SearchUser.Text);
+
+                            // ✅ THÊM: Hiện Popup thông báo nếu là tin từ Bếp hoặc có icon chuông
+                            if (msg.NoiDung.Contains("🔔") || msg.VaiTroNguoiGui == "Bep")
+                            {
+                                // Dùng MessageBox hoặc ShowSuccess của bạn
+                                // Hoặc NotifyIcon nếu bạn có
+                                string thongBao = $"🔔 BẾP NHẮN: {msg.TenNguoiGui}\n{msg.NoiDung}";
+                                MessageBox.Show(thongBao, "Thông báo món ăn", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi CheckNewMessages: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Thêm tin nhắn nhận được vào RichTextBox
+        /// </summary>
+        private void AppendReceivedMessage(ChatMessageData msg)
+        {
+            if (rtb_ChatMessages.InvokeRequired)
+            {
+                rtb_ChatMessages.Invoke(new Action(() => AppendReceivedMessage(msg)));
+                return;
+            }
+
+            // Màu sắc theo vai trò
+            Color nameColor = msg.VaiTroNguoiGui switch
+            {
+                "Admin" => Color.DarkRed,
+                "Bep" => Color.DarkOrange, // Màu cam cho Bếp
+                _ => Color.DarkBlue
+            };
+
+            string broadcastPrefix = msg.LaTinBroadcast ? "[📢 TẤT CẢ] " : "";
+
+            // ✅ QUAN TRỌNG: msg.ThoiGianDisplay đã được xử lý đúng ở Server/DBAccess
+            // Không dùng DateTime.Now ở đây
+            AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+            AppendColoredText($"{msg.TenNguoiGui}: ", nameColor, true);
+            AppendColoredText($"{broadcastPrefix}{msg.NoiDung}\n", Color.Black, false);
+
+            rtb_ChatMessages.SelectionStart = rtb_ChatMessages.Text.Length;
+            rtb_ChatMessages.ScrollToCaret();
+        }
+
+        /// <summary>
+        /// Đánh dấu tin nhắn đã đọc
+        /// </summary>
+        private async Task MarkMessagesAsReadAsync(int maNguoiGui)
+        {
+            try
+            {
+                var request = new MarkMessagesReadRequest
+                {
+                    MaNguoiNhan = _currentUserId,
+                    MaNguoiGui = maNguoiGui
+                };
+
+                await SendRequest<MarkMessagesReadRequest, MarkMessagesReadResponse>(request);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi MarkMessagesAsRead: {ex.Message}");
+            }
+        }
+
+        #endregion
+        #region AUTO NOTIFICATION
+
+        /// <summary>
+        /// Gửi thông báo tự động cho nhân viên Bếp khi có đơn hàng mới
+        /// </summary>
+        private async Task SendNotificationToBepAsync(string tenBan, int soMon, decimal tongTien)
+        {
+            try
+            {
+                string noiDung = $"🆕 ĐƠN MỚI [{tenBan}]: {soMon} món - {tongTien:N0} VNĐ";
+
+                // Gửi cho tất cả nhân viên Bếp
+                await SendChatNotificationAsync(noiDung, "Bep");
+
+                Console.WriteLine($"✅ Đã gửi thông báo cho Bếp: {noiDung}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi SendNotificationToBep: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gửi thông báo qua chat cho vai trò cụ thể
+        /// </summary>
+        private async Task SendChatNotificationAsync(string noiDung, string vaiTroNhan)
+        {
+            try
+            {
+                // Lấy danh sách user theo vai trò
+                var usersToNotify = _chatUsers?.Where(u => u.VaiTro == vaiTroNhan).ToList();
+
+                if (usersToNotify == null || usersToNotify.Count == 0)
+                {
+                    // Nếu không có danh sách, gửi broadcast
+                    var request = new SendChatMessageRequest
+                    {
+                        MaNguoiGui = _currentUserId,
+                        MaNguoiNhan = 0,
+                        NoiDung = $"🔔 {noiDung}",
+                        GuiTatCa = true
+                    };
+
+                    await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+                }
+                else
+                {
+                    // Gửi cho từng user theo vai trò
+                    foreach (var user in usersToNotify)
+                    {
+                        var request = new SendChatMessageRequest
+                        {
+                            MaNguoiGui = _currentUserId,
+                            MaNguoiNhan = user.MaNguoiDung,
+                            NoiDung = $"🔔 {noiDung}",
+                            GuiTatCa = false
+                        };
+
+                        await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+                    }
+                }
+
+                Console.WriteLine($"✅ Đã gửi thông báo chat: {noiDung}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi gửi thông báo chat: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gửi thông báo khi món đã được phục vụ (lên bàn)
+        /// </summary>
+        private async Task SendServedNotificationAsync(string tenBan, string tenMon)
+        {
+            try
+            {
+                string noiDung = $"🍽️ [{tenBan}] Đã phục vụ: {tenMon}";
+                await SendChatNotificationAsync(noiDung, "Bep");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi gửi thông báo: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region CHAT EVENT HANDLERS
+
+        /// <summary>
+        /// Sự kiện chọn user trong ListView
+        /// </summary>
+        private async void LvUsers_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lv_Users?.SelectedItems.Count == 0) return;
+
+            var selectedItem = lv_Users.SelectedItems[0];
+            if (selectedItem.Tag == null) return;
+
+            _selectedChatUserId = (int)selectedItem.Tag;
+            _selectedChatUserName = selectedItem.Text;
+
+            // Cập nhật header
+            UpdateChatHeader(_selectedChatUserName, selectedItem.SubItems[1].Text);
+
+            // Enable controls
+            if (txt_ChatMessage != null) txt_ChatMessage.Enabled = true;
+            if (btn_SendChat != null) btn_SendChat.Enabled = true;
+
+            // Bỏ chọn "Gửi tất cả" khi chọn người cụ thể
+            if (chk_SendAll != null) chk_SendAll.Checked = false;
+
+            // Load tin nhắn
+            await LoadChatMessagesAsync(_selectedChatUserId);
+        }
+
+        /// <summary>
+        /// Sự kiện double click vào user
+        /// </summary>
+        private void LvUsers_DoubleClick(object sender, EventArgs e)
+        {
+            // Focus vào textbox để nhập tin nhắn
+            txt_ChatMessage?.Focus();
+        }
+
+        /// <summary>
+        /// Sự kiện click nút Gửi
+        /// </summary>
+        private async void BtnSendChat_Click(object sender, EventArgs e)
+        {
+            await SendChatMessageAsync();
+        }
+
+        /// <summary>
+        /// Sự kiện nhấn phím trong textbox tin nhắn
+        /// </summary>
+        private async void TxtChatMessage_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // Nhấn Enter để gửi (Shift+Enter để xuống dòng)
+            if (e.KeyChar == (char)Keys.Enter && !ModifierKeys.HasFlag(Keys.Shift))
+            {
+                e.Handled = true; // Ngăn xuống dòng
+                await SendChatMessageAsync();
+            }
+        }
+
+        /// <summary>
+        /// Sự kiện thay đổi text tìm kiếm
+        /// </summary>
+        private void TxtSearchUser_TextChanged(object sender, EventArgs e)
+        {
+            // Delay để không gọi API liên tục khi đang gõ
+            // Có thể dùng Timer để debounce, nhưng đơn giản ta gọi trực tiếp
+            string keyword = txt_SearchUser?.Text?.Trim() ?? "";
+            FilterChatUsers(keyword);
+        }
+
+        /// <summary>
+        /// Lọc danh sách user theo từ khóa (local)
+        /// </summary>
+        private void FilterChatUsers(string keyword)
+        {
+            if (_chatUsers == null) return;
+
+            var filtered = string.IsNullOrEmpty(keyword) ?
+                _chatUsers :
+                _chatUsers.Where(u => u.HoTen.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            DisplayChatUsers(filtered);
+        }
+
+        /// <summary>
+        /// Sự kiện thay đổi checkbox "Gửi tất cả"
+        /// </summary>
+        private void ChkSendAll_CheckedChanged(object sender, EventArgs e)
+        {
+            bool guiTatCa = chk_SendAll?.Checked ?? false;
+
+            if (guiTatCa)
+            {
+                // Bỏ chọn user trong ListView
+                if (lv_Users != null)
+                {
+                    lv_Users.SelectedItems.Clear();
+                }
+
+                _selectedChatUserId = 0;
+                _selectedChatUserName = "";
+
+                // Cập nhật header
+                if (lbl_ChatTitle != null) lbl_ChatTitle.Text = "📢 Gửi tin nhắn cho TẤT CẢ";
+                if (lbl_ChatRole != null) lbl_ChatRole.Text = "Tin nhắn sẽ được gửi đến tất cả nhân viên";
+
+                // Enable controls
+                if (txt_ChatMessage != null) txt_ChatMessage.Enabled = true;
+                if (btn_SendChat != null) btn_SendChat.Enabled = true;
+
+                // Hiển thị hướng dẫn
+                if (rtb_ChatMessages != null)
+                {
+                    rtb_ChatMessages.Clear();
+                    AppendColoredText("📢 CHẾ ĐỘ GỬI TẤT CẢ\n\n", Color.DarkOrange, true);
+                    AppendColoredText("Tin nhắn của bạn sẽ được gửi đến TẤT CẢ nhân viên trong hệ thống.\n\n", Color.Gray, false);
+                    AppendColoredText("Lưu ý: Chỉ sử dụng khi có thông báo quan trọng!\n", Color.Red, false);
+                }
+            }
+            else
+            {
+                // Reset về trạng thái ban đầu nếu chưa chọn ai
+                if (_selectedChatUserId == 0)
+                {
+                    if (lbl_ChatTitle != null) lbl_ChatTitle.Text = "💬 Chọn người để chat";
+                    if (lbl_ChatRole != null) lbl_ChatRole.Text = "";
+
+                    if (txt_ChatMessage != null) txt_ChatMessage.Enabled = false;
+                    if (btn_SendChat != null) btn_SendChat.Enabled = false;
+
+                    if (rtb_ChatMessages != null)
+                    {
+                        rtb_ChatMessages.Clear();
+                        AppendColoredText("💬 Chọn một người để bắt đầu chat\n", Color.Gray, true);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sự kiện click nút Làm mới
+        /// </summary>
+        private async void BtnRefreshUsers_Click(object sender, EventArgs e)
+        {
+            if (btn_RefreshUsers != null)
+            {
+                btn_RefreshUsers.Enabled = false;
+                btn_RefreshUsers.Text = "Đang tải...";
+            }
+
+            try
+            {
+                LoadChatUsers(txt_SearchUser?.Text ?? "");
+
+                // Nếu đang chat với ai đó, refresh tin nhắn
+                if (_selectedChatUserId > 0)
+                {
+                    await LoadChatMessagesAsync(_selectedChatUserId);
+                }
+            }
+            finally
+            {
+                if (btn_RefreshUsers != null)
+                {
+                    btn_RefreshUsers.Enabled = true;
+                    btn_RefreshUsers.Text = "🔄 Làm mới";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật header khi chọn người chat
+        /// </summary>
+        private void UpdateChatHeader(string tenNguoi, string vaiTro)
+        {
+            if (lbl_ChatTitle != null)
+            {
+                lbl_ChatTitle.Text = $"💬 Chat với: {tenNguoi}";
+            }
+
+            if (lbl_ChatRole != null)
+            {
+                lbl_ChatRole.Text = $"Vai trò: {vaiTro}";
+            }
+        }
+
+        #endregion
+
+        #region CHAT CLEANUP
+
+        /// <summary>
+        /// Dọn dẹp resources khi đóng form
+        /// Thêm vào phương thức OnFormClosing đã có
+        /// </summary>
+        private void CleanupChatResources()
+        {
+            if (_chatRefreshTimer != null)
+            {
+                _chatRefreshTimer.Stop();
+                _chatRefreshTimer.Dispose();
+                _chatRefreshTimer = null;
+            }
+        }
+
+        #endregion
+
+        private async void btn_ThongBao_PhucVu_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Hiển thị form nhập thông báo
+                string noiDung = Microsoft.VisualBasic.Interaction.InputBox(
+                    "Nhập nội dung thông báo gửi cho Bếp:",
+                    "📢 Gửi Thông Báo",
+                    ""
+                );
+
+                if (string.IsNullOrWhiteSpace(noiDung))
+                {
+                    return;
+                }
+
+                // Gửi thông báo
+                await SendChatNotificationAsync(noiDung, "Bep");
+                ShowSuccess("Đã gửi thông báo cho tất cả nhân viên Bếp!");
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi gửi thông báo: {ex.Message}");
+            }
+        }
+
+        #region TIMEZONE HELPERS
+
+        /// <summary>
+        /// Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7)
+        /// </summary>
+        private DateTime GetVietnamTime()
+        {
+            try
+            {
+                TimeZoneInfo vietnamZone;
+                try
+                {
+                    vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch
+                {
+                    try
+                    {
+                        vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    }
+                    catch
+                    {
+                        vietnamZone = TimeZoneInfo.CreateCustomTimeZone(
+                            "Vietnam", TimeSpan.FromHours(7), "Vietnam Time", "Vietnam Time");
+                    }
+                }
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamZone);
+            }
+            catch
+            {
+                return DateTime.UtcNow.AddHours(7);
+            }
+        }
+
+        /// <summary>
+        /// Chuyển giờ Việt Nam sang UTC (để lưu vào database)
+        /// </summary>
+        private DateTime ConvertVietnamToUtc(DateTime vietnamTime)
+        {
+            try
+            {
+                if (vietnamTime.Kind == DateTimeKind.Utc)
+                    return vietnamTime;
+                return vietnamTime.AddHours(-7);
+            }
+            catch
+            {
+                return vietnamTime.AddHours(-7);
+            }
+        }
+
+        /// <summary>
+        /// Chuyển UTC sang giờ Việt Nam (để hiển thị)
+        /// </summary>
+        private DateTime ConvertUtcToVietnam(DateTime utcTime)
+        {
+            try
+            {
+                if (utcTime.Kind == DateTimeKind.Local)
+                    return utcTime;
+                return utcTime.AddHours(7);
+            }
+            catch
+            {
+                return utcTime.AddHours(7);
+            }
+        }
+
+        #endregion
+        // ========== KẾT THÚC ĐOẠN CODE THÊM ==========
     }
 }
+    

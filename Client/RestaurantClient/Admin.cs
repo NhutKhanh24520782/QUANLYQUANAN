@@ -16,6 +16,7 @@ using System.Drawing;
 using System.IO;
 using Microsoft.VisualBasic.Devices;
 using System.Data;
+using System.Threading;
 
 namespace RestaurantClient
 {
@@ -36,6 +37,14 @@ namespace RestaurantClient
         private const string SEARCH_BILL = "Tìm theo mã bàn hoặc nhân viên...";
         private const string SEARCH_TABLE = "Tìm theo mã bàn hoặc trạng thái...";
         // ==================== INITIALIZATION ====================
+
+        private System.Windows.Forms.Timer _chatRefreshTimer;       // Timer polling tin nhắn
+        private int _selectedChatUserId = 0;                        // ID user đang chat
+        private string _selectedChatUserName = "";                  // Tên user đang chat
+        private DateTime _lastMessageTime = DateTime.MinValue;      // Thời gian tin nhắn cuối
+        private List<ChatUserData> _chatUsers = new List<ChatUserData>();
+        private const int CHAT_REFRESH_INTERVAL = 3000;             // 3 giây polling
+        private HashSet<int> _displayedMessageIds = new HashSet<int>();
         public Admin()
         {
             InitializeComponent();
@@ -51,6 +60,8 @@ namespace RestaurantClient
             InitializeBillTab();
             InitializeControls();
             LoadAllData();
+            LoadAdminInfo();
+            InitializeChatFeature();
         }
         private void InitializeBillTab()
         {
@@ -193,8 +204,18 @@ namespace RestaurantClient
             dataGridView_menu.SelectionChanged += (s, e) =>
             {
                 var item = _menuManager.GetSelectedItem();
+
                 if (item != null)
                 {
+
+                    if (item.MaLoaiMon.HasValue) // Kiểm tra nếu MaLoaiMon là int? (nullable int)
+                    {
+                        tb_maloaimon.Text = item.MaLoaiMon.Value.ToString();
+                    }
+                    else // Nếu MaLoaiMon là int (non-nullable)
+                    {
+                        tb_maloaimon.Text = item.MaLoaiMon.ToString();
+                    }
                     tb_nameFood.Text = item.TenMon;
                     nm_priceFood.Value = item.Gia;
 
@@ -1621,6 +1642,566 @@ namespace RestaurantClient
         }
 
         private void cb_position_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label20_Click(object sender, EventArgs e)
+        {
+
+        }
+        private void LoadAdminInfo()
+        {
+            try
+            {
+                textbox_usernameadmin.Text = CurrentUser.Username;
+                textbox_emailadmin.Text = CurrentUser.Email;
+                textbox_nameadmin.Text = CurrentUser.FullName;
+                textbox_role.Text = CurrentUser.Role;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi hiển thị thông tin Admin: " + ex.Message);
+            }
+        }
+
+        private async void button_DangxuatAdmin_Click(object sender, EventArgs e)
+        {
+            // Hỏi xác nhận
+            var dlg = MessageBox.Show("Bạn có chắc muốn đăng xuất?", "Xác nhận đăng xuất",
+                                      MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (dlg != DialogResult.Yes) return;
+
+            // Tùy chọn: gửi request logout tới server nếu bạn có API logout
+            // Uncomment / chỉnh sửa nếu server có endpoint LogoutRequest -> LogoutResponse
+            /*
+            try
+            {
+                var logoutReq = new LogoutRequest { MaNguoiDung = CurrentUser.Id }; // nếu cần
+                var logoutRes = await SendRequest<LogoutRequest, BaseResponse>(logoutReq);
+                if (logoutRes != null && !logoutRes.Success)
+                {
+                    // Nếu server trả lỗi, hiển thị nhưng vẫn cho phép logout local
+                    MessageBox.Show("Server logout trả về lỗi: " + logoutRes.Message, "Lưu ý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch
+            {
+                // Không block logout nếu server fail; chỉ log
+                Console.WriteLine("Không thể gọi API logout (bỏ qua).");
+            }
+            */
+
+            // Dọn dẹp ở client: reset CurrentUser
+            try
+            {
+                // Nếu bạn có timer hoặc resources nền thì dừng tại đây
+                // ví dụ: _autoRefreshTimer?.Stop();
+
+                CurrentUser.Id = 0;
+                CurrentUser.Username = "";
+                CurrentUser.Email = "";
+                CurrentUser.FullName = "";
+                CurrentUser.Role = "";
+
+                // Mở form đăng nhập mới rồi đóng form Admin hiện tại
+                var loginForm = new DangNhap();
+                // Khi đăng nhập form login đóng -> thoát app (nếu muốn)
+                loginForm.FormClosed += (s, args) =>
+                {
+                    // Nếu muốn đóng ứng dụng khi login form đóng:
+                    // Application.Exit();
+
+                    // Hoặc không làm gì để người dùng có thể mở lại.
+                };
+
+                // Hiển thị login và đóng Admin
+                loginForm.StartPosition = FormStartPosition.CenterScreen;
+                loginForm.Show();
+
+                // Nếu Admin là form chính (nếu đóng Admin sẽ thoát app), thì nên Hide thay vì Close:
+                // this.Hide();
+                // this.Close(); // nếu Close không làm app exit trong cấu trúc của bạn thì OK
+
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void lbl_sumdoanhthu_Click(object sender, EventArgs e)
+        {
+
+        }
+        #region CHAT ADMIN FEATURE (ĐÃ SỬA TÊN CONTROL CHUẨN)
+
+        private void InitializeChatFeature()
+        {
+            try
+            {
+                SetupChatUserListView();
+                SetupChatMessagesBox();
+                SetupChatControls();
+                RegisterChatEvents();
+                InitializeChatRefreshTimer();
+                LoadChatUsers();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khởi tạo Chat Admin: {ex.Message}");
+            }
+        }
+
+        private void SetupChatUserListView()
+        {
+            if (lv_Users_admin == null) return;
+
+            lv_Users_admin.View = View.Details;
+            lv_Users_admin.FullRowSelect = true;
+            lv_Users_admin.GridLines = true;
+            lv_Users_admin.MultiSelect = false;
+
+            // Cấu hình cột (Đã khớp với Designer)
+            // lv_Users_admin.Columns đã có sẵn từ Designer, code này chỉ đảm bảo view đúng
+        }
+
+        private void SetupChatMessagesBox()
+        {
+            if (rtb_ChatMessages_Admin == null) return;
+            rtb_ChatMessages_Admin.ReadOnly = true;
+            rtb_ChatMessages_Admin.BackColor = Color.White;
+            rtb_ChatMessages_Admin.Clear();
+            AppendColoredText("💬 Admin Panel - Chọn nhân viên để chat\n", Color.Gray, true);
+        }
+
+        private void SetupChatControls()
+        {
+            if (txt_SearchUser_Admin != null) txt_SearchUser_Admin.PlaceholderText = "🔍 Tìm nhân viên...";
+
+            if (txt_ChatMessage_Admin != null)
+            {
+                txt_ChatMessage_Admin.PlaceholderText = "Nhập tin nhắn...";
+                txt_ChatMessage_Admin.Enabled = false;
+            }
+
+            if (btn_SendChat_Admin != null) btn_SendChat_Admin.Enabled = false;
+
+            UpdateOnlineCount();
+        }
+
+        private void RegisterChatEvents()
+        {
+            // ListView events (lv_Users_admin)
+            lv_Users_admin.SelectedIndexChanged += LvUsers_Admin_SelectedIndexChanged;
+
+            // Button events
+            btn_SendChat_Admin.Click += BtnSendChat_Admin_Click;
+            btn_RefreshUsers_Admin.Click += BtnRefreshUsers_Admin_Click;
+
+            // Input events
+            txt_ChatMessage_Admin.KeyPress += TxtChatMessage_Admin_KeyPress;
+            txt_SearchUser_Admin.TextChanged += (s, e) => FilterChatUsers(txt_SearchUser_Admin.Text.Trim());
+
+            // Checkbox broadcast
+            chk_SendAll_Admin.CheckedChanged += ChkSendAll_Admin_CheckedChanged;
+        }
+
+        private void InitializeChatRefreshTimer()
+        {
+            _chatRefreshTimer = new System.Windows.Forms.Timer();
+            _chatRefreshTimer.Interval = CHAT_REFRESH_INTERVAL;
+            _chatRefreshTimer.Tick += async (s, e) => await CheckNewMessagesAsync();
+            _chatRefreshTimer.Start();
+        }
+
+        private async void LoadChatUsers(string searchKeyword = "")
+        {
+            try
+            {
+                int myId = CurrentUser.Id != 0 ? CurrentUser.Id : 1;
+
+                var request = new GetChatUsersRequest
+                {
+                    MaNguoiDungHienTai = myId,
+                    TimKiem = searchKeyword
+                };
+
+                var response = await SendRequest<GetChatUsersRequest, GetChatUsersResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    _chatUsers = response.Users;
+                    DisplayChatUsers(_chatUsers);
+                    UpdateOnlineCount();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"Lỗi load users: {ex.Message}"); }
+        }
+
+        private void DisplayChatUsers(List<ChatUserData> users)
+        {
+            if (lv_Users_admin.InvokeRequired)
+            {
+                lv_Users_admin.Invoke(new Action(() => DisplayChatUsers(users)));
+                return;
+            }
+
+            lv_Users_admin.Items.Clear();
+
+            foreach (var user in users)
+            {
+                ListViewItem item = new ListViewItem(user.HoTen);
+                item.SubItems.Add(user.VaiTroDisplay);
+
+                string status = user.SoTinChuaDoc > 0 ? $"({user.SoTinChuaDoc})" : (user.DangOnline ? "●" : "○");
+                item.SubItems.Add(status);
+
+                if (user.VaiTro == "Bep") item.ForeColor = Color.DarkOrange;
+                else if (user.VaiTro == "PhucVu") item.ForeColor = Color.DarkBlue;
+
+                if (user.SoTinChuaDoc > 0)
+                {
+                    item.BackColor = Color.LightYellow;
+                    item.Font = new Font(lv_Users_admin.Font, FontStyle.Bold);
+                }
+
+                item.Tag = user.MaNguoiDung;
+                lv_Users_admin.Items.Add(item);
+            }
+        }
+
+        private void FilterChatUsers(string keyword)
+        {
+            if (_chatUsers == null) return;
+            var filtered = string.IsNullOrEmpty(keyword)
+                ? _chatUsers
+                : _chatUsers.Where(u => u.HoTen.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+            DisplayChatUsers(filtered);
+        }
+
+        private async void LvUsers_Admin_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lv_Users_admin.SelectedItems.Count == 0) return;
+
+            var item = lv_Users_admin.SelectedItems[0];
+            if (item.Tag == null) return;
+
+            _selectedChatUserId = (int)item.Tag;
+            _selectedChatUserName = item.Text;
+            string role = item.SubItems[1].Text;
+
+            if (lbl_ChatTitle_Admin != null) lbl_ChatTitle_Admin.Text = $"💬 Chat với: {_selectedChatUserName}";
+            if (lbl_ChatRole_Admin != null) lbl_ChatRole_Admin.Text = $"Vai trò: {role}";
+
+            txt_ChatMessage_Admin.Enabled = true;
+            btn_SendChat_Admin.Enabled = true;
+            chk_SendAll_Admin.Checked = false;
+
+            await LoadChatMessagesAsync(_selectedChatUserId);
+        }
+
+        private async Task LoadChatMessagesAsync(int targetUserId)
+        {
+            try
+            {
+                int myId = CurrentUser.Id != 0 ? CurrentUser.Id : 1;
+
+                var request = new GetChatMessagesRequest
+                {
+                    MaNguoiDung1 = myId,
+                    MaNguoiDung2 = targetUserId,
+                    SoLuong = 50
+                };
+
+                var response = await SendRequest<GetChatMessagesRequest, GetChatMessagesResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    DisplayChatMessages(response.Messages);
+                    if (response.Messages.Count > 0)
+                    {
+                        _lastMessageTime = response.Messages.Max(m => m.ThoiGian);
+                    }
+                    await MarkMessagesAsReadAsync(targetUserId);
+                }
+            }
+            catch { }
+        }
+
+        private void DisplayChatMessages(List<ChatMessageData> messages)
+        {
+            if (rtb_ChatMessages_Admin.InvokeRequired)
+            {
+                rtb_ChatMessages_Admin.Invoke(new Action(() => DisplayChatMessages(messages)));
+                return;
+            }
+
+            rtb_ChatMessages_Admin.Clear();
+            _displayedMessageIds.Clear();
+
+            if (messages.Count == 0)
+            {
+                AppendColoredText("💬 Chưa có tin nhắn nào.\n", Color.Gray, true);
+                return;
+            }
+
+            DateTime? lastDate = null;
+            int myId = CurrentUser.Id != 0 ? CurrentUser.Id : 1;
+
+            foreach (var msg in messages)
+            {
+                _displayedMessageIds.Add(msg.MaTinNhan);
+
+                if (!lastDate.HasValue || msg.ThoiGian.Date != lastDate.Value.Date)
+                {
+                    AppendColoredText($"\n─── {msg.ThoiGian:dd/MM/yyyy} ───\n", Color.Gray, true);
+                    lastDate = msg.ThoiGian.Date;
+                }
+
+                bool isMine = msg.MaNguoiGui == myId;
+                string broadcast = "";
+
+                if (isMine)
+                {
+                    AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+                    AppendColoredText("Bạn: ", Color.DarkBlue, true);
+                    AppendColoredText($"{broadcast}{msg.NoiDung}\n", Color.Black, false);
+                }
+                else
+                {
+                    AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+                    Color nameColor = msg.VaiTroNguoiGui == "Bep" ? Color.DarkOrange : Color.DarkGreen;
+                    AppendColoredText($"{msg.TenNguoiGui}: ", nameColor, true);
+                    AppendColoredText($"{broadcast}{msg.NoiDung}\n", Color.Black, false);
+                }
+            }
+
+            rtb_ChatMessages_Admin.SelectionStart = rtb_ChatMessages_Admin.Text.Length;
+            rtb_ChatMessages_Admin.ScrollToCaret();
+        }
+
+        private async void BtnSendChat_Admin_Click(object sender, EventArgs e)
+        {
+            await SendChatMessageAsync();
+        }
+
+        private async void TxtChatMessage_Admin_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter && !ModifierKeys.HasFlag(Keys.Shift))
+            {
+                e.Handled = true;
+                await SendChatMessageAsync();
+            }
+        }
+
+        private async Task SendChatMessageAsync()
+        {
+            string content = txt_ChatMessage_Admin.Text.Trim();
+            if (string.IsNullOrEmpty(content)) return;
+
+            bool isBroadcast = chk_SendAll_Admin.Checked;
+            if (!isBroadcast && _selectedChatUserId == 0) return;
+
+            btn_SendChat_Admin.Enabled = false;
+
+            try
+            {
+                int myId = CurrentUser.Id != 0 ? CurrentUser.Id : 1;
+
+                var request = new SendChatMessageRequest
+                {
+                    MaNguoiGui = myId,
+                    MaNguoiNhan = isBroadcast ? 0 : _selectedChatUserId,
+                    NoiDung = content,
+                    GuiTatCa = isBroadcast
+                };
+
+                var response = await SendRequest<SendChatMessageRequest, SendChatMessageResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    txt_ChatMessage_Admin.Clear();
+                    AppendSentMessage(content, isBroadcast);
+                    _lastMessageTime = response.ThoiGianGui;
+                }
+            }
+            finally
+            {
+                btn_SendChat_Admin.Enabled = true;
+                txt_ChatMessage_Admin.Focus();
+            }
+        }
+
+        private void AppendSentMessage(string content, bool isBroadcast)
+        {
+            // Sử dụng hàm GetVietnamTime đã có
+            string timeStr = GetVietnamTime().ToString("HH:mm");
+            string prefix = isBroadcast ? "[📢 TẤT CẢ] " : "";
+
+            AppendColoredText($"[{timeStr}] ", Color.Gray, false);
+            AppendColoredText("Bạn: ", Color.DarkBlue, true);
+            AppendColoredText($"{prefix}{content}\n", Color.Black, false);
+
+            rtb_ChatMessages_Admin.SelectionStart = rtb_ChatMessages_Admin.Text.Length;
+            rtb_ChatMessages_Admin.ScrollToCaret();
+        }
+
+        private async Task CheckNewMessagesAsync()
+        {
+            // Chỉ chạy polling khi đang ở tab Chat (tabPage6)
+            if (tabControl1.SelectedTab.Name != "tabPage6") return;
+
+            try
+            {
+                int myId = CurrentUser.Id != 0 ? CurrentUser.Id : 1;
+
+                var request = new CheckNewMessagesRequest
+                {
+                    MaNguoiDung = myId,
+                    TuThoiGian = _lastMessageTime
+                };
+
+                var response = await SendRequest<CheckNewMessagesRequest, CheckNewMessagesResponse>(request);
+
+                if (response?.Success == true && response.CoTinMoi)
+                {
+                    bool needRefreshList = false;
+                    foreach (var msg in response.TinNhanMoi)
+                    {
+                        if (_displayedMessageIds.Contains(msg.MaTinNhan)) continue;
+
+                        _displayedMessageIds.Add(msg.MaTinNhan);
+                        if (msg.ThoiGian > _lastMessageTime) _lastMessageTime = msg.ThoiGian;
+
+                        if (msg.MaNguoiGui == _selectedChatUserId || msg.LaTinBroadcast)
+                        {
+                            AppendReceivedMessage(msg);
+                        }
+                        if (msg.MaNguoiGui != _selectedChatUserId)
+                        {
+                            needRefreshList = true;
+                        }
+                    }
+
+                    if (needRefreshList) LoadChatUsers(txt_SearchUser_Admin.Text);
+                }
+            }
+            catch { }
+        }
+
+        private void AppendReceivedMessage(ChatMessageData msg)
+        {
+            if (rtb_ChatMessages_Admin.InvokeRequired)
+            {
+                rtb_ChatMessages_Admin.Invoke(new Action(() => AppendReceivedMessage(msg)));
+                return;
+            }
+
+            string broadcast = msg.LaTinBroadcast ? "[📢 TẤT CẢ] " : "";
+            Color nameColor = msg.VaiTroNguoiGui == "Bep" ? Color.DarkOrange : Color.DarkGreen;
+
+            AppendColoredText($"[{msg.ThoiGianDisplay}] ", Color.Gray, false);
+            AppendColoredText($"{msg.TenNguoiGui}: ", nameColor, true);
+            AppendColoredText($"{broadcast}{msg.NoiDung}\n", Color.Black, false);
+
+            rtb_ChatMessages_Admin.SelectionStart = rtb_ChatMessages_Admin.Text.Length;
+            rtb_ChatMessages_Admin.ScrollToCaret();
+        }
+
+        private void ChkSendAll_Admin_CheckedChanged(object sender, EventArgs e)
+        {
+            bool isBroadcast = chk_SendAll_Admin.Checked;
+            if (isBroadcast)
+            {
+                lv_Users_admin.SelectedItems.Clear();
+                _selectedChatUserId = 0;
+
+                lbl_ChatTitle_Admin.Text = "📢 GỬI THÔNG BÁO TẤT CẢ";
+                lbl_ChatRole_Admin.Text = "Tin nhắn sẽ gửi đến toàn bộ nhân viên";
+
+                txt_ChatMessage_Admin.Enabled = true;
+                btn_SendChat_Admin.Enabled = true;
+
+                rtb_ChatMessages_Admin.Clear();
+                AppendColoredText("📢 Bạn đang ở chế độ GỬI TẤT CẢ.\n", Color.Red, true);
+            }
+            else
+            {
+                if (_selectedChatUserId == 0)
+                {
+                    lbl_ChatTitle_Admin.Text = "💬 Chọn người để chat";
+                    lbl_ChatRole_Admin.Text = "";
+                    txt_ChatMessage_Admin.Enabled = false;
+                    btn_SendChat_Admin.Enabled = false;
+                    rtb_ChatMessages_Admin.Clear();
+                }
+            }
+        }
+
+        private async void BtnRefreshUsers_Admin_Click(object sender, EventArgs e)
+        {
+            await ExecuteAsync(btn_RefreshUsers_Admin, "Đang tải...", async () =>
+            {
+                LoadChatUsers(txt_SearchUser_Admin.Text);
+                if (_selectedChatUserId > 0)
+                {
+                    await LoadChatMessagesAsync(_selectedChatUserId);
+                }
+            });
+        }
+
+        private async Task MarkMessagesAsReadAsync(int targetId)
+        {
+            try
+            {
+                int myId = CurrentUser.Id != 0 ? CurrentUser.Id : 1;
+                var req = new MarkMessagesReadRequest { MaNguoiNhan = myId, MaNguoiGui = targetId };
+                await SendRequest<MarkMessagesReadRequest, MarkMessagesReadResponse>(req);
+            }
+            catch { }
+        }
+
+        private void AppendColoredText(string text, Color color, bool bold)
+        {
+            if (rtb_ChatMessages_Admin == null) return;
+
+            int start = rtb_ChatMessages_Admin.TextLength;
+            rtb_ChatMessages_Admin.AppendText(text);
+            rtb_ChatMessages_Admin.Select(start, text.Length);
+            rtb_ChatMessages_Admin.SelectionColor = color;
+            rtb_ChatMessages_Admin.SelectionFont = new Font(rtb_ChatMessages_Admin.Font, bold ? FontStyle.Bold : FontStyle.Regular);
+            rtb_ChatMessages_Admin.SelectionLength = 0;
+        }
+
+        private void UpdateOnlineCount()
+        {
+            if (lbl_OnlineCount_Admin != null)
+                lbl_OnlineCount_Admin.Text = $"Nhân viên: {_chatUsers.Count}";
+        }
+
+        private DateTime GetVietnamTime()
+        {
+            try
+            {
+                TimeZoneInfo vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamZone);
+            }
+            catch { return DateTime.UtcNow.AddHours(7); }
+        }
+
+        // Thêm override này vào để dừng Timer chat khi đóng form Admin
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            _chatRefreshTimer?.Stop();
+            _chatRefreshTimer?.Dispose();
+            base.OnFormClosing(e);
+        }
+
+        #endregion
+
+        private void panel_ChatArea_Admin_Paint(object sender, PaintEventArgs e)
         {
 
         }

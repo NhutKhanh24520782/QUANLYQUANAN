@@ -122,5 +122,25 @@ namespace RestaurantClient
         {
             this.Close();
         }
+
+        private void tb_hoten_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void radioButton_phucvu_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lbl_title_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

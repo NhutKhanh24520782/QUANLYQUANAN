@@ -39,6 +39,12 @@ namespace RestaurantClient
 
                 if (loginResponse?.Success == true)
                 {
+                    CurrentUser.Id = loginResponse.MaNguoiDung;
+                    CurrentUser.Username = request.Username;
+                    CurrentUser.Email = loginResponse.Email ?? "";
+                    CurrentUser.FullName = loginResponse.HoTen ?? "";
+                    CurrentUser.Role = loginResponse.Role ?? "";
+
                     MessageBox.Show($"Đăng nhập thành công! Chào {loginResponse.HoTen}",
                         "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -54,7 +60,7 @@ namespace RestaurantClient
                             new NVPhucVu(loginResponse.MaNguoiDung, loginResponse.HoTen).Show();
                             break;
                         case "Bep":
-                            new NVBep().Show();
+                            new NVBep(loginResponse.MaNguoiDung, loginResponse.HoTen).Show();
                             break;
                         default:
                             MessageBox.Show($"Vai trò không xác định: {loginResponse.Role}");
@@ -114,6 +120,16 @@ namespace RestaurantClient
             NhapEmail nhapEmail = new NhapEmail();
             nhapEmail.FormClosed += (s, args) => this.Show();
             nhapEmail.Show();
+        }
+
+        private void tb_username_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void tb_passwd_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

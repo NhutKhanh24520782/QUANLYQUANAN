@@ -1,9 +1,12 @@
 ﻿using BCrypt.Net;
 using Models;
 using Models.Database;
+using Models.Request;
 using Models.Response;
+using Newtonsoft.Json;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -27,6 +30,126 @@ namespace RestaurantServer
             "Connection Timeout=30;";
 
         // ========================= LOGIN =========================
+        // ==================== TIME HELPER - FIXED VERSION ====================
+        public static class TimeHelper
+        {
+            private static readonly TimeZoneInfo VietnamTimeZone;
+
+            static TimeHelper()
+            {
+                try
+                {
+                    // Windows
+                    VietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    try
+                    {
+                        // Linux/Mac
+                        VietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    }
+                    catch (TimeZoneNotFoundException)
+                    {
+                        // Fallback cho mọi hệ thống
+                        VietnamTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+                            "Vietnam",
+                            TimeSpan.FromHours(7),
+                            "Vietnam Time",
+                            "Vietnam Time");
+                    }
+                }
+            }
+            
+
+            // 🔥 THÊM HÀM: Kiểm tra thời gian debug
+            public static void LogTimeInfo(string context, DateTime time)
+            {
+                Console.WriteLine($"[{context}] {time:HH:mm:ss} - Kind: {time.Kind}, Hour: {time.Hour}");
+            }
+
+            // ✅ FIXED: Lấy giờ Việt Nam hiện tại
+            public static DateTime GetVietnamTime()
+            {
+                try
+                {
+                    DateTime utcNow = DateTime.UtcNow;
+                    return TimeZoneInfo.ConvertTimeFromUtc(utcNow, VietnamTimeZone);
+                }
+                catch
+                {
+                    // Fallback đơn giản nhất
+                    return DateTime.UtcNow.AddHours(7);
+                }
+            }
+
+            // ✅ FIXED: Chuyển giờ Việt Nam sang UTC
+            public static DateTime ConvertVietnamTimeToUtc(DateTime vietnamTime)
+            {
+                try
+                {
+                    // Xử lý DateTime.Kind
+                    DateTime safeTime;
+                    if (vietnamTime.Kind == DateTimeKind.Unspecified)
+                    {
+                        // Giả định đây là giờ Việt Nam
+                        safeTime = DateTime.SpecifyKind(vietnamTime, DateTimeKind.Unspecified);
+                    }
+                    else if (vietnamTime.Kind == DateTimeKind.Local)
+                    {
+                        // Chuyển local sang unspecified
+                        safeTime = DateTime.SpecifyKind(vietnamTime, DateTimeKind.Unspecified);
+                    }
+                    else
+                    {
+                        safeTime = vietnamTime;
+                    }
+
+                    return TimeZoneInfo.ConvertTimeToUtc(safeTime, VietnamTimeZone);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ Lỗi ConvertVietnamTimeToUtc: {ex.Message}");
+                    // Fallback an toàn
+                    return vietnamTime.ToUniversalTime();
+                }
+            }
+
+            // ✅ FIXED: Chuyển từ database sang giờ Việt Nam
+            public static DateTime ConvertDatabaseTimeToVietnamTime(DateTime dbTime)
+            {
+                try
+                {
+                    // Azure SQL trả về DateTime với Kind = Unspecified
+                    // Giả sử đây là UTC
+                    DateTime utcTime;
+
+                    if (dbTime.Kind == DateTimeKind.Utc)
+                    {
+                        utcTime = dbTime;
+                    }
+                    else
+                    {
+                        // Chuyển Unspecified/Local sang UTC
+                        utcTime = DateTime.SpecifyKind(dbTime, DateTimeKind.Utc);
+                    }
+
+                    return TimeZoneInfo.ConvertTimeFromUtc(utcTime, VietnamTimeZone);
+                }
+                catch
+                {
+                    // Fallback: thêm 7 giờ
+                    return dbTime.AddHours(7);
+                }
+            }
+
+            // ✅ THÊM: Xử lý nullable
+            public static DateTime? ConvertDatabaseTimeToVietnamTimeNullable(DateTime? dbTime)
+            {
+                if (!dbTime.HasValue) return null;
+                return ConvertDatabaseTimeToVietnamTime(dbTime.Value);
+            }
+        }
         public static LoginResult LoginUser(string username, string password)
         {
             using (SqlConnection conn = new SqlConnection(connectionString))
@@ -80,7 +203,7 @@ namespace RestaurantServer
 
                     string hashed = BCrypt.Net.BCrypt.HashPassword(password);
                     string insert = @"INSERT INTO NGUOIDUNG(TenDangNhap, MatKhau, HoTen, Email, VaiTro, TrangThai, NgayTao)
-                                      VALUES(@u,@p,@n,@e,@r,1,GETDATE());
+                                      VALUES(@u,@p,@n,@e,@r,1,@NgayTao);
                                       SELECT SCOPE_IDENTITY();";
 
                     using (SqlCommand cmd = new SqlCommand(insert, conn))
@@ -91,6 +214,7 @@ namespace RestaurantServer
                         cmd.Parameters.AddWithValue("@e", email);
                         cmd.Parameters.AddWithValue("@r", role);
                         int newId = Convert.ToInt32(cmd.ExecuteScalar());
+                        cmd.Parameters.AddWithValue("@NgayTao", TimeHelper.GetVietnamTime()); // ✅ SỬA: TimeHelper.GetVietnamTime()
                         return new RegisterResult { Success = true, Message = "Đăng ký thành công", MaNguoiDung = newId };
                     }
                 }
@@ -523,12 +647,14 @@ namespace RestaurantServer
                         {
                             while (reader.Read())
                             {
+                                DateTime ngayDatabase = (DateTime)reader["Ngay"];
+                                DateTime ngayVietNam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayDatabase);
                                 bills.Add(new BillData
                                 {
                                     MaHoaDon = (int)reader["MaHD"],
                                     MaBanAn = (int)reader["MaBanAn"],
                                     MaNhanVien = (int)reader["MaNV"],
-                                    NgayXuatHoaDon = (DateTime)reader["Ngay"],
+                                    NgayXuatHoaDon = ngayVietNam, // Đã chuyển đổi sang giờ Việt Nam
                                     TongTien = reader["TongTien"] != DBNull.Value ? Convert.ToDecimal(reader["TongTien"]) : 0,
                                     TrangThai = reader["TrangThai"]?.ToString() ?? ""
                                 });
@@ -894,7 +1020,7 @@ namespace RestaurantServer
             try
             {
                 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                string fileName = $"BaoCaoDoanhThu_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                string fileName = $"BaoCaoDoanhThu_{TimeHelper.GetVietnamTime():yyyyMMdd_HHmmss}.xlsx";
                 string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports", fileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 
@@ -980,7 +1106,7 @@ namespace RestaurantServer
                     worksheet.Cells[1, 1, row + 1, 6].AutoFitColumns();
 
                     // Footer
-                    worksheet.Cells[row + 3, 1].Value = $"Ngày xuất báo cáo: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+                    worksheet.Cells[row + 3, 1].Value = $"Ngày xuất báo cáo: {TimeHelper.GetVietnamTime():dd/MM/yyyy HH:mm:ss}";
                     worksheet.Cells[row + 4, 1].Value = "Hệ thống Quản lý Nhà hàng";
 
                     package.SaveAs(new FileInfo(filePath));
@@ -993,6 +1119,7 @@ namespace RestaurantServer
             }
         }
         // ==================== LẤY DANH SÁCH CHỜ THANH TOÁN ====================
+    
         public static PendingPaymentResult GetPendingPayments(int maNhanVien)
         {
             try
@@ -1028,6 +1155,7 @@ namespace RestaurantServer
                         {
                             while (reader.Read())
                             {
+                                DateTime ngayDatabase = (DateTime)reader["NgayTao"];
                                 payments.Add(new PendingPaymentData
                                 {
                                     MaHD = (int)reader["MaHD"],
@@ -1035,7 +1163,6 @@ namespace RestaurantServer
                                     TenBan = reader["TenBan"].ToString(),
                                     MaNhanVien = (int)reader["MaNhanVien"],
                                     TenNhanVien = reader["TenNhanVien"].ToString(),
-                                    NgayTao = (DateTime)reader["NgayTao"],
                                     TongTien = Convert.ToDecimal(reader["TongTien"]),
                                     TrangThai = reader["TrangThai"].ToString(),
                                     SoMon = (int)reader["SoMon"]
@@ -1117,7 +1244,7 @@ namespace RestaurantServer
                         VALUES (
                             @MaHD, @MaNhanVien, N'TienMat',
                             @SoTienThanhToan, @SoTienNhan, @SoTienThua,
-                            N'ThanhCong', GETDATE(), N'Thanh toán tiền mặt'
+                            N'ThanhCong', @NgayTao, N'Thanh toán tiền mặt'
                         );
                         SELECT CAST(SCOPE_IDENTITY() AS INT)";
 
@@ -1128,6 +1255,7 @@ namespace RestaurantServer
                             insertCmd.Parameters.AddWithValue("@MaNhanVien", maNV);
                             insertCmd.Parameters.AddWithValue("@SoTienThanhToan", tongTien);
                             insertCmd.Parameters.AddWithValue("@SoTienNhan", soTienNhan);
+                            insertCmd.Parameters.AddWithValue("@NgayTao", TimeHelper.GetVietnamTime());
                             insertCmd.Parameters.AddWithValue("@SoTienThua", soTienThua);
 
                             maGiaoDich = Convert.ToInt32(insertCmd.ExecuteScalar());
@@ -1156,8 +1284,9 @@ namespace RestaurantServer
                             Success = true,
                             Message = "Thanh toán tiền mặt thành công",
                             SoTienThua = soTienThua,
-                            NgayThanhToan = DateTime.Now,
-                            MaGiaoDich = maGiaoDich.ToString()
+                            NgayThanhToan = TimeHelper.GetVietnamTime(),
+                            MaGiaoDich = maGiaoDich.ToString(),
+                            MaGiaoDichId = maGiaoDich
                         };
                     }
                     catch (Exception ex)
@@ -1212,24 +1341,24 @@ namespace RestaurantServer
                             throw new Exception("Hóa đơn đã được thanh toán");
 
                         // 2. Tạo mã giao dịch ngân hàng
-                        string transactionNo = "TRF" + DateTime.Now.ToString("yyyyMMddHHmmss") + maHD;
+                        string transactionNo = "TRF" + TimeHelper.GetVietnamTime().ToString("yyyyMMddHHmmss") + maHD;
 
                         // 3. Tạo QR code data (giả lập)
                         string qrCodeData = $"bank://transfer?amount={tongTien}&account=NH_QUANAN&note=HD{maHD}";
 
                         // 4. Thêm giao dịch thanh toán
                         string insertPaymentSql = @"
-                        INSERT INTO THANHTOAN (
-                            MaHD, MaNhanVien, PhuongThucThanhToan, 
-                            SoTienThanhToan, TrangThai, 
-                            MaGiaoDichNganHang, QRCodeData, GhiChu
-                        )
-                        VALUES (
-                            @MaHD, @MaNhanVien, N'ChuyenKhoan',
-                            @SoTienThanhToan, N'ThanhCong',
-                            @MaGiaoDichNganHang, @QRCodeData, N'Thanh toán chuyển khoản'
-                        );
-                        SELECT CAST(SCOPE_IDENTITY() AS INT)";
+                    INSERT INTO THANHTOAN (
+                        MaHD, MaNhanVien, PhuongThucThanhToan, 
+                        SoTienThanhToan, TrangThai, 
+                        MaGiaoDichNganHang, QRCodeData, GhiChu
+                    )
+                    VALUES (
+                        @MaHD, @MaNhanVien, N'ChuyenKhoan',
+                        @SoTienThanhToan, N'DangXuLy', -- <--- QUAN TRỌNG: ĐANG XỬ LÝ
+                        @MaGiaoDichNganHang, @QRCodeData, N'Đang chờ chuyển khoản'
+                    );
+                    SELECT CAST(SCOPE_IDENTITY() AS INT)";
 
                         int maGiaoDich;
                         using (SqlCommand insertCmd = new SqlCommand(insertPaymentSql, conn, transaction))
@@ -1239,50 +1368,69 @@ namespace RestaurantServer
                             insertCmd.Parameters.AddWithValue("@SoTienThanhToan", tongTien);
                             insertCmd.Parameters.AddWithValue("@MaGiaoDichNganHang", transactionNo);
                             insertCmd.Parameters.AddWithValue("@QRCodeData", qrCodeData);
-
                             maGiaoDich = Convert.ToInt32(insertCmd.ExecuteScalar());
                         }
 
-                        // 5. Cập nhật trạng thái hóa đơn
-                        string updateHoaDonSql = @"
-                        UPDATE HOADON 
-                        SET TrangThai = N'DaThanhToan',
-                            PhuongThucThanhToan = N'ChuyenKhoan'
-                        WHERE MaHD = @MaHD";
-
-                        using (SqlCommand updateCmd = new SqlCommand(updateHoaDonSql, conn, transaction))
-                        {
-                            updateCmd.Parameters.AddWithValue("@MaHD", maHD);
-                            int rowsAffected = updateCmd.ExecuteNonQuery();
-
-                            if (rowsAffected == 0)
-                                throw new Exception("Không thể cập nhật hóa đơn");
-                        }
+                        // LƯU Ý: KHÔNG UPDATE BẢNG HOADON THÀNH 'DaThanhToan' LÚC NÀY!
+                        // Hóa đơn vẫn phải treo chờ.
 
                         transaction.Commit();
 
                         return new TransferPaymentResult
                         {
                             Success = true,
-                            Message = "Thanh toán chuyển khoản thành công",
+                            Message = "Đã tạo mã QR. Vui lòng chờ khách thanh toán.",
                             TransactionNo = transactionNo,
                             QRCodeData = qrCodeData,
-                            NgayThanhToan = DateTime.Now
+                            NgayThanhToan = TimeHelper.GetVietnamTime(),
+                            MaGiaoDichId = maGiaoDich
                         };
                     }
                     catch (Exception ex)
                     {
                         transaction.Rollback();
-                        return new TransferPaymentResult
-                        {
-                            Success = false,
-                            Message = $"Lỗi thanh toán: {ex.Message}"
-                        };
+                        return new TransferPaymentResult { Success = false, Message = "Lỗi: " + ex.Message };
                     }
                 }
             }
         }
+        // [DatabaseAccess.cs] - Thêm hàm này vào class
+        public static bool CheckTransferStatus(int maHD)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
 
+                // Kiểm tra xem trong bảng THANHTOAN có dòng nào của HĐ này đã thành công chưa
+                string query = @"
+            SELECT COUNT(*) FROM THANHTOAN 
+            WHERE MaHD = @MaHD 
+              AND PhuongThucThanhToan = 'ChuyenKhoan' 
+              AND TrangThai = N'ThanhCong'"; // Chỉ tính là xong nếu trạng thái là Thành Công
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaHD", maHD);
+                    int count = (int)cmd.ExecuteScalar();
+
+                    if (count > 0)
+                    {
+                        // Nếu tìm thấy thanh toán thành công -> Update luôn trạng thái HÓA ĐƠN
+                        // (Đề phòng trường hợp chưa update)
+                        string updateHD = @"UPDATE HOADON 
+                                    SET TrangThai = N'DaThanhToan', PhuongThucThanhToan = N'ChuyenKhoan' 
+                                    WHERE MaHD = @MaHD AND TrangThai = N'ChuaThanhToan'";
+                        using (SqlCommand cmdHD = new SqlCommand(updateHD, conn))
+                        {
+                            cmdHD.Parameters.AddWithValue("@MaHD", maHD);
+                            cmdHD.ExecuteNonQuery();
+                        }
+                        return true; // Báo về Client là xong rồi
+                    }
+                }
+            }
+            return false; // Chưa thấy tiền
+        }
         public static OrderMonResult GetMon()
         {
             try
@@ -1303,7 +1451,7 @@ namespace RestaurantServer
                                     MaMon = (int)reader["MaMon"],
                                     TenMon = reader["TenMon"].ToString(),
                                     Gia = (int)reader["Gia"],
-                                    MoTa = reader["Gia"].ToString(),
+                                    MoTa = reader["MoTa"].ToString(),
                                     TrangThai = reader["TrangThai"]?.ToString() ?? ""
                                 });
                             }
@@ -1435,40 +1583,84 @@ namespace RestaurantServer
                 {
                     try
                     {
-                        // 1. Thêm hóa đơn
+                        DateTime vietnamNow = TimeHelper.GetVietnamTime();
+                        DateTime utcNow = TimeHelper.ConvertVietnamTimeToUtc(vietnamNow);
+                        // ✅ 1. TẠO ĐƠN HÀNG (cho bếp)
+                        string insertDonHang = @"
+                    INSERT INTO DONHANG (MaBanAn, MaNVOrder, NgayOrder, TrangThai)
+                    OUTPUT INSERTED.MaDonHang
+                    VALUES (@MaBanAn, @MaNVOrder, @Ngay, N'ChoXacNhan')";
+
+                        int maDonHang;
+                        using (SqlCommand cmd = new SqlCommand(insertDonHang, conn, transaction))
+                        {
+                            cmd.Parameters.AddWithValue("@MaBanAn", maBan);
+                            cmd.Parameters.AddWithValue("@MaNVOrder", maNhanVien);
+                            cmd.Parameters.AddWithValue("@Ngay", utcNow); // ✅ LƯU UTC
+                            maDonHang = (int)cmd.ExecuteScalar();
+                        }
+
+                        // ✅ 2. THÊM CHI TIẾT ĐƠN HÀNG (cho bếp xử lý)
+                        string insertChiTietDonHang = @"
+                    INSERT INTO CHITIET_DONHANG (
+                        MaDonHang, MaMon, SoLuong, DonGia, GhiChuKhach, 
+                        TrangThai, UuTien
+                    )
+                    VALUES (
+                        @MaDonHang, @MaMon, @SoLuong, @DonGia, @GhiChuKhach,
+                        N'ChoXacNhan', 2
+                    )";
+
+                        foreach (var item in chiTiet)
+                        {
+                            using (SqlCommand cmd = new SqlCommand(insertChiTietDonHang, conn, transaction))
+                            {
+                                cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                                cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
+                                cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
+                                cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
+                                cmd.Parameters.AddWithValue("@GhiChuKhach", item.GhiChu ?? (object)DBNull.Value);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        // ✅ 3. TẠO HÓA ĐƠN (cho thanh toán sau)
                         string insertHoaDon = @"
-                    INSERT INTO HOADON (MaBanAn, MaNV, Ngay, TongTien, TrangThai)
+                    INSERT INTO HOADON (MaBanAn, MaNV, MaDonHang, Ngay, TongTien, TrangThai)
                     OUTPUT INSERTED.MaHD
-                    VALUES (@MaBanAn, @MaNV, GETDATE(), @TongTien, N'ChuaThanhToan')";
+                    VALUES (@MaBanAn, @MaNV, @MaDonHang, @Ngay, @TongTien, N'ChuaThanhToan')";
 
                         int maHoaDon;
                         using (SqlCommand cmd = new SqlCommand(insertHoaDon, conn, transaction))
                         {
                             cmd.Parameters.AddWithValue("@MaBanAn", maBan);
                             cmd.Parameters.AddWithValue("@MaNV", maNhanVien);
+                            cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                            cmd.Parameters.AddWithValue("@Ngay", utcNow); // ✅ LƯU UTC
                             cmd.Parameters.AddWithValue("@TongTien", tongTien);
                             maHoaDon = (int)cmd.ExecuteScalar();
                         }
 
-                        // 2. Thêm chi tiết hóa đơn
-                    //    string insertChiTiet = @"
-                    //INSERT INTO CTHD (MaHD, MaMon, SoLuong, DonGia)
-                    //VALUES (@MaHD, @MaMon, @SoLuong, @DonGia)";
+                        // ✅ 4. THÊM CHI TIẾT HÓA ĐƠN (cho thanh toán)
+                        string insertCTHD = @"
+                    INSERT INTO CTHD (MaHD, MaMon, SoLuong, DonGia, GhiChu)
+                    VALUES (@MaHD, @MaMon, @SoLuong, @DonGia, @GhiChu)";
 
-                    //    foreach (var item in chiTiet)
-                    //    {
-                    //        using (SqlCommand cmd = new SqlCommand(insertChiTiet, conn, transaction))
-                    //        {
-                    //            cmd.Parameters.AddWithValue("@MaHD", maHoaDon);
-                    //            cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
-                    //            cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
-                    //            cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
-                    //            cmd.ExecuteNonQuery();
-                    //        }
-                    //    }
+                        foreach (var item in chiTiet)
+                        {
+                            using (SqlCommand cmd = new SqlCommand(insertCTHD, conn, transaction))
+                            {
+                                cmd.Parameters.AddWithValue("@MaHD", maHoaDon);
+                                cmd.Parameters.AddWithValue("@MaMon", item.MaMon);
+                                cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
+                                cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
+                                cmd.Parameters.AddWithValue("@GhiChu", item.GhiChu ?? (object)DBNull.Value);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
 
-                        // 3. Cập nhật trạng thái bàn
-                        string updateBan = "UPDATE BAN SET TrangThai = 'DangSuDung' WHERE MaBanAn = @MaBanAn";
+                        // ✅ 5. CẬP NHẬT TRẠNG THÁI BÀN
+                        string updateBan = "UPDATE BAN SET TrangThai = N'DangSuDung' WHERE MaBanAn = @MaBanAn";
                         using (SqlCommand cmd = new SqlCommand(updateBan, conn, transaction))
                         {
                             cmd.Parameters.AddWithValue("@MaBanAn", maBan);
@@ -1481,7 +1673,8 @@ namespace RestaurantServer
                         {
                             Success = true,
                             Message = "Tạo order thành công",
-                            MaHoaDon = maHoaDon
+                            MaHoaDon = maHoaDon,
+                            MaDonHang = maDonHang
                         };
                     }
                     catch (Exception ex)
@@ -1496,5 +1689,1992 @@ namespace RestaurantServer
                 }
             }
         }
+        public static GetTableDetailResponse GetTableDetails(int maBanAn, string trangThai)
+        {
+            var result = new GetTableDetailResponse();
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // SỬA QUERY: Truy vấn từ DONHANG và CHITIET_DONHANG để lấy được TrangThai món ăn
+                    // Logic: 
+                    // - ChuaLenMon: Lấy các món ChoXacNhan, DangCheBien
+                    // - HoanThanh: Lấy món HoanThanh
+                    // - Rỗng: Lấy tất cả (trừ món Hủy)
+
+                    string query = @"
+                SELECT 
+                    dh.MaBanAn, 
+                    ct.TrangThai,
+                    m.TenMon, 
+                    ct.SoLuong, 
+                    ct.DonGia, 
+                    dh.NgayOrder as Ngay
+                FROM DONHANG dh
+                JOIN CHITIET_DONHANG ct ON dh.MaDonHang = ct.MaDonHang
+                JOIN MENUITEMS m ON ct.MaMon = m.MaMon
+                WHERE (@MaBanAn = 0 OR dh.MaBanAn = @MaBanAn)
+                  AND dh.TrangThai != 'Huy' 
+                  AND ct.TrangThai != 'Huy' ";
+
+                    // Xử lý logic lọc theo trạng thái món
+                    if (!string.IsNullOrEmpty(trangThai))
+                    {
+                        if (trangThai == "ChuaLenMon")
+                        {
+                            // Chưa lên món bao gồm: Chờ xác nhận và Đang chế biến
+                            query += " AND ct.TrangThai IN ('ChoXacNhan', 'DangCheBien') ";
+                        }
+                        else if (trangThai == "HoanThanh")
+                        {
+                            // Đã lên món
+                            query += " AND ct.TrangThai = 'HoanThanh' ";
+                        }
+                    }
+
+                    query += " ORDER BY dh.NgayOrder DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        // Lưu ý: Không cần truyền tham số @TrangThai vào SQL nữa vì ta đã nối chuỗi ở trên
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                // Xử lý hiển thị trạng thái tiếng Việt
+                                string rawStatus = reader["TrangThai"].ToString();
+                                string displayStatus = rawStatus;
+
+                                if (rawStatus == "ChoXacNhan" || rawStatus == "DangCheBien")
+                                    displayStatus = "Chưa lên món";
+                                else if (rawStatus == "HoanThanh")
+                                    displayStatus = "Đã lên món";
+
+                                result.Orders.Add(new TableOrderDetailData
+                                {
+                                    MaBanAn = Convert.ToInt32(reader["MaBanAn"]),
+                                    TrangThai = displayStatus, // Hiển thị trạng thái đã xử lý
+                                    TenMon = reader["TenMon"].ToString(),
+                                    SoLuong = Convert.ToInt32(reader["SoLuong"]),
+                                    DonGia = Convert.ToDecimal(reader["DonGia"]),
+                                    ThoiGianGoi = Convert.ToDateTime(reader["Ngay"])
+                                });
+                            }
+                        }
+                    }
+                    result.Success = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = "Lỗi: " + ex.Message;
+            }
+            return result;
+        }
+        public static KitchenOrdersResult GetKitchenOrders(string trangThai = "", string timKiemBan = "",
+       string sapXep = "ThoiGian", int? maNhanVienBep = null)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    var parameters = new List<SqlParameter>();
+
+                    // 1. Xây dựng câu truy vấn cơ bản với CTE
+                    string query = @"
+                    ;WITH CTE_DonHangTinhToan AS (
+                        SELECT 
+                            dh.MaDonHang,
+                            dh.MaBanAn,
+                            b.TenBan,
+                            dh.NgayOrder,
+                            dh.TrangThai as TrangThaiGoc,
+                            nv.HoTen as TenNhanVienOrder,
+
+                            -- Thống kê món
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang) as TongSoMon,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'ChoXacNhan') as SoMonChoXacNhan,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'DangCheBien') as SoMonDangCheBien,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'HoanThanh') as SoMonHoanThanh,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'CoVanDe') as SoMonCoVanDe,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'Huy') as SoMonHuy,
+
+                            -- Ưu tiên cao nhất
+                            (SELECT MAX(UuTien) FROM CHITIET_DONHANG ctdh3 WHERE ctdh3.MaDonHang = dh.MaDonHang) as UuTienCaoNhat,
+
+                            -- Tổng tiền
+                            ISNULL((SELECT SUM(ctdh.SoLuong * ctdh.DonGia) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang), 0) as TongTien
+
+                        FROM DONHANG dh
+                        LEFT JOIN BAN b ON dh.MaBanAn = b.MaBanAn
+                        LEFT JOIN NGUOIDUNG nv ON dh.MaNVOrder = nv.MaNguoiDung
+                        WHERE 1=1";
+
+                    // 2. LỌC THEO TÌM KIẾM BÀN/MÃ BÀN (TRONG CTE - nếu cần)
+                    // KHÔNG thêm điều kiện ở đây nếu muốn lọc sau
+
+                    query += @"
+                    )
+                    SELECT TOP 50
+                        *,
+                        -- TÍNH TOÁN TRẠNG THÁI THỰC TẾ (dựa trên món)
+                        CASE 
+                            -- 1. Tất cả món đều hủy → Hủy
+                            WHEN TongSoMon > 0 AND SoMonHuy = TongSoMon THEN 'Huy'
+                            -- 2. Tất cả món đều hoàn thành → Hoàn thành
+                            WHEN TongSoMon > 0 AND SoMonHoanThanh = TongSoMon THEN 'HoanThanh'
+                            -- 3. Có món có vấn đề → Có vấn đề
+                            WHEN SoMonCoVanDe > 0 THEN 'CoVanDe'
+                            -- 4. Có món đang chế biến → Đang chế biến
+                            WHEN SoMonDangCheBien > 0 THEN 'DangCheBien'
+                            -- 5. Có món chờ xác nhận → Chờ xác nhận
+                            WHEN SoMonChoXacNhan > 0 THEN 'ChoXacNhan'
+                            -- 6. Mặc định (không có món)
+                            ELSE 'ChoXacNhan'
+                        END as TrangThaiThucTe
+                    FROM CTE_DonHangTinhToan
+                    WHERE 1=1";
+                    if (!string.IsNullOrEmpty(timKiemBan))
+                    {
+                        // Chuẩn hóa: bỏ từ "bàn" hoặc "ban" nếu có, chỉ lấy số
+                        string searchTerm = timKiemBan.ToLower()
+                            .Replace("bàn", "")
+                            .Replace("ban", "")
+                            .Replace(" ", "")
+                            .Trim();
+
+                        // Nếu còn lại là số, tìm theo mã bàn HOẶC tên bàn chứa số đó
+                        if (int.TryParse(searchTerm, out int soBan))
+                        {
+                            query += " AND (MaBanAn = @SoBan OR TenBan LIKE @TenBanChuaSo)";
+                            parameters.Add(new SqlParameter("@SoBan", SqlDbType.Int) { Value = soBan });
+                            parameters.Add(new SqlParameter("@TenBanChuaSo", SqlDbType.NVarChar, 50)
+                            {
+                                Value = "%" + soBan + "%"
+                            });
+                        }
+                        else
+                        {
+                            // Nếu không phải số, tìm theo tên bàn gốc
+                            query += " AND TenBan LIKE @TimKiemBan";
+                            parameters.Add(new SqlParameter("@TimKiemBan", SqlDbType.NVarChar, 100)
+                            {
+                                Value = "%" + timKiemBan + "%"
+                            });
+                        }
+                    }
+
+                    // 4. LỌC THEO TRẠNG THÁI
+                    if (!string.IsNullOrEmpty(trangThai) && trangThai.ToLower() != "tatca")
+                    {
+                        string dbStatus = trangThai.ToLower() switch
+                        {
+                            "choxacnhan" => "ChoXacNhan",
+                            "dangchebien" => "DangCheBien",
+                            "hoanthanh" => "HoanThanh",
+                            "huy" => "Huy",
+                            "covande" => "CoVanDe",
+                            _ => null
+                        };
+
+                        if (dbStatus != null)
+                        {
+                            query += @" AND CASE 
+                        WHEN TongSoMon > 0 AND SoMonHuy = TongSoMon THEN 'Huy'
+                        WHEN TongSoMon > 0 AND SoMonHoanThanh = TongSoMon THEN 'HoanThanh'
+                        WHEN SoMonCoVanDe > 0 THEN 'CoVanDe'
+                        WHEN SoMonDangCheBien > 0 THEN 'DangCheBien'
+                        WHEN SoMonChoXacNhan > 0 THEN 'ChoXacNhan'
+                        ELSE 'ChoXacNhan'
+                    END = @TrangThai";
+                            parameters.Add(new SqlParameter("@TrangThai", SqlDbType.NVarChar, 20) { Value = dbStatus });
+                        }
+                    }
+                    // 6. SẮP XẾP
+                    string orderByClause = sapXep.ToLower() switch
+                    {
+                        "uutien" => "UuTienCaoNhat DESC, NgayOrder ASC",
+                        "ban" => "TenBan ASC, NgayOrder ASC",
+                        "thoigian" => "NgayOrder DESC",
+                        "thoigiancho" => "NgayOrder ASC",
+                        _ => "NgayOrder DESC"
+                    };
+                    query += $" ORDER BY {orderByClause}";
+
+             
+                    if (parameters.Count > 0)
+                    {
+                        Console.WriteLine($"📌 Parameters:");
+                        foreach (var param in parameters)
+                        {
+                            Console.WriteLine($"   {param.ParameterName} = {param.Value}");
+                        }
+                    }
+
+                    // 8. THỰC THI TRUY VẤN
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddRange(parameters.ToArray());
+
+                    List<KitchenOrderData> orders = new List<KitchenOrderData>();
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            DateTime ngayOrderDB = (DateTime)r["NgayOrder"];
+                            DateTime ngayOrderVietnam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayOrderDB);
+
+                            var order = new KitchenOrderData
+                            {
+                                MaDonHang = (int)r["MaDonHang"],
+                                MaBanAn = r["MaBanAn"] != DBNull.Value ? Convert.ToInt32(r["MaBanAn"]) : 0,
+                                TenBan = r["TenBan"]?.ToString() ?? "Không xác định",
+                                NgayOrder = ngayOrderVietnam,
+                                TenNhanVienOrder = r["TenNhanVienOrder"]?.ToString() ?? "Không xác định",
+                                TongSoMon = r["TongSoMon"] != DBNull.Value ? Convert.ToInt32(r["TongSoMon"]) : 0,
+                                TongTien = r["TongTien"] != DBNull.Value ? Convert.ToDecimal(r["TongTien"]) : 0,
+
+                                // Thống kê món
+                                SoMonChoXacNhan = r["SoMonChoXacNhan"] != DBNull.Value ? Convert.ToInt32(r["SoMonChoXacNhan"]) : 0,
+                                SoMonDangCheBien = r["SoMonDangCheBien"] != DBNull.Value ? Convert.ToInt32(r["SoMonDangCheBien"]) : 0,
+                                SoMonHoanThanh = r["SoMonHoanThanh"] != DBNull.Value ? Convert.ToInt32(r["SoMonHoanThanh"]) : 0,
+                                SoMonCoVanDe = r["SoMonCoVanDe"] != DBNull.Value ? Convert.ToInt32(r["SoMonCoVanDe"]) : 0,
+                                SoMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0,
+                                UuTienCaoNhat = r["UuTienCaoNhat"] != DBNull.Value ? Convert.ToInt32(r["UuTienCaoNhat"]) : 1,
+
+                                // THÊM DÒNG NÀY (chỉ tên thuộc tính và giá trị):
+                                TrangThaiThucTe = r["TrangThaiThucTe"]?.ToString() ?? ""
+                            };
+                          
+                            orders.Add(order);
+                        }
+                    }
+
+                    // 8. Tính toán thống kê
+                    var thongKe = new ThongKeBep(orders);
+
+                   
+                    return new KitchenOrdersResult
+                    {
+                        Success = true,
+                        DonHang = orders,
+                        ThongKe = thongKe,
+                        Message = $"Tìm thấy {orders.Count} đơn hàng"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ LỖI GetKitchenOrders: {ex.Message}");
+                Console.WriteLine($"❌ StackTrace: {ex.StackTrace}");
+                return new KitchenOrdersResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy đơn hàng bếp: {ex.Message}"
+                };
+            }
+        }
+        public static bool KiemTraDonHoanThanh(int maDonHang)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+            SELECT 
+                COUNT(*) as TongSoMon,
+                SUM(CASE WHEN TrangThai = 'HoanThanh' THEN 1 ELSE 0 END) as SoMonHoanThanh,
+                SUM(CASE WHEN TrangThai = 'Huy' THEN 1 ELSE 0 END) as SoMonHuy
+            FROM CHITIET_DONHANG 
+            WHERE MaDonHang = @MaDonHang";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            if (r.Read())
+                            {
+                                int tongSoMon = r["TongSoMon"] != DBNull.Value ? Convert.ToInt32(r["TongSoMon"]) : 0;
+                                int soMonHoanThanh = r["SoMonHoanThanh"] != DBNull.Value ? Convert.ToInt32(r["SoMonHoanThanh"]) : 0;
+                                int soMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0;
+
+                                // Đơn hoàn thành khi: có món và tất cả món đều hoàn thành
+                                return tongSoMon > 0 && soMonHoanThanh == tongSoMon;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ LỖI KiemTraDonHoanThanh: {ex.Message}");
+            }
+
+            return false;
+        }
+        public static OrderDetailResult GetOrderDetail(int maDonHang)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string orderQuery = @"
+                SELECT 
+                    dh.MaDonHang,
+                    dh.MaBanAn,
+                    b.TenBan,
+                    dh.NgayOrder,
+                    nv.HoTen as TenNhanVienOrder,
+                    dh.TrangThai as TrangThaiDon,
+                    ISNULL((SELECT SUM(ctdh.SoLuong * ctdh.DonGia) 
+                            FROM CHITIET_DONHANG ctdh 
+                            WHERE ctdh.MaDonHang = dh.MaDonHang), 0) as TongTien,
+                    (SELECT MAX(ThoiGianDuKien) FROM CHITIET_DONHANG ctdh 
+                     WHERE ctdh.MaDonHang = dh.MaDonHang 
+                     AND ctdh.ThoiGianDuKien IS NOT NULL) as ThoiGianDuKienHoanThanh
+                FROM DONHANG dh
+                INNER JOIN BAN b ON dh.MaBanAn = b.MaBanAn
+                INNER JOIN NGUOIDUNG nv ON dh.MaNVOrder = nv.MaNguoiDung
+                WHERE dh.MaDonHang = @MaDonHang";
+
+                    SqlCommand cmd = new SqlCommand(orderQuery, conn);
+                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                    KitchenOrderDetailData? orderDetail = null;
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            DateTime ngayOrder = (DateTime)r["NgayOrder"];
+
+                            // ✅ CHUYỂN ĐỔI TỪ UTC (Azure) SANG GIỜ VIỆT NAM
+                            DateTime ngayOrderVietnam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayOrder);
+                            orderDetail = new KitchenOrderDetailData
+                            {
+                                MaDonHang = (int)r["MaDonHang"],
+                                MaBanAn = (int)r["MaBanAn"],
+                                TenBan = r["TenBan"].ToString(),
+                                NgayOrder = ngayOrderVietnam, // Đã chuyển đổi
+                                TenNhanVienOrder = r["TenNhanVienOrder"].ToString(),
+                                TrangThaiDon = r["TrangThaiDon"].ToString(),
+                                TongTien = Convert.ToDecimal(r["TongTien"]),
+                                ThoiGianDuKienHoanThanh = r["ThoiGianDuKienHoanThanh"] != DBNull.Value ?
+                                    TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianDuKienHoanThanh"])) : null,
+                                DanhSachMon = new List<KitchenDishData>(),
+                                TinNhan = new List<KitchenMessageData>()
+                            };
+                        }
+                    }
+
+                    if (orderDetail == null)
+                    {
+                        return new OrderDetailResult
+                        {
+                            Success = false,
+                            Message = "Không tìm thấy đơn hàng"
+                        };
+                    }
+
+                    // Query chi tiết món ăn
+                    string dishesQuery = @"
+                SELECT 
+                    ctdh.MaChiTiet,
+                    ctdh.MaMon,
+                    mi.TenMon,
+                    ctdh.SoLuong,
+                    ctdh.DonGia,
+                    ctdh.GhiChuKhach,
+                    ctdh.TrangThai,
+                    ctdh.GhiChuBep,
+                    ctdh.MaNhanVienCheBien,
+                    nv.HoTen as TenNhanVienCheBien,
+                    ctdh.UuTien,
+                    ctdh.ThoiGianBatDau,
+                    ctdh.ThoiGianHoanThanh,
+                    ctdh.ThoiGianDuKien
+                FROM CHITIET_DONHANG ctdh
+                INNER JOIN MENUITEMS mi ON ctdh.MaMon = mi.MaMon
+                LEFT JOIN NGUOIDUNG nv ON ctdh.MaNhanVienCheBien = nv.MaNguoiDung
+                WHERE ctdh.MaDonHang = @MaDonHang
+                ORDER BY ctdh.UuTien DESC, ctdh.MaChiTiet";
+
+                    cmd = new SqlCommand(dishesQuery, conn);
+                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            // ✅ CHUYỂN ĐỔI TẤT CẢ THỜI GIAN TỪ UTC SANG VIỆT NAM
+                            DateTime? thoiGianBatDau = r["ThoiGianBatDau"] != DBNull.Value ?
+                                TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianBatDau"])) : null;
+
+                            DateTime? thoiGianHoanThanh = r["ThoiGianHoanThanh"] != DBNull.Value ?
+                                TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianHoanThanh"])) : null;
+
+                            DateTime? thoiGianDuKien = r["ThoiGianDuKien"] != DBNull.Value ?
+                                TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianDuKien"])) : null;
+
+                            var dish = new KitchenDishData
+                            {
+                                MaChiTiet = (int)r["MaChiTiet"],
+                                MaMon = (int)r["MaMon"],
+                                TenMon = r["TenMon"].ToString(),
+                                SoLuong = (int)r["SoLuong"],
+                                DonGia = Convert.ToDecimal(r["DonGia"]),
+                                GhiChuKhach = r["GhiChuKhach"] != DBNull.Value ? r["GhiChuKhach"].ToString() : "",
+                                TrangThai = r["TrangThai"].ToString(),
+                                GhiChuBep = r["GhiChuBep"] != DBNull.Value ? r["GhiChuBep"].ToString() : "",
+                                MaNhanVienCheBien = r["MaNhanVienCheBien"] != DBNull.Value ?
+                                    (int?)Convert.ToInt32(r["MaNhanVienCheBien"]) : null,
+                                TenNhanVienCheBien = r["TenNhanVienCheBien"] != DBNull.Value ?
+                                    r["TenNhanVienCheBien"].ToString() : "",
+                                UuTien = (int)r["UuTien"],
+                                ThoiGianBatDau = thoiGianBatDau, // Đã chuyển đổi
+                                ThoiGianHoanThanh = thoiGianHoanThanh, // Đã chuyển đổi
+                                ThoiGianDuKien = thoiGianDuKien // Đã chuyển đổi
+                            };
+
+                            orderDetail.DanhSachMon.Add(dish);
+                        }
+                    }
+
+                    return new OrderDetailResult
+                    {
+                        Success = true,
+                        ChiTietDonHang = orderDetail,
+                        Message = "Lấy chi tiết đơn hàng thành công"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new OrderDetailResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy chi tiết đơn: {ex.Message}"
+                };
+            }
+        }
+        public static UpdateDishStatusResult UpdateDishStatus(int maDonHang, int maChiTiet, string trangThaiMoi,
+      int? maNhanVienBep, string ghiChuBep, DateTime? thoiGianDuKienHoanThanh, int uuTien, bool guiThongBao)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Lấy thông tin món cũ
+                    string getOldInfo = @"
+                SELECT mi.TenMon, ctdh.TrangThai as TrangThaiCu
+                FROM CHITIET_DONHANG ctdh
+                INNER JOIN MENUITEMS mi ON ctdh.MaMon = mi.MaMon
+                WHERE ctdh.MaChiTiet = @MaChiTiet AND ctdh.MaDonHang = @MaDonHang";
+
+                    SqlCommand cmd = new SqlCommand(getOldInfo, conn);
+                    cmd.Parameters.AddWithValue("@MaChiTiet", maChiTiet);
+                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                    string tenMon = "";
+                    string trangThaiCu = "";
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            tenMon = r["TenMon"].ToString();
+                            trangThaiCu = r["TrangThaiCu"].ToString();
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(tenMon))
+                    {
+                        return new UpdateDishStatusResult
+                        {
+                            Success = false,
+                            Message = "Không tìm thấy món cần cập nhật"
+                        };
+                    }
+
+                    // ✅ SỬA TRONG UpdateDishStatus:
+                    DateTime vietnamNow = TimeHelper.GetVietnamTime();
+                    DateTime utcNow = TimeHelper.ConvertVietnamTimeToUtc(vietnamNow);
+
+                    // Chuyển thời gian dự kiến từ Việt Nam sang UTC
+                    DateTime? utcThoiGianDuKien = null;
+                    if (thoiGianDuKienHoanThanh.HasValue)
+                    {
+                        utcThoiGianDuKien = TimeHelper.ConvertVietnamTimeToUtc(thoiGianDuKienHoanThanh.Value);
+                    }
+
+                    // Update query
+                    string updateQuery = @"
+                UPDATE CHITIET_DONHANG SET 
+                    TrangThai = @TrangThaiMoi,
+                    GhiChuBep = @GhiChuBep,
+                    MaNhanVienCheBien = @MaNhanVienBep,
+                    UuTien = @UuTien,
+                    ThoiGianDuKien = @ThoiGianDuKien
+                WHERE MaChiTiet = @MaChiTiet AND MaDonHang = @MaDonHang";
+
+                    // Cập nhật thời gian bắt đầu
+                    if (trangThaiMoi == "DangCheBien" && trangThaiCu != "DangCheBien")
+                    {
+                        updateQuery = @"
+                    UPDATE CHITIET_DONHANG SET 
+                        TrangThai = @TrangThaiMoi,
+                        GhiChuBep = @GhiChuBep,
+                        MaNhanVienCheBien = @MaNhanVienBep,
+                        UuTien = @UuTien,
+                        ThoiGianDuKien = @ThoiGianDuKien,
+                        ThoiGianBatDau = @ThoiGianBatDau
+                    WHERE MaChiTiet = @MaChiTiet AND MaDonHang = @MaDonHang";
+                    }
+
+                    // Cập nhật thời gian hoàn thành
+                    if (trangThaiMoi == "HoanThanh" && trangThaiCu != "HoanThanh")
+                    {
+                        updateQuery = @"
+                    UPDATE CHITIET_DONHANG SET 
+                        TrangThai = @TrangThaiMoi,
+                        GhiChuBep = @GhiChuBep,
+                        MaNhanVienCheBien = @MaNhanVienBep,
+                        UuTien = @UuTien,
+                        ThoiGianDuKien = @ThoiGianDuKien,
+                        ThoiGianHoanThanh = @ThoiGianHoanThanh
+                    WHERE MaChiTiet = @MaChiTiet AND MaDonHang = @MaDonHang";
+                    }
+
+                    cmd = new SqlCommand(updateQuery, conn);
+                    cmd.Parameters.AddWithValue("@MaChiTiet", maChiTiet);
+                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                    cmd.Parameters.AddWithValue("@TrangThaiMoi", trangThaiMoi);
+                    cmd.Parameters.AddWithValue("@GhiChuBep", ghiChuBep ?? "");
+                    cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@UuTien", uuTien);
+                    cmd.Parameters.AddWithValue("@ThoiGianHoanThanh", utcNow);
+                    cmd.Parameters.AddWithValue("@ThoiGianBatDau", utcNow);
+                    cmd.Parameters.AddWithValue("@ThoiGianDuKien", utcThoiGianDuKien ?? (object)DBNull.Value);
+
+                    int rowsAffected = cmd.ExecuteNonQuery();
+
+                    if (rowsAffected > 0)
+                    {
+                        // Gửi thông báo
+                        if (guiThongBao)
+                        {
+                            SendKitchenNotification(conn, maDonHang, tenMon, trangThaiCu, trangThaiMoi, ghiChuBep);
+                        }
+
+                        return new UpdateDishStatusResult
+                        {
+                            Success = true,
+                            TenMon = tenMon,
+                            TrangThaiCu = trangThaiCu,
+                            TrangThaiMoi = trangThaiMoi,
+                            Message = $"Đã cập nhật trạng thái '{tenMon}' thành công",
+                            ThoiGianHoanThanh = vietnamNow // Trả về giờ Việt Nam
+                        };
+                    }
+                    else
+                    {
+                        return new UpdateDishStatusResult
+                        {
+                            Success = false,
+                            Message = "Không thể cập nhật trạng thái món"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new UpdateDishStatusResult
+                {
+                    Success = false,
+                    Message = $"Lỗi cập nhật trạng thái: {ex.Message}"
+                };
+            }
+        }
+        /// <summary>
+        /// Gửi thông báo từ bếp đến phục vụ
+        /// </summary>
+        private static void SendKitchenNotification(SqlConnection conn, int maDonHang, string tenMon,
+            string trangThaiCu, string trangThaiMoi, string ghiChuBep)
+        {
+            try
+            {
+                // Lấy thông tin bàn và nhân viên phục vụ
+                string getInfoQuery = @"
+                    SELECT dh.MaBanAn, b.TenBan, nv.MaNguoiDung, nv.HoTen
+                    FROM DONHANG dh
+                    INNER JOIN BAN b ON dh.MaBanAn = b.MaBanAn
+                    INNER JOIN NGUOIDUNG nv ON b.MaNhanVien = nv.MaNguoiDung
+                    WHERE dh.MaDonHang = @MaDonHang AND nv.VaiTro = 'PhucVu'";
+
+                SqlCommand cmd = new SqlCommand(getInfoQuery, conn);
+                cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    if (r.Read())
+                    {
+                        int maBanAn = (int)r["MaBanAn"];
+                        string tenBan = r["TenBan"].ToString();
+                        int maNhanVienPhucVu = (int)r["MaNguoiDung"];
+                        string tenNhanVienPhucVu = r["HoTen"].ToString();
+
+                        // Tạo nội dung thông báo
+                        string noiDung = $"Bếp: Trạng thái '{tenMon}' đã thay đổi từ '{trangThaiCu}' sang '{trangThaiMoi}'";
+                        if (!string.IsNullOrEmpty(ghiChuBep))
+                        {
+                            noiDung += $". Ghi chú: {ghiChuBep}";
+                        }
+
+                        // Lấy mã đầu bếp hiện tại (giả sử đang xử lý)
+                        int maDauBep = GetCurrentChefId(conn);
+
+                        // Gửi tin nhắn
+                        SendMessage(conn, maDauBep, maNhanVienPhucVu, noiDung);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi gửi thông báo: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Lấy ID đầu bếp hiện tại (giả sử)
+        /// </summary>
+        private static int GetCurrentChefId(SqlConnection conn)
+        {
+            try
+            {
+                string query = "SELECT TOP 1 MaNguoiDung FROM NGUOIDUNG WHERE VaiTro = 'Bep' AND TrangThai = 1";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                object result = cmd.ExecuteScalar();
+                return result != null ? Convert.ToInt32(result) : 1; // Default to 1 if not found
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        /// <summary>
+        /// Gửi tin nhắn
+        /// </summary>
+        /// <summary>
+        /// Gửi tin nhắn
+        /// </summary>
+        private static void SendMessage(SqlConnection conn, int maNguoiGui, int maNguoiNhan, string noiDung)
+        {
+            try
+            {
+                string insertQuery = @"
+        INSERT INTO TINNHAN (MaNguoiGui, MaNguoiNhan, NoiDung, ThoiGian, DaDoc)
+        VALUES (@MaNguoiGui, @MaNguoiNhan, @NoiDung, @ThoiGian, 0)";
+
+                SqlCommand cmd = new SqlCommand(insertQuery, conn);
+                cmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+                cmd.Parameters.AddWithValue("@MaNguoiNhan", maNguoiNhan);
+                cmd.Parameters.AddWithValue("@NoiDung", noiDung);
+
+                // ✅ QUAN TRỌNG: Lưu GetVietnamTime() thay vì UtcNow
+                // Hàm TimeHelper.GetVietnamTime() của bạn đã viết đúng (UTC+7)
+                cmd.Parameters.AddWithValue("@ThoiGian", TimeHelper.GetVietnamTime());
+
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi gửi tin nhắn: {ex.Message}");
+            }
+        }
+
+        public static KitchenStatisticsResult GetKitchenStatistics(DateTime tuNgay, DateTime denNgay, int? maNhanVienBep = null)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    KitchenStatisticsData statistics = new KitchenStatisticsData
+                    {
+                        TuNgay = tuNgay,
+                        DenNgay = denNgay,
+                        TopMonAn = new List<TopMonData>(),
+                        HieuSuatDauBep = new List<HieuSuatDauBep>(),
+                        PhanBoTheoGio = new Dictionary<int, int>()
+                    };
+
+                    // ✅ FIX 1: Chỉ tạo ngày Việt Nam một lần và dùng xuyên suốt
+                    DateTime tuNgayVietnam = tuNgay.Date;
+                    DateTime denNgayVietnam = denNgay.Date.AddDays(1).AddSeconds(-1);
+
+                    Console.WriteLine($"DEBUG GetKitchenStatistics: TuNgay={tuNgayVietnam:yyyy-MM-dd HH:mm:ss}, DenNgay={denNgayVietnam:yyyy-MM-dd HH:mm:ss}");
+
+                    // ✅ FIX 2: Tổng số đơn và món (SỬA QUERY)
+                    string totalQuery = @"
+                        SELECT 
+                            COUNT(DISTINCT dh.MaDonHang) as TongSoDon,
+                            COUNT(ctdh.MaChiTiet) as TongSoMon,
+                            -- CHỈ tính thời gian cho các món đã hoàn thành
+                            CASE 
+                                WHEN COUNT(CASE WHEN ctdh.TrangThai = 'HoanThanh' AND ctdh.ThoiGianBatDau IS NOT NULL AND ctdh.ThoiGianHoanThanh IS NOT NULL THEN 1 END) > 0
+                                THEN AVG(DATEDIFF(MINUTE, ctdh.ThoiGianBatDau, ctdh.ThoiGianHoanThanh))
+                                ELSE NULL
+                            END as ThoiGianTrungBinh,
+                            SUM(CASE WHEN ctdh.TrangThai = 'ChoXacNhan' THEN 1 ELSE 0 END) as SoMonChoXacNhan,
+                            SUM(CASE WHEN ctdh.TrangThai = 'DangCheBien' THEN 1 ELSE 0 END) as SoMonDangCheBien,
+                            SUM(CASE WHEN ctdh.TrangThai = 'HoanThanh' THEN 1 ELSE 0 END) as SoMonHoanThanh,
+                            SUM(CASE WHEN ctdh.TrangThai = 'CoVanDe' THEN 1 ELSE 0 END) as SoMonCoVanDe,
+                            SUM(CASE WHEN ctdh.TrangThai = 'Huy' THEN 1 ELSE 0 END) as SoMonHuy
+                        FROM DONHANG dh
+                        INNER JOIN CHITIET_DONHANG ctdh ON dh.MaDonHang = ctdh.MaDonHang
+                        WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
+                        AND (@MaNhanVienBep IS NULL OR ctdh.MaNhanVienCheBien = @MaNhanVienBep)";
+
+                    // ✅ FIX 3: Khởi tạo command riêng cho từng query để tránh lỗi parameter
+                    using (SqlCommand cmd = new SqlCommand(totalQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                        if (maNhanVienBep.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            if (r.Read())
+                            {
+                                statistics.TongSoDon = r["TongSoDon"] != DBNull.Value ? Convert.ToInt32(r["TongSoDon"]) : 0;
+                                statistics.TongSoMon = r["TongSoMon"] != DBNull.Value ? Convert.ToInt32(r["TongSoMon"]) : 0;
+
+                                // ✅ FIX: Xử lý NULL cho ThoiGianTrungBinh
+                                if (r["ThoiGianTrungBinh"] != DBNull.Value)
+                                {
+                                    double phut = Convert.ToDouble(r["ThoiGianTrungBinh"]);
+                                    statistics.ThoiGianTrungBinh = TimeSpan.FromMinutes(phut);
+                                }
+                                else
+                                {
+                                    statistics.ThoiGianTrungBinh = TimeSpan.Zero;
+                                }
+
+                                statistics.SoMonChoXacNhan = r["SoMonChoXacNhan"] != DBNull.Value ? Convert.ToInt32(r["SoMonChoXacNhan"]) : 0;
+                                statistics.SoMonDangCheBien = r["SoMonDangCheBien"] != DBNull.Value ? Convert.ToInt32(r["SoMonDangCheBien"]) : 0;
+                                statistics.SoMonHoanThanh = r["SoMonHoanThanh"] != DBNull.Value ? Convert.ToInt32(r["SoMonHoanThanh"]) : 0;
+                                statistics.SoMonCoVanDe = r["SoMonCoVanDe"] != DBNull.Value ? Convert.ToInt32(r["SoMonCoVanDe"]) : 0;
+                                statistics.SoMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0;
+                            }
+                        }
+                    }
+
+                    Console.WriteLine($"DEBUG: Thống kê tổng - Đơn: {statistics.TongSoDon}, Món: {statistics.TongSoMon}, Hoàn thành: {statistics.SoMonHoanThanh}");
+
+                    // ✅ FIX 4: Top 5 món được order nhiều nhất (SỬA QUERY - thêm điều kiện MaNhanVienBep)
+                                string topMonQuery = @"
+                            SELECT TOP 5 
+                                ctdh.MaMon,
+                                mi.TenMon,
+                                COUNT(*) as SoLanOrder,
+                                SUM(ctdh.SoLuong) as TongSoPhan
+                            FROM CHITIET_DONHANG ctdh
+                            INNER JOIN MENUITEMS mi ON ctdh.MaMon = mi.MaMon
+                            INNER JOIN DONHANG dh ON ctdh.MaDonHang = dh.MaDonHang
+                            WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
+                            AND (@MaNhanVienBep IS NULL OR ctdh.MaNhanVienCheBien = @MaNhanVienBep)
+                            GROUP BY ctdh.MaMon, mi.TenMon
+                            ORDER BY SoLanOrder DESC, TongSoPhan DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(topMonQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                        if (maNhanVienBep.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                statistics.TopMonAn.Add(new TopMonData
+                                {
+                                    MaMon = (int)r["MaMon"],
+                                    TenMon = r["TenMon"].ToString(),
+                                    SoLanOrder = (int)r["SoLanOrder"],
+                                    TongSoPhan = (int)r["TongSoPhan"]
+                                });
+                            }
+                        }
+                    }
+
+                    Console.WriteLine($"DEBUG: Top {statistics.TopMonAn.Count} món phổ biến");
+
+                    // ✅ FIX 5: Hiệu suất đầu bếp (SỬA QUERY - chỉ tính món đã hoàn thành)
+                            string hieuSuatQuery = @"
+                        SELECT 
+                            nv.MaNguoiDung,
+                            nv.HoTen as TenNhanVien,
+                            COUNT(ctdh.MaChiTiet) as TongSoMon,
+                            -- CHỈ tính thời gian cho món đã hoàn thành
+                            CASE 
+                                WHEN COUNT(CASE WHEN ctdh.TrangThai = 'HoanThanh' AND ctdh.ThoiGianBatDau IS NOT NULL AND ctdh.ThoiGianHoanThanh IS NOT NULL THEN 1 END) > 0
+                                THEN AVG(DATEDIFF(MINUTE, ctdh.ThoiGianBatDau, ctdh.ThoiGianHoanThanh))
+                                ELSE NULL
+                            END as ThoiGianTrungBinh
+                        FROM NGUOIDUNG nv
+                        INNER JOIN CHITIET_DONHANG ctdh ON nv.MaNguoiDung = ctdh.MaNhanVienCheBien
+                        INNER JOIN DONHANG dh ON ctdh.MaDonHang = dh.MaDonHang
+                        WHERE nv.VaiTro = 'Bep' 
+                        AND nv.TrangThai = 1
+                        AND dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
+                        AND (@MaNhanVienBep IS NULL OR nv.MaNguoiDung = @MaNhanVienBep)
+                        GROUP BY nv.MaNguoiDung, nv.HoTen
+                        HAVING COUNT(ctdh.MaChiTiet) > 0
+                        ORDER BY TongSoMon DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(hieuSuatQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                        cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                        if (maNhanVienBep.HasValue)
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                var hieuSuat = new HieuSuatDauBep
+                                {
+                                    MaNhanVien = (int)r["MaNguoiDung"],
+                                    TenNhanVien = r["TenNhanVien"].ToString(),
+                                    TongSoMon = (int)r["TongSoMon"]
+                                };
+
+                                // ✅ FIX: Xử lý NULL cho thời gian trung bình
+                                if (r["ThoiGianTrungBinh"] != DBNull.Value)
+                                {
+                                    double phut = Convert.ToDouble(r["ThoiGianTrungBinh"]);
+                                    hieuSuat.ThoiGianTrungBinh = TimeSpan.FromMinutes(phut);
+                                }
+                                else
+                                {
+                                    hieuSuat.ThoiGianTrungBinh = TimeSpan.Zero;
+                                }
+
+                                // ✅ FIX 6: Thêm hàm CalculateEfficiency
+                                hieuSuat.HieuSuatPhanTram = CalculateEfficiency(hieuSuat);
+
+                                statistics.HieuSuatDauBep.Add(hieuSuat);
+                            }
+                        }
+                    }
+
+                    Console.WriteLine($"DEBUG: Hiệu suất {statistics.HieuSuatDauBep.Count} đầu bếp");
+
+                    // ✅ FIX 7: Phân bố theo giờ (THÊM điều kiện MaNhanVienBep)
+                    for (int gio = 7; gio <= 22; gio++) // Từ 7h đến 22h
+                    {
+                        string hourQuery = @"
+                    SELECT COUNT(DISTINCT dh.MaDonHang) as SoDon
+                    FROM DONHANG dh
+                    INNER JOIN CHITIET_DONHANG ctdh ON dh.MaDonHang = ctdh.MaDonHang
+                    WHERE dh.NgayOrder BETWEEN @TuNgay AND @DenNgay
+                    AND DATEPART(HOUR, dh.NgayOrder) = @Gio
+                    AND (@MaNhanVienBep IS NULL OR ctdh.MaNhanVienCheBien = @MaNhanVienBep)";
+
+                        using (SqlCommand cmd = new SqlCommand(hourQuery, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@TuNgay", tuNgayVietnam);
+                            cmd.Parameters.AddWithValue("@DenNgay", denNgayVietnam);
+                            cmd.Parameters.AddWithValue("@Gio", gio);
+                            if (maNhanVienBep.HasValue)
+                                cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                            else
+                                cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                            object result = cmd.ExecuteScalar();
+                            int soDon = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+                            statistics.PhanBoTheoGio[gio] = soDon;
+                        }
+                    }
+
+                    Console.WriteLine($"DEBUG: Phân bố theo giờ - Tổng: {statistics.PhanBoTheoGio.Values.Sum()} đơn");
+
+                    return new KitchenStatisticsResult
+                    {
+                        Success = true,
+                        ThongKe = statistics,
+                        Message = $"Lấy thống kê thành công: {statistics.TongSoDon} đơn, {statistics.TongSoMon} món"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ LỖI GetKitchenStatistics: {ex.Message}");
+                Console.WriteLine($"❌ StackTrace: {ex.StackTrace}");
+                return new KitchenStatisticsResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy thống kê: {ex.Message}"
+                };
+            }
+        }
+
+        private static int CalculateEfficiency(HieuSuatDauBep hieuSuat)
+        {
+            // Logic tính hiệu suất (giả sử)
+            // Nếu thời gian trung bình < 10 phút => hiệu suất cao
+            // 10-15 phút => trung bình
+            // >15 phút => thấp
+
+            if (hieuSuat.ThoiGianTrungBinh.TotalMinutes <= 10)
+                return 90 + hieuSuat.TongSoMon; // Tăng theo số món đã làm
+            else if (hieuSuat.ThoiGianTrungBinh.TotalMinutes <= 15)
+                return 70 + hieuSuat.TongSoMon;
+            else
+                return 50 + hieuSuat.TongSoMon;
+        }
+
+        /// <summary>
+        /// Cập nhật nhiều món cùng lúc
+        /// </summary>
+        public static UpdateDishStatusResult UpdateMultipleDishes(int maDonHang, List<DishUpdateItem> danhSachMon, bool guiThongBao)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    int soMonDaCapNhat = 0;
+                    List<string> tenCacMon = new List<string>();
+
+                    foreach (var mon in danhSachMon)
+                    {
+                        var result = UpdateDishStatus(
+                            maDonHang,
+                            mon.MaChiTiet,
+                            mon.TrangThaiMoi,
+                            mon.MaNhanVienBep,
+                            mon.GhiChuBep,
+                            mon.ThoiGianDuKien,
+                            mon.UuTien,
+                            guiThongBao && soMonDaCapNhat == 0 // Chỉ gửi thông báo cho món đầu tiên
+                        );
+
+                        if (result.Success)          
+                        {
+                            soMonDaCapNhat++;
+                            tenCacMon.Add(result.TenMon);
+                        }
+                    }
+
+                    return new UpdateDishStatusResult
+                    {
+                        Success = soMonDaCapNhat > 0,
+                        TenMon = string.Join(", ", tenCacMon),
+                        Message = $"Đã cập nhật {soMonDaCapNhat} món thành công"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new UpdateDishStatusResult
+                {
+                    Success = false,
+                    Message = $"Lỗi cập nhật nhiều món: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gửi tin nhắn từ bếp
+        /// </summary>
+        public static SendMessageResult SendKitchenMessage(int maDonHang, int maNhanVienGui, int? maNhanVienNhan,
+            string noiDung, string loaiTinNhan, bool hienPopup, bool phatAmThanh)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Nếu không chỉ định người nhận, gửi cho tất cả phục vụ phụ trách bàn đó
+                    if (!maNhanVienNhan.HasValue || maNhanVienNhan.Value == 0)
+                    {
+                        // Lấy tất cả phục vụ phụ trách bàn
+                        string getWaitersQuery = @"
+                            SELECT DISTINCT nv.MaNguoiDung
+                            FROM DONHANG dh
+                            INNER JOIN BAN b ON dh.MaBanAn = b.MaBanAn
+                            INNER JOIN NGUOIDUNG nv ON b.MaNhanVien = nv.MaNguoiDung
+                            WHERE dh.MaDonHang = @MaDonHang AND nv.VaiTro = 'PhucVu'";
+
+                        SqlCommand cmd = new SqlCommand(getWaitersQuery, conn);
+                        cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                        List<int> maCacNhanVien = new List<int>();
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                maCacNhanVien.Add((int)r["MaNguoiDung"]);
+                            }
+                        }
+
+                        // Gửi tin nhắn cho từng phục vụ
+                        foreach (int maNV in maCacNhanVien)
+                        {
+                            SendMessage(conn, maNhanVienGui, maNV, noiDung);
+                        }
+
+                        return new SendMessageResult
+                        {
+                            Success = true,
+                            MaTinNhan = maCacNhanVien.Count > 0 ? 1 : 0,
+                            Message = $"Đã gửi tin nhắn cho {maCacNhanVien.Count} phục vụ"
+                        };
+                    }
+                    else
+                    {
+                        // Gửi cho một phục vụ cụ thể
+                        SendMessage(conn, maNhanVienGui, maNhanVienNhan.Value, noiDung);
+
+                        return new SendMessageResult
+                        {
+                            Success = true,
+                            MaTinNhan = 1,
+                            Message = "Đã gửi tin nhắn thành công"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new SendMessageResult
+                {
+                    Success = false,
+                    Message = $"Lỗi gửi tin nhắn: {ex.Message}"
+                };
+            }
+        }
+
+        /// </summary>
+        public static KitchenMessagesResult GetKitchenMessages(int maDonHang, int? maNhanVienBep)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Lấy thông tin bàn từ đơn hàng
+                    string getTableQuery = "SELECT MaBanAn FROM DONHANG WHERE MaDonHang = @MaDonHang";
+                    SqlCommand cmd = new SqlCommand(getTableQuery, conn);
+                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+
+                    object result = cmd.ExecuteScalar();
+                    if (result == null)
+                    {
+                        return new KitchenMessagesResult
+                        {
+                            Success = false,
+                            Message = "Không tìm thấy đơn hàng"
+                        };
+                    }
+
+                    int maBanAn = (int)result;
+
+                    // Lấy tin nhắn liên quan đến bàn này
+                    string messagesQuery = @"
+                SELECT 
+                    tn.MaTinNhan,
+                    tn.MaNguoiGui,
+                    gui.HoTen as TenNguoiGui,
+                    gui.VaiTro as VaiTroNguoiGui,
+                    tn.MaNguoiNhan,
+                    nhan.HoTen as TenNguoiNhan,
+                    tn.NoiDung,
+                    tn.ThoiGian,
+                    tn.DaDoc
+                FROM TINNHAN tn
+                INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+                INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+                WHERE (tn.MaNguoiGui = @MaNhanVienBep OR tn.MaNguoiNhan = @MaNhanVienBep)
+                AND EXISTS (
+                    SELECT 1 FROM DONHANG dh 
+                    WHERE dh.MaBanAn = @MaBanAn
+                    AND (dh.MaDonHang = @MaDonHang OR tn.NoiDung LIKE '%' + CAST(@MaDonHang AS NVARCHAR) + '%')
+                )
+                ORDER BY tn.ThoiGian DESC";
+
+                    cmd = new SqlCommand(messagesQuery, conn);
+                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                    cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+
+                    // Xử lý giá trị NULL cho MaNhanVienBep
+                    if (maNhanVienBep.HasValue)
+                        cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                    else
+                        cmd.Parameters.AddWithValue("@MaNhanVienBep", DBNull.Value);
+
+                    List<KitchenMessageData> tinNhan = new List<KitchenMessageData>();
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            var message = new KitchenMessageData
+                            {
+                                MaTin = (int)r["MaTinNhan"],
+                                MaNguoiGui = (int)r["MaNguoiGui"],
+                                TenNguoiGui = r["TenNguoiGui"].ToString(),
+                                VaiTroNguoiGui = r["VaiTroNguoiGui"].ToString(),
+                                MaNguoiNhan = (int)r["MaNguoiNhan"],
+                                TenNguoiNhan = r["TenNguoiNhan"].ToString(),
+                                NoiDung = r["NoiDung"].ToString(),
+                                ThoiGian = (DateTime)r["ThoiGian"],
+                                DaDoc = (bool)r["DaDoc"]
+                            };
+
+                            tinNhan.Add(message);
+                        }
+                    }
+
+                    // Đánh dấu đã đọc những tin nhắn gửi cho mình
+                    if (maNhanVienBep.HasValue)
+                    {
+                        string markReadQuery = @"
+                    UPDATE TINNHAN SET DaDoc = 1 
+                    WHERE MaNguoiNhan = @MaNhanVienBep 
+                    AND DaDoc = 0
+                    AND EXISTS (
+                        SELECT 1 FROM DONHANG dh 
+                        WHERE dh.MaBanAn = @MaBanAn
+                        AND dh.MaDonHang = @MaDonHang
+                    )";
+
+                        cmd = new SqlCommand(markReadQuery, conn);
+                        cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                        cmd.Parameters.AddWithValue("@MaBanAn", maBanAn);
+                        cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep.Value);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    return new KitchenMessagesResult
+                    {
+                        Success = true,
+                        TinNhan = tinNhan,
+                        Message = $"Lấy được {tinNhan.Count} tin nhắn"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new KitchenMessagesResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy tin nhắn: {ex.Message}"
+                };
+            }
+        }
+        public static ThongKeBepDayDuResult GetThongKeBep(DateTime tuNgay, DateTime denNgay, int? MaNhanVienBep = null)
+        {
+            var result = new ThongKeBepDayDuResult();
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    Console.WriteLine($"\n=== BẮT ĐẦU LẤY THỐNG KÊ BẾP ===");
+                    Console.WriteLine($"Thời gian: {tuNgay:dd/MM/yyyy} - {denNgay:dd/MM/yyyy}");
+
+                   
+
+                    // 1. Lấy thống kê tổng quan
+                    using (var cmdTongQuan = new SqlCommand("sp_ThongKeTongQuanBep", connection))
+                    {
+                        cmdTongQuan.CommandType = CommandType.StoredProcedure;
+                        cmdTongQuan.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmdTongQuan.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                        using (var reader = cmdTongQuan.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                result.TongQuan.TongDon = reader["TongDon"] != DBNull.Value ? Convert.ToInt32(reader["TongDon"]) : 0;
+                                result.TongQuan.DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0;
+                                result.TongQuan.TongMon = reader["TongMon"] != DBNull.Value ? Convert.ToInt32(reader["TongMon"]) : 0;
+                                result.TongQuan.ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null;
+
+                                Console.WriteLine($"Thống kê tổng quan:");
+                                Console.WriteLine($"  - Tổng đơn: {result.TongQuan.TongDon}");
+                                Console.WriteLine($"  - Đơn hoàn thành: {result.TongQuan.DonHoanThanh}");
+                                Console.WriteLine($"  - Tổng món: {result.TongQuan.TongMon}");
+                                Console.WriteLine($"  - Thời gian TB: {(result.TongQuan.ThoiGianTrungBinh.HasValue ? result.TongQuan.ThoiGianTrungBinh.Value.ToString("F1") : "N/A")} phút");
+                            }
+                        }
+                    }
+
+                    // 2. Lấy thống kê đầu bếp (SP đã fix)
+                    Console.WriteLine($"\n=== THỐNG KÊ TỪNG ĐẦU BẾP ===");
+                    using (var cmdDauBep = new SqlCommand("sp_ThongKeHieuSuatDauBep", connection))
+                    {
+                        cmdDauBep.CommandType = CommandType.StoredProcedure;
+                        cmdDauBep.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmdDauBep.Parameters.AddWithValue("@DenNgay", denNgay);
+
+                        if (MaNhanVienBep.HasValue)
+                            cmdDauBep.Parameters.AddWithValue("@MaNhanVien", MaNhanVienBep.Value);
+                        else
+                            cmdDauBep.Parameters.AddWithValue("@MaNhanVien", DBNull.Value);
+
+                        using (var reader = cmdDauBep.ExecuteReader())
+                        {
+                            // Debug: In tên các cột
+                            Console.WriteLine("Các cột trong kết quả:");
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                Console.WriteLine($"  {i}: {reader.GetName(i)}");
+                            }
+                            Console.WriteLine();
+
+                            int count = 0;
+                            while (reader.Read())
+                            {
+                                count++;
+
+                                // Debug: In tất cả giá trị
+                                Console.WriteLine($"--- Dòng #{count} ---");
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    Console.WriteLine($"  {reader.GetName(i)}: {reader[i]}");
+                                }
+
+                                var dauBep = new ThongKeDauBep()
+                                {
+                                    MaNguoiDung = Convert.ToInt32(reader["MaNguoiDung"]),
+                                    HoTen = reader["HoTen"].ToString(),
+                                    TongDon = reader["TongDon"] != DBNull.Value ? Convert.ToInt32(reader["TongDon"]) : 0,
+                                    DonHoanThanh = reader["DonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["DonHoanThanh"]) : 0,
+                                    TongMon = reader["TongMon"] != DBNull.Value ? Convert.ToInt32(reader["TongMon"]) : 0,
+                                    MonHoanThanh = reader["MonHoanThanh"] != DBNull.Value ? Convert.ToInt32(reader["MonHoanThanh"]) : 0,
+                                    ThoiGianTrungBinh = reader["ThoiGianTrungBinh"] != DBNull.Value ? Convert.ToDecimal(reader["ThoiGianTrungBinh"]) : null
+                                };
+
+                                // Tính tỷ lệ hoàn thành ĐƠN
+                                dauBep.TyLeHoanThanh = dauBep.TongDon > 0 ?
+                                    (decimal)dauBep.DonHoanThanh / dauBep.TongDon * 100 : 0;
+
+                                // Tính đánh giá hiệu suất
+                                dauBep.DanhGiaHieuSuat = CalculateHieuSuat(dauBep.TyLeHoanThanh, dauBep.ThoiGianTrungBinh);
+
+                                result.DanhSachDauBep.Add(dauBep);
+
+                                Console.WriteLine($"✅ Đầu bếp {dauBep.HoTen}: {dauBep.TongDon} đơn, {dauBep.DonHoanThanh} đơn HT ({dauBep.TyLeHoanThanh:F2}%)");
+                            }
+
+                            if (count == 0)
+                            {
+                                Console.WriteLine($"⚠️ Không có đầu bếp nào có dữ liệu trong khoảng thời gian này");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"\n✅ Tổng cộng: {count} đầu bếp có dữ liệu");
+                            }
+                        }
+                    }
+
+                    // 3. Lấy top món phổ biến
+                    using (var cmdTopMon = new SqlCommand("sp_TopMonPhobien", connection))
+                    {
+                        cmdTopMon.CommandType = CommandType.StoredProcedure;
+                        cmdTopMon.Parameters.AddWithValue("@TuNgay", tuNgay);
+                        cmdTopMon.Parameters.AddWithValue("@DenNgay", denNgay);
+                        cmdTopMon.Parameters.AddWithValue("@Top", 10);
+
+                        using (var reader = cmdTopMon.ExecuteReader())
+                        {
+                            int totalQuantity = 0;
+                            var topMonList = new List<TopMonAnThongKe>();
+
+                            while (reader.Read())
+                            {
+                                var mon = new TopMonAnThongKe
+                                {
+                                    MaMon = Convert.ToInt32(reader["MaMon"]),
+                                    TenMon = reader["TenMon"].ToString(),
+                                    SoLuong = reader["SoLuong"] != DBNull.Value ? Convert.ToInt32(reader["SoLuong"]) : 0,
+                                    SoDon = reader["SoDon"] != DBNull.Value ? Convert.ToInt32(reader["SoDon"]) : 0,
+                                    TenLoai = reader["TenLoai"]?.ToString() ?? "Không phân loại"
+                                };
+
+                                topMonList.Add(mon);
+                                totalQuantity += mon.SoLuong;
+                            }
+
+                            // Tính tỷ lệ
+                            foreach (var mon in topMonList)
+                            {
+                                mon.TyLe = totalQuantity > 0 ? (decimal)mon.SoLuong / totalQuantity * 100 : 0;
+                            }
+
+                            result.TopMonAn = topMonList;
+                            Console.WriteLine($"\n✅ Lấy {topMonList.Count} món phổ biến, tổng {totalQuantity} phần");
+                        }
+                    }
+
+                    result.Success = true;
+                    result.Message = "Lấy thống kê thành công";
+
+                    Console.WriteLine($"\n=== KẾT THÚC THỐNG KÊ ===");
+                    Console.WriteLine($"Thành công: {result.Success}");
+                    Console.WriteLine($"Số đầu bếp: {result.DanhSachDauBep.Count}");
+                    Console.WriteLine($"Số món top: {result.TopMonAn.Count}");
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Lỗi khi lấy thống kê: {ex.Message}";
+                Console.WriteLine($"\n❌ Lỗi trong GetThongKeBep: {ex.Message}");
+
+                // Hiển thị chi tiết lỗi SQL
+                if (ex is System.Data.SqlClient.SqlException sqlEx)
+                {
+                    Console.WriteLine($"SQL Error Number: {sqlEx.Number}");
+                    Console.WriteLine($"SQL Error Message: {sqlEx.Message}");
+                }
+            }
+
+            return result;
+        }
+        // =============================================
+        // Hàm tính hiệu suất (giữ nguyên)
+        // =============================================
+        private static string CalculateHieuSuat(decimal tyLeHoanThanh, decimal? thoiGianTrungBinh)
+        {
+            // Logic đánh giá (có thể tùy chỉnh)
+            if (tyLeHoanThanh >= 90 && thoiGianTrungBinh.HasValue && thoiGianTrungBinh <= 15)
+                return "Xuất sắc";
+            else if (tyLeHoanThanh >= 80 && thoiGianTrungBinh.HasValue && thoiGianTrungBinh <= 20)
+                return "Tốt";
+            else if (tyLeHoanThanh >= 70)
+                return "Khá";
+            else if (tyLeHoanThanh >= 50)
+                return "Trung bình";
+            else
+                return "Cần cải thiện";
+        }
+
+        public static GetDanhSachDauBepResult GetDanhSachDauBep()
+        {
+            var result = new GetDanhSachDauBepResult();
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    var query = @"
+                SELECT MaNguoiDung, HoTen, TenDangNhap, Email, SDT
+                FROM NGUOIDUNG 
+                WHERE VaiTro = N'Bep' AND TrangThai = 1
+                ORDER BY HoTen";
+
+                    using (var cmd = new SqlCommand(query, connection))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            result.DanhSachDauBep.Add(new NguoiDung
+                            {
+                                MaNguoiDung = Convert.ToInt32(reader["MaNguoiDung"]),
+                                HoTen = reader["HoTen"].ToString(),
+                                TenDangNhap = reader["TenDangNhap"].ToString(),
+                                Email = reader["Email"]?.ToString() ?? "",
+                                SDT = reader["SDT"]?.ToString() ?? ""
+                            });
+                        }
+                    }
+
+                    result.Success = true;
+                    result.Message = "Lấy danh sách đầu bếp thành công";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Lỗi khi lấy danh sách đầu bếp: {ex.Message}";
+                Console.WriteLine($"Error in GetDanhSachDauBep: {ex}");
+            }
+
+            return result;
+        }
+        // [DatabaseAccess.cs]
+
+        public static void ConfirmPaymentWebhook(int maHD, decimal soTienThucTe)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // BƯỚC 1: Cập nhật bảng HOADON (Code cũ của bạn)
+                    string queryHoaDon = @"UPDATE HOADON 
+                                   SET TrangThai = N'DaThanhToan', 
+                                       PhuongThucThanhToan = N'ChuyenKhoan' 
+                                   WHERE MaHD = @MaHD";
+
+                    using (var cmdHD = new SqlCommand(queryHoaDon, connection))
+                    {
+                        cmdHD.Parameters.AddWithValue("@MaHD", maHD);
+                        cmdHD.ExecuteNonQuery();
+                    }
+
+                    // BƯỚC 2: (QUAN TRỌNG - BỔ SUNG) Cập nhật bảng THANHTOAN
+                    // Client đang chờ bảng này chuyển sang trạng thái 'ThanhCong'
+                    string queryThanhToan = @"UPDATE THANHTOAN 
+                                      SET TrangThai = N'ThanhCong',
+                                          SoTienNhan = @SoTienThucTe,
+                                          ThoiGianThanhToan = GETDATE(),
+                                          GhiChu = CONCAT(GhiChu, N'. Nhận tiền qua Webhook.')
+                                      WHERE MaHD = @MaHD 
+                                        AND PhuongThucThanhToan = N'ChuyenKhoan' 
+                                        AND TrangThai = N'DangXuLy'";
+
+                    using (var cmdTT = new SqlCommand(queryThanhToan, connection))
+                    {
+                        cmdTT.Parameters.AddWithValue("@MaHD", maHD);
+                        cmdTT.Parameters.AddWithValue("@SoTienThucTe", soTienThucTe);
+
+                        int rows = cmdTT.ExecuteNonQuery();
+                        if (rows > 0)
+                        {
+                            Console.WriteLine($" 🎉 Đã xác nhận THANHTOAN thành công cho Hóa đơn #{maHD}");
+                        }
+                        else
+                        {
+                            // Trường hợp chưa có record trong bảng THANHTOAN (ví dụ khách ck trước khi bấm nút Thanh toán)
+                            // Bạn có thể cân nhắc Insert mới vào đây nếu cần thiết.
+                            Console.WriteLine($" ⚠️ Đã update HOADON nhưng không tìm thấy giao dịch 'DangXuLy' trong bảng THANHTOAN cho HD #{maHD}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("❌ Lỗi DB Webhook: " + ex.Message);
+            }
+        }
+        #region CHAT FUNCTIONS
+
+        /// <summary>
+        /// Lấy danh sách user để chat (loại trừ user hiện tại)
+        /// </summary>
+        public static ChatUsersResult GetChatUsers(int maNguoiDungHienTai, string timKiem = "")
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+                SELECT 
+                    nd.MaNguoiDung,
+                    nd.HoTen,
+                    nd.VaiTro,
+                    nd.TrangThai,
+                    -- Đếm số tin chưa đọc từ người này gửi đến user hiện tại
+                    (SELECT COUNT(*) FROM TINNHAN tn 
+                     WHERE tn.MaNguoiGui = nd.MaNguoiDung 
+                     AND tn.MaNguoiNhan = @MaNguoiDungHienTai 
+                     AND tn.DaDoc = 0) as SoTinChuaDoc
+                FROM NGUOIDUNG nd
+                WHERE nd.MaNguoiDung != @MaNguoiDungHienTai
+                AND nd.TrangThai = 1
+                AND nd.VaiTro IN ('Admin', 'PhucVu', 'Bep')
+                AND (@TimKiem = '' OR nd.HoTen LIKE '%' + @TimKiem + '%')
+                ORDER BY 
+                    CASE nd.VaiTro 
+                        WHEN 'Admin' THEN 1 
+                        WHEN 'Bep' THEN 2 
+                        WHEN 'PhucVu' THEN 3 
+                        ELSE 4 
+                    END,
+                    nd.HoTen";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDungHienTai", maNguoiDungHienTai);
+                        cmd.Parameters.AddWithValue("@TimKiem", timKiem ?? "");
+
+                        var users = new List<ChatUserData>();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                users.Add(new ChatUserData
+                                {
+                                    MaNguoiDung = (int)reader["MaNguoiDung"],
+                                    HoTen = reader["HoTen"].ToString(),
+                                    VaiTro = reader["VaiTro"].ToString(),
+                                    DangOnline = true, // Giả định tất cả đều online (có thể cải tiến sau)
+                                    SoTinChuaDoc = (int)reader["SoTinChuaDoc"]
+                                });
+                            }
+                        }
+
+                        return new ChatUsersResult
+                        {
+                            Success = true,
+                            Users = users,
+                            TongSoUser = users.Count,
+                            Message = $"Tìm thấy {users.Count} người dùng"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ChatUsersResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy danh sách user: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gửi tin nhắn chat
+        /// </summary>
+        public static SendChatResult SendChatMessage(int maNguoiGui, int maNguoiNhan, string noiDung, bool guiTatCa)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    DateTime thoiGianGui = TimeHelper.GetVietnamTime();
+                    int soNguoiNhan = 0;
+                    int maTinNhanDau = 0;
+
+                    if (guiTatCa)
+                    {
+                        // Gửi cho tất cả user (trừ người gửi)
+                        string getUsersQuery = @"
+                    SELECT MaNguoiDung FROM NGUOIDUNG 
+                    WHERE MaNguoiDung != @MaNguoiGui 
+                    AND TrangThai = 1 
+                    AND VaiTro IN ('Admin', 'PhucVu', 'Bep')";
+
+                        List<int> danhSachNguoiNhan = new List<int>();
+
+                        using (SqlCommand getCmd = new SqlCommand(getUsersQuery, conn))
+                        {
+                            getCmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+                            using (SqlDataReader reader = getCmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    danhSachNguoiNhan.Add((int)reader["MaNguoiDung"]);
+                                }
+                            }
+                        }
+
+                        // Gửi tin nhắn cho từng người
+                        foreach (int nguoiNhan in danhSachNguoiNhan)
+                        {
+                            string insertQuery = @"
+                        INSERT INTO TINNHAN (MaNguoiGui, MaNguoiNhan, NoiDung, ThoiGian, DaDoc)
+                        OUTPUT INSERTED.MaTinNhan
+                        VALUES (@MaNguoiGui, @MaNguoiNhan, @NoiDung, @ThoiGian, 0)";
+
+                            using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
+                            {
+                                insertCmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+                                insertCmd.Parameters.AddWithValue("@MaNguoiNhan", nguoiNhan);
+                                insertCmd.Parameters.AddWithValue("@NoiDung", "[📢 TẤT CẢ] " + noiDung);
+                                insertCmd.Parameters.AddWithValue("@ThoiGian", thoiGianGui);
+
+                                int MaTinNhan = (int)insertCmd.ExecuteScalar();
+                                if (maTinNhanDau == 0) maTinNhanDau = MaTinNhan;
+                                soNguoiNhan++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Gửi cho 1 người cụ thể
+                        string insertQuery = @"
+                    INSERT INTO TINNHAN (MaNguoiGui, MaNguoiNhan, NoiDung, ThoiGian, DaDoc)
+                    OUTPUT INSERTED.MaTinNhan
+                    VALUES (@MaNguoiGui, @MaNguoiNhan, @NoiDung, @ThoiGian, 0)";
+
+                        using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
+                        {
+                            insertCmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+                            insertCmd.Parameters.AddWithValue("@MaNguoiNhan", maNguoiNhan);
+                            insertCmd.Parameters.AddWithValue("@NoiDung", noiDung);
+                            insertCmd.Parameters.AddWithValue("@ThoiGian", thoiGianGui);
+
+                            maTinNhanDau = (int)insertCmd.ExecuteScalar();
+                            soNguoiNhan = 1;
+                        }
+                    }
+
+                    return new SendChatResult
+                    {
+                        Success = true,
+                        MaTinNhan = maTinNhanDau,
+                        ThoiGianGui = thoiGianGui,
+                        SoNguoiNhan = soNguoiNhan,
+                        Message = guiTatCa ?
+                            $"Đã gửi tin nhắn cho {soNguoiNhan} người" :
+                            "Đã gửi tin nhắn"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new SendChatResult
+                {
+                    Success = false,
+                    Message = $"Lỗi gửi tin nhắn: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Lấy tin nhắn chat giữa 2 người
+        /// </summary>
+        public static ChatMessagesResult GetChatMessages(int maNguoiDung1, int maNguoiDung2, int soLuong = 50)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    // ... (Giữ nguyên phần query SQL của bạn) ...
+                    string query = @"
+            SELECT TOP (@SoLuong) 
+                tn.MaTinNhan, tn.MaNguoiGui, gui.HoTen as TenNguoiGui, gui.VaiTro as VaiTroNguoiGui,
+                tn.MaNguoiNhan, nhan.HoTen as TenNguoiNhan, tn.NoiDung, tn.ThoiGian, tn.DaDoc
+            FROM TINNHAN tn
+            INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+            INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+            WHERE (
+                (tn.MaNguoiGui = @MaNguoiDung1 AND tn.MaNguoiNhan = @MaNguoiDung2)
+                OR 
+                (tn.MaNguoiGui = @MaNguoiDung2 AND tn.MaNguoiNhan = @MaNguoiDung1)
+            )
+            ORDER BY tn.ThoiGian DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDung1", maNguoiDung1);
+                        cmd.Parameters.AddWithValue("@MaNguoiDung2", maNguoiDung2);
+                        cmd.Parameters.AddWithValue("@SoLuong", soLuong);
+
+                        var messages = new List<ChatMessageData>();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                // 🔴 SỬA TẠI ĐÂY: Đọc trực tiếp, KHÔNG dùng SafeConvertFromDatabase
+                                DateTime thoiGianDB = (DateTime)reader["ThoiGian"];
+
+                                messages.Add(new ChatMessageData
+                                {
+                                    MaTinNhan = (int)reader["MaTinNhan"],
+                                    MaNguoiGui = (int)reader["MaNguoiGui"],
+                                    TenNguoiGui = reader["TenNguoiGui"].ToString(),
+                                    VaiTroNguoiGui = reader["VaiTroNguoiGui"].ToString(),
+                                    MaNguoiNhan = (int)reader["MaNguoiNhan"],
+                                    TenNguoiNhan = reader["TenNguoiNhan"].ToString(),
+                                    NoiDung = reader["NoiDung"].ToString(),
+
+                                    // Gán trực tiếp
+                                    ThoiGian = thoiGianDB,
+
+                                    DaDoc = (bool)reader["DaDoc"],
+                                    LaTinBroadcast = reader["NoiDung"].ToString().StartsWith("[📢 TẤT CẢ]")
+                                });
+                            }
+                        }
+                        messages.Reverse();
+                        return new ChatMessagesResult { Success = true, Messages = messages, TongSoTinNhan = messages.Count };
+                    }
+                }
+            }
+            catch (Exception ex) { return new ChatMessagesResult { Success = false, Message = ex.Message }; }
+        }
+
+        /// <summary>
+        /// Đánh dấu tin nhắn đã đọc
+        /// </summary>
+        public static MarkReadResult MarkMessagesAsRead(int maNguoiNhan, int maNguoiGui)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string updateQuery = @"
+                UPDATE TINNHAN 
+                SET DaDoc = 1 
+                WHERE MaNguoiNhan = @MaNguoiNhan 
+                AND MaNguoiGui = @MaNguoiGui 
+                AND DaDoc = 0";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiNhan", maNguoiNhan);
+                        cmd.Parameters.AddWithValue("@MaNguoiGui", maNguoiGui);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        return new MarkReadResult
+                        {
+                            Success = true,
+                            SoTinDaDoc = rowsAffected,
+                            Message = $"Đã đánh dấu {rowsAffected} tin nhắn là đã đọc"
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new MarkReadResult
+                {
+                    Success = false,
+                    Message = $"Lỗi đánh dấu đã đọc: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Lấy số tin nhắn chưa đọc
+        /// </summary>
+        public static UnreadCountResult GetUnreadCount(int maNguoiDung)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Tổng số tin chưa đọc
+                    string totalQuery = @"
+                SELECT COUNT(*) FROM TINNHAN 
+                WHERE MaNguoiNhan = @MaNguoiDung AND DaDoc = 0";
+
+                    int tongChuaDoc = 0;
+                    using (SqlCommand totalCmd = new SqlCommand(totalQuery, conn))
+                    {
+                        totalCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        tongChuaDoc = (int)totalCmd.ExecuteScalar();
+                    }
+
+                    // Chi tiết theo từng người gửi
+                    string detailQuery = @"
+                SELECT 
+                    tn.MaNguoiGui,
+                    nd.HoTen as TenNguoiGui,
+                    COUNT(*) as SoChuaDoc
+                FROM TINNHAN tn
+                INNER JOIN NGUOIDUNG nd ON tn.MaNguoiGui = nd.MaNguoiDung
+                WHERE tn.MaNguoiNhan = @MaNguoiDung AND tn.DaDoc = 0
+                GROUP BY tn.MaNguoiGui, nd.HoTen
+                ORDER BY SoChuaDoc DESC";
+
+                    var chiTiet = new List<UnreadCountData>();
+                    using (SqlCommand detailCmd = new SqlCommand(detailQuery, conn))
+                    {
+                        detailCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        using (SqlDataReader reader = detailCmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                chiTiet.Add(new UnreadCountData
+                                {
+                                    MaNguoiGui = (int)reader["MaNguoiGui"],
+                                    TenNguoiGui = reader["TenNguoiGui"].ToString(),
+                                    SoChuaDoc = (int)reader["SoChuaDoc"]
+                                });
+                            }
+                        }
+                    }
+
+                    return new UnreadCountResult
+                    {
+                        Success = true,
+                        TongChuaDoc = tongChuaDoc,
+                        ChiTietChuaDoc = chiTiet,
+                        Message = $"Có {tongChuaDoc} tin nhắn chưa đọc"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new UnreadCountResult
+                {
+                    Success = false,
+                    Message = $"Lỗi lấy số tin chưa đọc: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Kiểm tra tin nhắn mới (dùng cho polling)
+        /// </summary>
+        public static CheckNewMessagesResult CheckNewMessages(int maNguoiDung, DateTime tuThoiGian)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // 🔴 SỬA: Dùng trực tiếp thời gian Client gửi lên, không convert
+                    string query = @"
+            SELECT tn.MaTinNhan, tn.MaNguoiGui, gui.HoTen as TenNguoiGui, gui.VaiTro as VaiTroNguoiGui,
+                   tn.MaNguoiNhan, nhan.HoTen as TenNguoiNhan, tn.NoiDung, tn.ThoiGian, tn.DaDoc
+            FROM TINNHAN tn
+            INNER JOIN NGUOIDUNG gui ON tn.MaNguoiGui = gui.MaNguoiDung
+            INNER JOIN NGUOIDUNG nhan ON tn.MaNguoiNhan = nhan.MaNguoiDung
+            WHERE tn.MaNguoiNhan = @MaNguoiDung AND tn.ThoiGian > @TuThoiGian
+            ORDER BY tn.ThoiGian ASC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        cmd.Parameters.AddWithValue("@TuThoiGian", tuThoiGian);
+
+                        var messages = new List<ChatMessageData>();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                // 🔴 SỬA TẠI ĐÂY: Đọc trực tiếp
+                                DateTime thoiGianDB = (DateTime)reader["ThoiGian"];
+
+                                messages.Add(new ChatMessageData
+                                {
+                                    MaTinNhan = (int)reader["MaTinNhan"],
+                                    MaNguoiGui = (int)reader["MaNguoiGui"],
+                                    TenNguoiGui = reader["TenNguoiGui"].ToString(),
+                                    VaiTroNguoiGui = reader["VaiTroNguoiGui"].ToString(),
+                                    MaNguoiNhan = (int)reader["MaNguoiNhan"],
+                                    TenNguoiNhan = reader["TenNguoiNhan"].ToString(),
+                                    NoiDung = reader["NoiDung"].ToString(),
+
+                                    ThoiGian = thoiGianDB, // Gán trực tiếp
+
+                                    DaDoc = (bool)reader["DaDoc"],
+                                    LaTinBroadcast = reader["NoiDung"].ToString().StartsWith("[📢 TẤT CẢ]")
+                                });
+                            }
+                        }
+                        return new CheckNewMessagesResult
+                        {
+                            Success = true,
+                            CoTinMoi = messages.Count > 0,
+                            SoTinMoi = messages.Count,
+                            TinNhanMoi = messages
+                        };
+                    }
+                }
+            }
+            catch (Exception ex) { return new CheckNewMessagesResult { Success = false, Message = ex.Message }; }
+        }
+
+        #endregion
+
+        // ==================== RESULT CLASSES (Thêm vào cuối file) ====================
+
+        public class ChatUsersResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public List<ChatUserData> Users { get; set; } = new List<ChatUserData>();
+            public int TongSoUser { get; set; }
+        }
+
+        public class SendChatResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public int MaTinNhan { get; set; }
+            public DateTime ThoiGianGui { get; set; }
+            public int SoNguoiNhan { get; set; }
+        }
+
+        public class ChatMessagesResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public List<ChatMessageData> Messages { get; set; } = new List<ChatMessageData>();
+            public int TongSoTinNhan { get; set; }
+        }
+
+        public class MarkReadResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public int SoTinDaDoc { get; set; }
+        }
+
+        public class UnreadCountResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public int TongChuaDoc { get; set; }
+            public List<UnreadCountData> ChiTietChuaDoc { get; set; } = new List<UnreadCountData>();
+        }
+
+        public class CheckNewMessagesResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public bool CoTinMoi { get; set; }
+            public int SoTinMoi { get; set; }
+            public List<ChatMessageData> TinNhanMoi { get; set; } = new List<ChatMessageData>();
+        }
+
     }
 }
