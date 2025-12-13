@@ -6,6 +6,7 @@ using Models.Response;
 using Newtonsoft.Json;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -1775,10 +1776,8 @@ namespace RestaurantServer
             }
             return result;
         }
-        // Trong phương thức GetKitchenOrders trong DatabaseAccess.cs
-
         public static KitchenOrdersResult GetKitchenOrders(string trangThai = "", string timKiemBan = "",
-              string sapXep = "ThoiGian", int? maNhanVienBep = null)
+       string sapXep = "ThoiGian", int? maNhanVienBep = null)
         {
             try
             {
@@ -1786,44 +1785,143 @@ namespace RestaurantServer
                 {
                     conn.Open();
 
+                    var parameters = new List<SqlParameter>();
+
+                    // 1. Xây dựng câu truy vấn cơ bản với CTE
                     string query = @"
-        SELECT TOP 50
-            dh.MaDonHang,
-            dh.MaBanAn,
-            b.TenBan,
-            dh.NgayOrder,
-            dh.TrangThai as TrangThaiDon,
-            nv.HoTen as TenNhanVienOrder,
-            
-            -- Thống kê món
-            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang) as TongSoMon,
-            
-            -- Số món theo trạng thái
-            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'ChoXacNhan') as SoMonChoXacNhan,
-            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'DangCheBien') as SoMonDangCheBien,
-            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'HoanThanh') as SoMonHoanThanh,
-            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'CoVanDe') as SoMonCoVanDe,
-            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 
-             WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'Huy') as SoMonHuy,
-            
-            -- Ưu tiên cao nhất
-            (SELECT MAX(UuTien) FROM CHITIET_DONHANG ctdh3 
-             WHERE ctdh3.MaDonHang = dh.MaDonHang) as UuTienCaoNhat,
-            
-            -- Tổng tiền
-            ISNULL((SELECT SUM(ctdh.SoLuong * ctdh.DonGia) 
-                   FROM CHITIET_DONHANG ctdh 
-                   WHERE ctdh.MaDonHang = dh.MaDonHang), 0) as TongTien
-            
-        FROM DONHANG dh
-        LEFT JOIN BAN b ON dh.MaBanAn = b.MaBanAn
-        LEFT JOIN NGUOIDUNG nv ON dh.MaNVOrder = nv.MaNguoiDung
-        WHERE 1=1";
+                    ;WITH CTE_DonHangTinhToan AS (
+                        SELECT 
+                            dh.MaDonHang,
+                            dh.MaBanAn,
+                            b.TenBan,
+                            dh.NgayOrder,
+                            dh.TrangThai as TrangThaiGoc,
+                            nv.HoTen as TenNhanVienOrder,
+
+                            -- Thống kê món
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang) as TongSoMon,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'ChoXacNhan') as SoMonChoXacNhan,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'DangCheBien') as SoMonDangCheBien,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'HoanThanh') as SoMonHoanThanh,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'CoVanDe') as SoMonCoVanDe,
+                            (SELECT COUNT(*) FROM CHITIET_DONHANG ctdh2 WHERE ctdh2.MaDonHang = dh.MaDonHang AND ctdh2.TrangThai = 'Huy') as SoMonHuy,
+
+                            -- Ưu tiên cao nhất
+                            (SELECT MAX(UuTien) FROM CHITIET_DONHANG ctdh3 WHERE ctdh3.MaDonHang = dh.MaDonHang) as UuTienCaoNhat,
+
+                            -- Tổng tiền
+                            ISNULL((SELECT SUM(ctdh.SoLuong * ctdh.DonGia) FROM CHITIET_DONHANG ctdh WHERE ctdh.MaDonHang = dh.MaDonHang), 0) as TongTien
+
+                        FROM DONHANG dh
+                        LEFT JOIN BAN b ON dh.MaBanAn = b.MaBanAn
+                        LEFT JOIN NGUOIDUNG nv ON dh.MaNVOrder = nv.MaNguoiDung
+                        WHERE 1=1";
+
+                    // 2. LỌC THEO TÌM KIẾM BÀN/MÃ BÀN (TRONG CTE - nếu cần)
+                    // KHÔNG thêm điều kiện ở đây nếu muốn lọc sau
+
+                    query += @"
+                    )
+                    SELECT TOP 50
+                        *,
+                        -- TÍNH TOÁN TRẠNG THÁI THỰC TẾ (dựa trên món)
+                        CASE 
+                            -- 1. Tất cả món đều hủy → Hủy
+                            WHEN TongSoMon > 0 AND SoMonHuy = TongSoMon THEN 'Huy'
+                            -- 2. Tất cả món đều hoàn thành → Hoàn thành
+                            WHEN TongSoMon > 0 AND SoMonHoanThanh = TongSoMon THEN 'HoanThanh'
+                            -- 3. Có món có vấn đề → Có vấn đề
+                            WHEN SoMonCoVanDe > 0 THEN 'CoVanDe'
+                            -- 4. Có món đang chế biến → Đang chế biến
+                            WHEN SoMonDangCheBien > 0 THEN 'DangCheBien'
+                            -- 5. Có món chờ xác nhận → Chờ xác nhận
+                            WHEN SoMonChoXacNhan > 0 THEN 'ChoXacNhan'
+                            -- 6. Mặc định (không có món)
+                            ELSE 'ChoXacNhan'
+                        END as TrangThaiThucTe
+                    FROM CTE_DonHangTinhToan
+                    WHERE 1=1";
+                    if (!string.IsNullOrEmpty(timKiemBan))
+                    {
+                        // Chuẩn hóa: bỏ từ "bàn" hoặc "ban" nếu có, chỉ lấy số
+                        string searchTerm = timKiemBan.ToLower()
+                            .Replace("bàn", "")
+                            .Replace("ban", "")
+                            .Replace(" ", "")
+                            .Trim();
+
+                        // Nếu còn lại là số, tìm theo mã bàn HOẶC tên bàn chứa số đó
+                        if (int.TryParse(searchTerm, out int soBan))
+                        {
+                            query += " AND (MaBanAn = @SoBan OR TenBan LIKE @TenBanChuaSo)";
+                            parameters.Add(new SqlParameter("@SoBan", SqlDbType.Int) { Value = soBan });
+                            parameters.Add(new SqlParameter("@TenBanChuaSo", SqlDbType.NVarChar, 50)
+                            {
+                                Value = "%" + soBan + "%"
+                            });
+                        }
+                        else
+                        {
+                            // Nếu không phải số, tìm theo tên bàn gốc
+                            query += " AND TenBan LIKE @TimKiemBan";
+                            parameters.Add(new SqlParameter("@TimKiemBan", SqlDbType.NVarChar, 100)
+                            {
+                                Value = "%" + timKiemBan + "%"
+                            });
+                        }
+                    }
+
+                    // 4. LỌC THEO TRẠNG THÁI
+                    if (!string.IsNullOrEmpty(trangThai) && trangThai.ToLower() != "tatca")
+                    {
+                        string dbStatus = trangThai.ToLower() switch
+                        {
+                            "choxacnhan" => "ChoXacNhan",
+                            "dangchebien" => "DangCheBien",
+                            "hoanthanh" => "HoanThanh",
+                            "huy" => "Huy",
+                            "covande" => "CoVanDe",
+                            _ => null
+                        };
+
+                        if (dbStatus != null)
+                        {
+                            query += @" AND CASE 
+                        WHEN TongSoMon > 0 AND SoMonHuy = TongSoMon THEN 'Huy'
+                        WHEN TongSoMon > 0 AND SoMonHoanThanh = TongSoMon THEN 'HoanThanh'
+                        WHEN SoMonCoVanDe > 0 THEN 'CoVanDe'
+                        WHEN SoMonDangCheBien > 0 THEN 'DangCheBien'
+                        WHEN SoMonChoXacNhan > 0 THEN 'ChoXacNhan'
+                        ELSE 'ChoXacNhan'
+                    END = @TrangThai";
+                            parameters.Add(new SqlParameter("@TrangThai", SqlDbType.NVarChar, 20) { Value = dbStatus });
+                        }
+                    }
+                    // 6. SẮP XẾP
+                    string orderByClause = sapXep.ToLower() switch
+                    {
+                        "uutien" => "UuTienCaoNhat DESC, NgayOrder ASC",
+                        "ban" => "TenBan ASC, NgayOrder ASC",
+                        "thoigian" => "NgayOrder DESC",
+                        "thoigiancho" => "NgayOrder ASC",
+                        _ => "NgayOrder DESC"
+                    };
+                    query += $" ORDER BY {orderByClause}";
+
+             
+                    if (parameters.Count > 0)
+                    {
+                        Console.WriteLine($"📌 Parameters:");
+                        foreach (var param in parameters)
+                        {
+                            Console.WriteLine($"   {param.ParameterName} = {param.Value}");
+                        }
+                    }
+
+                    // 8. THỰC THI TRUY VẤN
                     SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddRange(parameters.ToArray());
+
                     List<KitchenOrderData> orders = new List<KitchenOrderData>();
 
                     using (SqlDataReader r = cmd.ExecuteReader())
@@ -1851,45 +1949,31 @@ namespace RestaurantServer
                                 SoMonHuy = r["SoMonHuy"] != DBNull.Value ? Convert.ToInt32(r["SoMonHuy"]) : 0,
                                 UuTienCaoNhat = r["UuTienCaoNhat"] != DBNull.Value ? Convert.ToInt32(r["UuTienCaoNhat"]) : 1,
 
-                                // =========== QUAN TRỌNG: Tính toán LaDonHoanThanh và LaDonHuy ===========
-                                trangThaiDon = r["TrangThaiDon"]?.ToString() ?? "ChoXacNhan"
+                                // THÊM DÒNG NÀY (chỉ tên thuộc tính và giá trị):
+                                TrangThaiThucTe = r["TrangThaiThucTe"]?.ToString() ?? ""
                             };
-
-                            // =========== TÍNH TOÁN ĐƠN HOÀN THÀNH CHÍNH XÁC ===========
-                            // order.LaDonHoanThanh và order.LaDonHuy đã được tính tự động trong property
-                            // do chúng ta đã sửa trong class KitchenOrderData
-
+                          
                             orders.Add(order);
                         }
                     }
 
-                    // Tính thống kê
-                    var thongKe = new ThongKeBep(orders); // Sử dụng constructor mới
+                    // 8. Tính toán thống kê
+                    var thongKe = new ThongKeBep(orders);
 
-                    // =========== DEBUG: Kiểm tra logic đơn hoàn thành ===========
-                    Console.WriteLine($"DEBUG Thống kê:");
-                    Console.WriteLine($"- Tổng đơn: {thongKe.TongSoDon}");
-                    Console.WriteLine($"- Đơn hoàn thành: {thongKe.DonHoanThanh}");
-
-                    // Liệt kê các đơn hoàn thành
-                    var donHoanThanh = orders.Where(o => o.LaDonHoanThanh).ToList();
-                    foreach (var don in donHoanThanh)
-                    {
-                        Console.WriteLine($"  + Đơn #{don.MaDonHang}: {don.SoMonHoanThanh}/{don.TongSoMon} món hoàn thành");
-                    }
-
+                   
                     return new KitchenOrdersResult
                     {
                         Success = true,
                         DonHang = orders,
                         ThongKe = thongKe,
-                        Message = $"Tìm thấy {orders.Count} đơn hàng, {thongKe.DonHoanThanh} đơn hoàn thành"
+                        Message = $"Tìm thấy {orders.Count} đơn hàng"
                     };
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ LỖI GetKitchenOrders: {ex.Message}");
+                Console.WriteLine($"❌ StackTrace: {ex.StackTrace}");
                 return new KitchenOrdersResult
                 {
                     Success = false,
@@ -1897,8 +1981,6 @@ namespace RestaurantServer
                 };
             }
         }
-        // Thêm vào DatabaseAccess.cs
-
         public static bool KiemTraDonHoanThanh(int maDonHang)
         {
             try

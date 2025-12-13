@@ -510,10 +510,20 @@ namespace Models.Response
         public bool LaDonHuy => TongSoMon > 0 && SoMonHuy == TongSoMon;
 
         // Trạng thái tổng của đơn hàng (tự động tính)
+        // public string TrangThaiDon { get; set; }
+        // Thêm thuộc tính mới để lưu trạng thái từ SQL
+        public string? TrangThaiThucTe { get; set; } = "";
+
+        // Sửa TrangThaiDon để ưu tiên trạng thái thực tế nếu có
         public string TrangThaiDon
         {
             get
             {
+                // Ưu tiên trạng thái từ SQL nếu có giá trị
+                if (!string.IsNullOrEmpty(TrangThaiThucTe))
+                    return TrangThaiThucTe;
+
+                // Ngược lại tính toán tự động
                 if (LaDonHuy) return "Huy";
                 if (LaDonHoanThanh) return "HoanThanh";
                 if (SoMonCoVanDe > 0) return "CoVanDe";
@@ -522,10 +532,6 @@ namespace Models.Response
                 return "ChoXacNhan";
             }
         }
-        // ======================================
-
-        public string trangThaiDon { get; set; }
-
         public string TrangThaiDisplay
         {
             get
@@ -767,79 +773,124 @@ namespace Models.Response
 
     public class ThongKeBep
     {
-        // =========== SỬA: Tính toán chính xác số đơn hoàn thành ===========
-        private int _tongSoDon = 0;
-        private int _donHoanThanh = 0;
-        private List<KitchenOrderData> _donHangList = new List<KitchenOrderData>();
+        // Properties
+        public int TongSoDon { get; private set; }
+        public int TongSoMon { get; private set; }
+        public int DonChoXacNhan { get; private set; }
+        public int DonDangCheBien { get; private set; }
+        public int DonHoanThanh { get; private set; }
+        public int DonCoVanDe { get; private set; }
+        public int DonHuy { get; private set; }
+        public decimal TongDoanhThu { get; private set; }
+        public int TongMonHoanThanh { get; private set; }
 
-        // Constructor mới để tính toán
-        public ThongKeBep() { }
-
-        public ThongKeBep(List<KitchenOrderData> donHang)
+        // Constructor duy nhất
+        public ThongKeBep(List<KitchenOrderData> donHang = null)
         {
-            if (donHang != null)
+            if (donHang != null && donHang.Count > 0)
             {
-                _donHangList = donHang;
                 CalculateStatistics(donHang);
             }
         }
 
+        // Phương thức tính toán thống kê chính
         private void CalculateStatistics(List<KitchenOrderData> donHang)
         {
+            if (donHang == null || donHang.Count == 0)
+                return;
+
+            // Reset các giá trị
             TongSoDon = donHang.Count;
-            TongSoMon = donHang.Sum(d => d.TongSoMon);
+            TongSoMon = 0;
+            TongMonHoanThanh = 0;
+            DonChoXacNhan = 0;
+            DonDangCheBien = 0;
+            DonHoanThanh = 0;
+            DonCoVanDe = 0;
+            DonHuy = 0;
+            TongDoanhThu = 0;
 
-            // Tính chính xác số đơn hoàn thành (tất cả món đều hoàn thành)
-            DonHoanThanh = donHang.Count(d => d.LaDonHoanThanh);
+            foreach (var order in donHang)
+            {
+                // Tính tổng số món
+                TongSoMon += order.TongSoMon;
 
-            // Tính các trạng thái khác
-            DonChoXacNhan = donHang.Count(d => d.TrangThaiDon == "ChoXacNhan");
-            DonDangCheBien = donHang.Count(d => d.TrangThaiDon == "DangCheBien");
-            DonCoVanDe = donHang.Count(d => d.TrangThaiDon == "CoVanDe");
-            DonHuy = donHang.Count(d => d.TrangThaiDon == "Huy");
+                // Tính tổng món hoàn thành
+                TongMonHoanThanh += order.SoMonHoanThanh;
+
+                // Tính doanh thu từ đơn hoàn thành (tất cả món đều hoàn thành)
+                if (order.LaDonHoanThanh)
+                {
+                    TongDoanhThu += order.TongTien;
+                }
+
+                // ⚠️ QUAN TRỌNG: Tính trạng thái đơn dựa trên LOGIC THỐNG NHẤT
+                // Ưu tiên: Hủy > Hoàn thành > Có vấn đề > Đang chế biến > Chờ xác nhận
+
+                // 1. Kiểm tra đơn hủy (tất cả món đều hủy)
+                if (order.LaDonHuy)
+                {
+                    DonHuy++;
+                }
+                // 2. Kiểm tra đơn hoàn thành (tất cả món đều hoàn thành)
+                else if (order.LaDonHoanThanh)
+                {
+                    DonHoanThanh++;
+                }
+                // 3. Kiểm tra có món có vấn đề
+                else if (order.SoMonCoVanDe > 0)
+                {
+                    DonCoVanDe++;
+                }
+                // 4. Kiểm tra có món đang chế biến
+                else if (order.SoMonDangCheBien > 0)
+                {
+                    DonDangCheBien++;
+                }
+                // 5. Mặc định là chờ xác nhận
+                else
+                {
+                    DonChoXacNhan++;
+                }
+            }
+
+            // Debug output
+            Console.WriteLine($"📊 Thống kê từ {TongSoDon} đơn:");
+            Console.WriteLine($"   - Tổng món: {TongSoMon} ({TongMonHoanThanh}✅)");
+            Console.WriteLine($"   - Chờ xác nhận: {DonChoXacNhan}");
+            Console.WriteLine($"   - Đang chế biến: {DonDangCheBien}");
+            Console.WriteLine($"   - Hoàn thành: {DonHoanThanh}");
+            Console.WriteLine($"   - Có vấn đề: {DonCoVanDe}");
+            Console.WriteLine($"   - Hủy: {DonHuy}");
+            Console.WriteLine($"   - Doanh thu đơn hoàn thành: {TongDoanhThu:N0} VNĐ");
         }
 
-        // Properties
-        public int TongSoDon
-        {
-            get => _tongSoDon;
-            set => _tongSoDon = value;
-        }
-
-        public int TongSoMon { get; set; }
-
-        public int DonHoanThanh
-        {
-            get => _donHoanThanh;
-            set => _donHoanThanh = value;
-        }
-
-        public int DonChoXacNhan { get; set; }
-        public int DonDangCheBien { get; set; }
-        public int DonCoVanDe { get; set; }
-        public int DonHuy { get; set; }
-
-        // Tỷ lệ hoàn thành
-        public double TyLeHoanThanh => TongSoDon > 0
+        // Tỷ lệ hoàn thành (đơn)
+        public double TyLeHoanThanhDon => TongSoDon > 0
             ? Math.Round((double)DonHoanThanh / TongSoDon * 100, 1)
             : 0;
 
-        // Tỷ lệ các món hoàn thành (nếu cần)
-        public int TongMonHoanThanh { get; set; }
-        public double TyLeMonHoanThanh => TongSoMon > 0
+        // Tỷ lệ hoàn thành (món)
+        public double TyLeHoanThanhMon => TongSoMon > 0
             ? Math.Round((double)TongMonHoanThanh / TongSoMon * 100, 1)
             : 0;
 
-        // Cập nhật thống kê
+        // Hiển thị text thống kê
+        public string ThongKeDisplay =>
+            $"Tổng: {TongSoDon} đơn | " +
+            $"⏳{DonChoXacNhan} 👨‍🍳{DonDangCheBien} ✅{DonHoanThanh} ⚠️{DonCoVanDe} ❌{DonHuy}";
+
+        public string DisplayText =>
+            $"Tổng: {TongSoDon} đơn • ⏳ {DonChoXacNhan} chờ • 👨‍🍳 {DonDangCheBien} đang • ✅ {DonHoanThanh} xong • ⚠️ {DonCoVanDe} vấn đề • ❌ {DonHuy} hủy";
+
+        // Phương thức cập nhật thống kê từ danh sách đơn mới
         public void UpdateFromOrders(List<KitchenOrderData> donHang)
         {
             CalculateStatistics(donHang);
         }
 
-        public string DisplayText =>
-            $"Tổng: {TongSoDon} đơn • ⏳ {DonChoXacNhan} chờ • 👨‍🍳 {DonDangCheBien} đang • ✅ {DonHoanThanh} xong • ⚠️ {DonCoVanDe} vấn đề • ❌ {DonHuy} hủy";
+     
     }
-    // Thêm vào Models/Response.cs
 
     /// <summary>
     /// Thống kê bếp chi tiết với logic đúng đơn hoàn thành
