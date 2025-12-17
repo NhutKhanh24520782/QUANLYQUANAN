@@ -2140,7 +2140,7 @@ namespace RestaurantClient
                         // Nếu CurrentUser có properties public
                         textbox_usernamebep.Text = CurrentUser.Username ?? "";
                         textbox_emailbep.Text = CurrentUser.Email ?? "";
-                        textbox_tenbep.Text = CurrentUser.FullName ?? "";
+                        tb_tenbep.Text = CurrentUser.FullName ?? "";
                         textbox_chucvubep.Text = CurrentUser.Role ?? "";
                         return;
                     }
@@ -2151,7 +2151,7 @@ namespace RestaurantClient
                 textbox_usernamebep.Text = _currentUserName ?? "";
                 // Nếu không có email/fullname trong form, giữ trống hoặc gán từ server khi có API
                 textbox_emailbep.Text = ""; // gán nếu bạn có biến chứa email
-                textbox_tenbep.Text = "";   // gán nếu bạn có biến chứa full name
+                tb_tenbep.Text = "";   // gán nếu bạn có biến chứa full name
                 textbox_chucvubep.Text = ""; // gán vai trò (role) nếu biết
             }
             catch (Exception ex)
@@ -2161,7 +2161,7 @@ namespace RestaurantClient
             }
         }
 
-        private async void button_dangxuatnvbep_Click(object sender, EventArgs e)
+        private void button_dangxuatnvbep_Click(object sender, EventArgs e)
         {
             // Hỏi xác nhận
             var confirm = MessageBox.Show("Bạn có chắc muốn đăng xuất?",

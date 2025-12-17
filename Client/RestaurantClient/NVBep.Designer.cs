@@ -110,16 +110,17 @@
             chk_SendAll_Bep = new CheckBox();
             txt_SearchUser_Bep = new TextBox();
             tabPage_taikhoan = new TabPage();
+            panel2 = new Panel();
+            tb_tenbep = new TextBox();
+            label20 = new Label();
             button_dangxuatnvbep = new Button();
             textbox_chucvubep = new TextBox();
-            textbox_tenbep = new TextBox();
             textbox_emailbep = new TextBox();
             textbox_usernamebep = new TextBox();
-            label12 = new Label();
-            label11 = new Label();
-            label10 = new Label();
-            label9 = new Label();
-            label8 = new Label();
+            label22 = new Label();
+            label23 = new Label();
+            label24 = new Label();
+            label25 = new Label();
             tc_nvbep.SuspendLayout();
             tp_quanlyvaxuly.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
@@ -137,6 +138,7 @@
             panel_ChatHeader_Bep.SuspendLayout();
             panel_UserList_Bep.SuspendLayout();
             tabPage_taikhoan.SuspendLayout();
+            panel2.SuspendLayout();
             SuspendLayout();
             // 
             // tc_nvbep
@@ -1087,17 +1089,8 @@
             // 
             // tabPage_taikhoan
             // 
-            tabPage_taikhoan.BackColor = Color.FromArgb(250, 247, 242);
-            tabPage_taikhoan.Controls.Add(button_dangxuatnvbep);
-            tabPage_taikhoan.Controls.Add(textbox_chucvubep);
-            tabPage_taikhoan.Controls.Add(textbox_tenbep);
-            tabPage_taikhoan.Controls.Add(textbox_emailbep);
-            tabPage_taikhoan.Controls.Add(textbox_usernamebep);
-            tabPage_taikhoan.Controls.Add(label12);
-            tabPage_taikhoan.Controls.Add(label11);
-            tabPage_taikhoan.Controls.Add(label10);
-            tabPage_taikhoan.Controls.Add(label9);
-            tabPage_taikhoan.Controls.Add(label8);
+            tabPage_taikhoan.BackColor = Color.BurlyWood;
+            tabPage_taikhoan.Controls.Add(panel2);
             tabPage_taikhoan.Location = new Point(4, 29);
             tabPage_taikhoan.Name = "tabPage_taikhoan";
             tabPage_taikhoan.Padding = new Padding(3);
@@ -1105,112 +1098,125 @@
             tabPage_taikhoan.TabIndex = 4;
             tabPage_taikhoan.Text = "ⓘ Tài Khoản";
             // 
+            // panel2
+            // 
+            panel2.BackColor = Color.FromArgb(250, 240, 230);
+            panel2.Controls.Add(tb_tenbep);
+            panel2.Controls.Add(label20);
+            panel2.Controls.Add(button_dangxuatnvbep);
+            panel2.Controls.Add(textbox_chucvubep);
+            panel2.Controls.Add(textbox_emailbep);
+            panel2.Controls.Add(textbox_usernamebep);
+            panel2.Controls.Add(label22);
+            panel2.Controls.Add(label23);
+            panel2.Controls.Add(label24);
+            panel2.Controls.Add(label25);
+            panel2.Location = new Point(384, 6);
+            panel2.Name = "panel2";
+            panel2.Size = new Size(470, 461);
+            panel2.TabIndex = 21;
+            // 
+            // tb_tenbep
+            // 
+            tb_tenbep.Location = new Point(154, 246);
+            tb_tenbep.Margin = new Padding(2);
+            tb_tenbep.Name = "tb_tenbep";
+            tb_tenbep.Size = new Size(268, 27);
+            tb_tenbep.TabIndex = 26;
+            // 
+            // label20
+            // 
+            label20.AutoSize = true;
+            label20.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label20.Location = new Point(13, 241);
+            label20.Margin = new Padding(2, 0, 2, 0);
+            label20.Name = "label20";
+            label20.Size = new Size(54, 32);
+            label20.TabIndex = 25;
+            label20.Text = "Tên";
+            // 
             // button_dangxuatnvbep
             // 
             button_dangxuatnvbep.BackColor = Color.Sienna;
             button_dangxuatnvbep.FlatStyle = FlatStyle.Flat;
             button_dangxuatnvbep.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             button_dangxuatnvbep.ForeColor = Color.White;
-            button_dangxuatnvbep.Location = new Point(510, 406);
+            button_dangxuatnvbep.Location = new Point(154, 373);
             button_dangxuatnvbep.Margin = new Padding(2);
             button_dangxuatnvbep.Name = "button_dangxuatnvbep";
-            button_dangxuatnvbep.Size = new Size(153, 45);
-            button_dangxuatnvbep.TabIndex = 9;
-            button_dangxuatnvbep.Text = "Đăng Xuất";
+            button_dangxuatnvbep.Size = new Size(179, 43);
+            button_dangxuatnvbep.TabIndex = 24;
+            button_dangxuatnvbep.Text = "Đăng xuất";
             button_dangxuatnvbep.UseVisualStyleBackColor = false;
             button_dangxuatnvbep.Click += button_dangxuatnvbep_Click;
             // 
             // textbox_chucvubep
             // 
-            textbox_chucvubep.Location = new Point(510, 350);
+            textbox_chucvubep.Location = new Point(154, 318);
             textbox_chucvubep.Margin = new Padding(2);
             textbox_chucvubep.Name = "textbox_chucvubep";
-            textbox_chucvubep.Size = new Size(241, 27);
-            textbox_chucvubep.TabIndex = 8;
-            // 
-            // textbox_tenbep
-            // 
-            textbox_tenbep.Location = new Point(510, 285);
-            textbox_tenbep.Margin = new Padding(2);
-            textbox_tenbep.Name = "textbox_tenbep";
-            textbox_tenbep.Size = new Size(241, 27);
-            textbox_tenbep.TabIndex = 7;
+            textbox_chucvubep.Size = new Size(268, 27);
+            textbox_chucvubep.TabIndex = 23;
             // 
             // textbox_emailbep
             // 
-            textbox_emailbep.Location = new Point(510, 208);
+            textbox_emailbep.Location = new Point(154, 179);
             textbox_emailbep.Margin = new Padding(2);
             textbox_emailbep.Name = "textbox_emailbep";
-            textbox_emailbep.Size = new Size(241, 27);
-            textbox_emailbep.TabIndex = 6;
+            textbox_emailbep.Size = new Size(268, 27);
+            textbox_emailbep.TabIndex = 21;
             // 
             // textbox_usernamebep
             // 
-            textbox_usernamebep.Location = new Point(510, 140);
+            textbox_usernamebep.Location = new Point(154, 118);
             textbox_usernamebep.Margin = new Padding(2);
             textbox_usernamebep.Name = "textbox_usernamebep";
-            textbox_usernamebep.Size = new Size(241, 27);
-            textbox_usernamebep.TabIndex = 5;
+            textbox_usernamebep.Size = new Size(268, 27);
+            textbox_usernamebep.TabIndex = 20;
             // 
-            // label12
+            // label22
             // 
-            label12.AutoSize = true;
-            label12.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label12.ForeColor = Color.FromArgb(101, 67, 33);
-            label12.Location = new Point(357, 345);
-            label12.Margin = new Padding(2, 0, 2, 0);
-            label12.Name = "label12";
-            label12.Size = new Size(106, 32);
-            label12.TabIndex = 4;
-            label12.Text = "Chức vụ";
+            label22.AutoSize = true;
+            label22.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label22.Location = new Point(13, 312);
+            label22.Margin = new Padding(2, 0, 2, 0);
+            label22.Name = "label22";
+            label22.Size = new Size(106, 32);
+            label22.TabIndex = 19;
+            label22.Text = "Chức vụ";
             // 
-            // label11
+            // label23
             // 
-            label11.AutoSize = true;
-            label11.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label11.ForeColor = Color.FromArgb(101, 67, 33);
-            label11.Location = new Point(357, 279);
-            label11.Margin = new Padding(2, 0, 2, 0);
-            label11.Name = "label11";
-            label11.Size = new Size(54, 32);
-            label11.TabIndex = 3;
-            label11.Text = "Tên";
+            label23.AutoSize = true;
+            label23.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label23.Location = new Point(13, 174);
+            label23.Margin = new Padding(2, 0, 2, 0);
+            label23.Name = "label23";
+            label23.Size = new Size(76, 32);
+            label23.TabIndex = 18;
+            label23.Text = "Email";
             // 
-            // label10
+            // label24
             // 
-            label10.AutoSize = true;
-            label10.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label10.ForeColor = Color.FromArgb(101, 67, 33);
-            label10.Location = new Point(357, 202);
-            label10.Margin = new Padding(2, 0, 2, 0);
-            label10.Name = "label10";
-            label10.Size = new Size(76, 32);
-            label10.TabIndex = 2;
-            label10.Text = "Email";
+            label24.AutoSize = true;
+            label24.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label24.Location = new Point(13, 113);
+            label24.Margin = new Padding(2, 0, 2, 0);
+            label24.Name = "label24";
+            label24.Size = new Size(128, 32);
+            label24.TabIndex = 17;
+            label24.Text = "Username";
             // 
-            // label9
+            // label25
             // 
-            label9.AutoSize = true;
-            label9.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label9.ForeColor = Color.FromArgb(101, 67, 33);
-            label9.Location = new Point(357, 134);
-            label9.Margin = new Padding(2, 0, 2, 0);
-            label9.Name = "label9";
-            label9.Size = new Size(128, 32);
-            label9.TabIndex = 1;
-            label9.Text = "Username";
-            // 
-            // label8
-            // 
-            label8.AutoSize = true;
-            label8.Font = new Font("Segoe UI", 18F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label8.ForeColor = Color.FromArgb(101, 67, 33);
-            label8.Location = new Point(430, 45);
-            label8.Margin = new Padding(2, 0, 2, 0);
-            label8.Name = "label8";
-            label8.Size = new Size(296, 41);
-            label8.TabIndex = 0;
-            label8.Text = "Thông tin tài khoản";
+            label25.AutoSize = true;
+            label25.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label25.Location = new Point(88, 25);
+            label25.Margin = new Padding(2, 0, 2, 0);
+            label25.Name = "label25";
+            label25.Size = new Size(334, 46);
+            label25.TabIndex = 16;
+            label25.Text = "Thông tin tài khoản";
             // 
             // NVBep
             // 
@@ -1249,7 +1255,8 @@
             panel_UserList_Bep.ResumeLayout(false);
             panel_UserList_Bep.PerformLayout();
             tabPage_taikhoan.ResumeLayout(false);
-            tabPage_taikhoan.PerformLayout();
+            panel2.ResumeLayout(false);
+            panel2.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -1318,9 +1325,7 @@
         private TabPage tabPage_chat;
         private TabPage tabPage_taikhoan;
         private TextBox textbox_chucvubep;
-        private TextBox textbox_tenbep;
-        private TextBox textbox_emailbep;
-        private TextBox textbox_usernamebep;
+
         private Label label12;
         private Label label11;
         private Label label10;
@@ -1346,5 +1351,16 @@
         private ComboBox cb_tenmon;
         private Label label15;
         private Label label14;
+        private Panel panel2;
+        private Label label20;
+        private Button button_DangXuatPhucVu;
+        private TextBox textbox_rolepv;
+        private TextBox textbox_emailbep;
+        private TextBox textbox_usernamebep;
+        private Label label22;
+        private Label label23;
+        private Label label24;
+        private Label label25;
+        private TextBox tb_tenbep;
     }
 }

@@ -146,16 +146,17 @@
             chk_SendAll_Admin = new CheckBox();
             txt_SearchUser_Admin = new TextBox();
             tabPage7 = new TabPage();
+            panel11 = new Panel();
+            textbox_nameadmin = new TextBox();
+            label25 = new Label();
             button_DangxuatAdmin = new Button();
             textbox_role = new TextBox();
-            textbox_nameadmin = new TextBox();
             textbox_emailadmin = new TextBox();
             textbox_usernameadmin = new TextBox();
-            label24 = new Label();
-            label23 = new Label();
-            label22 = new Label();
-            label21 = new Label();
-            label20 = new Label();
+            label26 = new Label();
+            label27 = new Label();
+            label28 = new Label();
+            label29 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             panel2.SuspendLayout();
@@ -192,6 +193,7 @@
             panel_ChatHeader_Admin.SuspendLayout();
             Panel_UserList_Admin.SuspendLayout();
             tabPage7.SuspendLayout();
+            panel11.SuspendLayout();
             SuspendLayout();
             // 
             // tabControl1
@@ -1345,19 +1347,19 @@
             panel_ChatArea_Admin.Controls.Add(panel_ChatInput_Admin);
             panel_ChatArea_Admin.Controls.Add(panel_ChatHeader_Admin);
             panel_ChatArea_Admin.Dock = DockStyle.Fill;
-            panel_ChatArea_Admin.Location = new Point(295, 3);
+            panel_ChatArea_Admin.Location = new Point(347, 3);
             panel_ChatArea_Admin.Margin = new Padding(2);
             panel_ChatArea_Admin.Name = "panel_ChatArea_Admin";
-            panel_ChatArea_Admin.Size = new Size(674, 464);
+            panel_ChatArea_Admin.Size = new Size(622, 464);
             panel_ChatArea_Admin.TabIndex = 1;
             panel_ChatArea_Admin.Paint += panel_ChatArea_Admin_Paint;
             // 
             // rtb_ChatMessages_Admin
             // 
-            rtb_ChatMessages_Admin.Location = new Point(2, 127);
+            rtb_ChatMessages_Admin.Location = new Point(4, 102);
             rtb_ChatMessages_Admin.Margin = new Padding(2);
             rtb_ChatMessages_Admin.Name = "rtb_ChatMessages_Admin";
-            rtb_ChatMessages_Admin.Size = new Size(677, 217);
+            rtb_ChatMessages_Admin.Size = new Size(615, 285);
             rtb_ChatMessages_Admin.TabIndex = 2;
             rtb_ChatMessages_Admin.Text = "";
             // 
@@ -1365,10 +1367,10 @@
             // 
             panel_ChatInput_Admin.Controls.Add(btn_SendChat_Admin);
             panel_ChatInput_Admin.Controls.Add(txt_ChatMessage_Admin);
-            panel_ChatInput_Admin.Location = new Point(0, 348);
+            panel_ChatInput_Admin.Location = new Point(4, 391);
             panel_ChatInput_Admin.Margin = new Padding(2);
             panel_ChatInput_Admin.Name = "panel_ChatInput_Admin";
-            panel_ChatInput_Admin.Size = new Size(676, 120);
+            panel_ChatInput_Admin.Size = new Size(615, 77);
             panel_ChatInput_Admin.TabIndex = 1;
             // 
             // btn_SendChat_Admin
@@ -1377,7 +1379,7 @@
             btn_SendChat_Admin.FlatStyle = FlatStyle.Flat;
             btn_SendChat_Admin.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_SendChat_Admin.ForeColor = Color.White;
-            btn_SendChat_Admin.Location = new Point(499, 38);
+            btn_SendChat_Admin.Location = new Point(497, 16);
             btn_SendChat_Admin.Margin = new Padding(2);
             btn_SendChat_Admin.Name = "btn_SendChat_Admin";
             btn_SendChat_Admin.Size = new Size(90, 37);
@@ -1387,7 +1389,7 @@
             // 
             // txt_ChatMessage_Admin
             // 
-            txt_ChatMessage_Admin.Location = new Point(50, 43);
+            txt_ChatMessage_Admin.Location = new Point(48, 21);
             txt_ChatMessage_Admin.Margin = new Padding(2);
             txt_ChatMessage_Admin.Name = "txt_ChatMessage_Admin";
             txt_ChatMessage_Admin.Size = new Size(427, 27);
@@ -1397,10 +1399,10 @@
             // 
             panel_ChatHeader_Admin.Controls.Add(lbl_ChatRole_Admin);
             panel_ChatHeader_Admin.Controls.Add(lbl_ChatTitle_Admin);
-            panel_ChatHeader_Admin.Location = new Point(0, 2);
+            panel_ChatHeader_Admin.Location = new Point(4, 2);
             panel_ChatHeader_Admin.Margin = new Padding(2);
             panel_ChatHeader_Admin.Name = "panel_ChatHeader_Admin";
-            panel_ChatHeader_Admin.Size = new Size(675, 120);
+            panel_ChatHeader_Admin.Size = new Size(615, 96);
             panel_ChatHeader_Admin.TabIndex = 0;
             // 
             // lbl_ChatRole_Admin
@@ -1435,7 +1437,7 @@
             Panel_UserList_Admin.Location = new Point(3, 3);
             Panel_UserList_Admin.Margin = new Padding(2);
             Panel_UserList_Admin.Name = "Panel_UserList_Admin";
-            Panel_UserList_Admin.Size = new Size(292, 464);
+            Panel_UserList_Admin.Size = new Size(344, 464);
             Panel_UserList_Admin.TabIndex = 0;
             // 
             // lbl_OnlineCount_Admin
@@ -1467,10 +1469,10 @@
             lv_Users_admin.Columns.AddRange(new ColumnHeader[] { columnHeader1, columnHeader2, columnHeader3 });
             lv_Users_admin.FullRowSelect = true;
             lv_Users_admin.GridLines = true;
-            lv_Users_admin.Location = new Point(2, 94);
+            lv_Users_admin.Location = new Point(2, 101);
             lv_Users_admin.Margin = new Padding(2);
             lv_Users_admin.Name = "lv_Users_admin";
-            lv_Users_admin.Size = new Size(290, 285);
+            lv_Users_admin.Size = new Size(337, 285);
             lv_Users_admin.TabIndex = 2;
             lv_Users_admin.UseCompatibleStateImageBehavior = false;
             lv_Users_admin.View = View.Details;
@@ -1510,17 +1512,8 @@
             // 
             // tabPage7
             // 
-            tabPage7.BackColor = Color.FromArgb(255, 248, 240);
-            tabPage7.Controls.Add(button_DangxuatAdmin);
-            tabPage7.Controls.Add(textbox_role);
-            tabPage7.Controls.Add(textbox_nameadmin);
-            tabPage7.Controls.Add(textbox_emailadmin);
-            tabPage7.Controls.Add(textbox_usernameadmin);
-            tabPage7.Controls.Add(label24);
-            tabPage7.Controls.Add(label23);
-            tabPage7.Controls.Add(label22);
-            tabPage7.Controls.Add(label21);
-            tabPage7.Controls.Add(label20);
+            tabPage7.BackColor = Color.BurlyWood;
+            tabPage7.Controls.Add(panel11);
             tabPage7.Location = new Point(4, 29);
             tabPage7.Margin = new Padding(2);
             tabPage7.Name = "tabPage7";
@@ -1529,112 +1522,125 @@
             tabPage7.TabIndex = 6;
             tabPage7.Text = "ⓘ Tài khoản";
             // 
+            // panel11
+            // 
+            panel11.BackColor = Color.FromArgb(250, 240, 230);
+            panel11.Controls.Add(textbox_nameadmin);
+            panel11.Controls.Add(label25);
+            panel11.Controls.Add(button_DangxuatAdmin);
+            panel11.Controls.Add(textbox_role);
+            panel11.Controls.Add(textbox_emailadmin);
+            panel11.Controls.Add(textbox_usernameadmin);
+            panel11.Controls.Add(label26);
+            panel11.Controls.Add(label27);
+            panel11.Controls.Add(label28);
+            panel11.Controls.Add(label29);
+            panel11.Location = new Point(262, 5);
+            panel11.Name = "panel11";
+            panel11.Size = new Size(464, 459);
+            panel11.TabIndex = 22;
+            // 
+            // textbox_nameadmin
+            // 
+            textbox_nameadmin.Location = new Point(154, 243);
+            textbox_nameadmin.Margin = new Padding(2);
+            textbox_nameadmin.Name = "textbox_nameadmin";
+            textbox_nameadmin.Size = new Size(268, 27);
+            textbox_nameadmin.TabIndex = 26;
+            // 
+            // label25
+            // 
+            label25.AutoSize = true;
+            label25.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label25.Location = new Point(13, 238);
+            label25.Margin = new Padding(2, 0, 2, 0);
+            label25.Name = "label25";
+            label25.Size = new Size(54, 32);
+            label25.TabIndex = 25;
+            label25.Text = "Tên";
+            // 
             // button_DangxuatAdmin
             // 
             button_DangxuatAdmin.BackColor = Color.Sienna;
             button_DangxuatAdmin.FlatStyle = FlatStyle.Flat;
             button_DangxuatAdmin.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             button_DangxuatAdmin.ForeColor = Color.White;
-            button_DangxuatAdmin.Location = new Point(413, 389);
+            button_DangxuatAdmin.Location = new Point(154, 377);
             button_DangxuatAdmin.Margin = new Padding(2);
             button_DangxuatAdmin.Name = "button_DangxuatAdmin";
-            button_DangxuatAdmin.Size = new Size(144, 45);
-            button_DangxuatAdmin.TabIndex = 9;
+            button_DangxuatAdmin.Size = new Size(179, 43);
+            button_DangxuatAdmin.TabIndex = 24;
             button_DangxuatAdmin.Text = "Đăng xuất";
             button_DangxuatAdmin.UseVisualStyleBackColor = false;
             button_DangxuatAdmin.Click += button_DangxuatAdmin_Click;
             // 
             // textbox_role
             // 
-            textbox_role.Location = new Point(422, 323);
+            textbox_role.Location = new Point(154, 308);
             textbox_role.Margin = new Padding(2);
             textbox_role.Name = "textbox_role";
-            textbox_role.Size = new Size(260, 27);
-            textbox_role.TabIndex = 8;
-            // 
-            // textbox_nameadmin
-            // 
-            textbox_nameadmin.Location = new Point(424, 264);
-            textbox_nameadmin.Margin = new Padding(2);
-            textbox_nameadmin.Name = "textbox_nameadmin";
-            textbox_nameadmin.Size = new Size(258, 27);
-            textbox_nameadmin.TabIndex = 7;
+            textbox_role.Size = new Size(268, 27);
+            textbox_role.TabIndex = 23;
             // 
             // textbox_emailadmin
             // 
-            textbox_emailadmin.Location = new Point(422, 203);
+            textbox_emailadmin.Location = new Point(154, 178);
             textbox_emailadmin.Margin = new Padding(2);
             textbox_emailadmin.Name = "textbox_emailadmin";
-            textbox_emailadmin.Size = new Size(260, 27);
-            textbox_emailadmin.TabIndex = 6;
+            textbox_emailadmin.Size = new Size(268, 27);
+            textbox_emailadmin.TabIndex = 21;
             // 
             // textbox_usernameadmin
             // 
-            textbox_usernameadmin.Location = new Point(422, 140);
+            textbox_usernameadmin.Location = new Point(154, 118);
             textbox_usernameadmin.Margin = new Padding(2);
             textbox_usernameadmin.Name = "textbox_usernameadmin";
-            textbox_usernameadmin.Size = new Size(260, 27);
-            textbox_usernameadmin.TabIndex = 5;
+            textbox_usernameadmin.Size = new Size(268, 27);
+            textbox_usernameadmin.TabIndex = 20;
             // 
-            // label24
+            // label26
             // 
-            label24.AutoSize = true;
-            label24.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label24.ForeColor = Color.FromArgb(101, 67, 33);
-            label24.Location = new Point(264, 317);
-            label24.Margin = new Padding(2, 0, 2, 0);
-            label24.Name = "label24";
-            label24.Size = new Size(106, 32);
-            label24.TabIndex = 4;
-            label24.Text = "Chức vụ";
+            label26.AutoSize = true;
+            label26.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label26.Location = new Point(13, 302);
+            label26.Margin = new Padding(2, 0, 2, 0);
+            label26.Name = "label26";
+            label26.Size = new Size(106, 32);
+            label26.TabIndex = 19;
+            label26.Text = "Chức vụ";
             // 
-            // label23
+            // label27
             // 
-            label23.AutoSize = true;
-            label23.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label23.ForeColor = Color.FromArgb(101, 67, 33);
-            label23.Location = new Point(264, 256);
-            label23.Margin = new Padding(2, 0, 2, 0);
-            label23.Name = "label23";
-            label23.Size = new Size(54, 32);
-            label23.TabIndex = 3;
-            label23.Text = "Tên";
+            label27.AutoSize = true;
+            label27.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label27.Location = new Point(13, 173);
+            label27.Margin = new Padding(2, 0, 2, 0);
+            label27.Name = "label27";
+            label27.Size = new Size(76, 32);
+            label27.TabIndex = 18;
+            label27.Text = "Email";
             // 
-            // label22
+            // label28
             // 
-            label22.AutoSize = true;
-            label22.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label22.ForeColor = Color.FromArgb(101, 67, 33);
-            label22.Location = new Point(264, 198);
-            label22.Margin = new Padding(2, 0, 2, 0);
-            label22.Name = "label22";
-            label22.Size = new Size(76, 32);
-            label22.TabIndex = 2;
-            label22.Text = "Email";
+            label28.AutoSize = true;
+            label28.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label28.Location = new Point(13, 113);
+            label28.Margin = new Padding(2, 0, 2, 0);
+            label28.Name = "label28";
+            label28.Size = new Size(128, 32);
+            label28.TabIndex = 17;
+            label28.Text = "Username";
             // 
-            // label21
+            // label29
             // 
-            label21.AutoSize = true;
-            label21.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label21.ForeColor = Color.FromArgb(101, 67, 33);
-            label21.Location = new Point(264, 134);
-            label21.Margin = new Padding(2, 0, 2, 0);
-            label21.Name = "label21";
-            label21.Size = new Size(128, 32);
-            label21.TabIndex = 1;
-            label21.Text = "Username";
-            // 
-            // label20
-            // 
-            label20.AutoSize = true;
-            label20.Font = new Font("Segoe UI Black", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label20.Location = new Point(365, 63);
-            label20.Margin = new Padding(2, 0, 2, 0);
-            label20.Name = "label20";
-            label20.Size = new Size(244, 32);
-            label20.TabIndex = 0;
-            label20.Text = "Thông tin tài khoản";
-            label20.Click += label20_Click;
+            label29.AutoSize = true;
+            label29.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label29.Location = new Point(88, 25);
+            label29.Margin = new Padding(2, 0, 2, 0);
+            label29.Name = "label29";
+            label29.Size = new Size(334, 46);
+            label29.TabIndex = 16;
+            label29.Text = "Thông tin tài khoản";
             // 
             // Admin
             // 
@@ -1694,7 +1700,8 @@
             Panel_UserList_Admin.ResumeLayout(false);
             Panel_UserList_Admin.PerformLayout();
             tabPage7.ResumeLayout(false);
-            tabPage7.PerformLayout();
+            panel11.ResumeLayout(false);
+            panel11.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -1794,16 +1801,6 @@
         private TextBox tb_maloaimon;
         private Label label19;
         private TabPage tabPage7;
-        private Label label20;
-        private Label label21;
-        private Label label24;
-        private Label label23;
-        private Label label22;
-        private TextBox textbox_role;
-        private TextBox textbox_nameadmin;
-        private TextBox textbox_emailadmin;
-        private TextBox textbox_usernameadmin;
-        private Button button_DangxuatAdmin;
         private Panel Panel_UserList_Admin;
         private Label lbl_OnlineCount_Admin;
         private Button btn_RefreshUsers_Admin;
@@ -1821,5 +1818,16 @@
         private Button btn_SendChat_Admin;
         private TextBox txt_ChatMessage_Admin;
         private RichTextBox rtb_ChatMessages_Admin;
+        private Panel panel11;
+        private TextBox textbox_nameadmin;
+        private Label label25;
+        private Button button_DangxuatAdmin;
+        private TextBox textbox_role;
+        private TextBox textbox_emailadmin;
+        private TextBox textbox_usernameadmin;
+        private Label label26;
+        private Label label27;
+        private Label label28;
+        private Label label29;
     }
 }

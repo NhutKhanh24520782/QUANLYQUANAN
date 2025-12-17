@@ -108,16 +108,17 @@
             chk_SendAll = new CheckBox();
             txt_SearchUser = new TextBox();
             tabPage2 = new TabPage();
+            panel1 = new Panel();
+            label20 = new Label();
             button_DangXuatPhucVu = new Button();
             textbox_rolepv = new TextBox();
             textbox_tenphucvu = new TextBox();
             textbox_emailphucvu = new TextBox();
             textbox_usernamephucvu = new TextBox();
-            label19 = new Label();
-            label16 = new Label();
-            label15 = new Label();
-            label14 = new Label();
-            label13 = new Label();
+            label22 = new Label();
+            label23 = new Label();
+            label24 = new Label();
+            label25 = new Label();
             tabControl1.SuspendLayout();
             tp_phucvuqly.SuspendLayout();
             gb_thucdonorder.SuspendLayout();
@@ -143,6 +144,7 @@
             panel_ChatHeader.SuspendLayout();
             panel_UserList.SuspendLayout();
             tabPage2.SuspendLayout();
+            panel1.SuspendLayout();
             SuspendLayout();
             // 
             // tabControl1
@@ -847,10 +849,10 @@
             panel_ChatArea.Controls.Add(panel_ChatInput);
             panel_ChatArea.Controls.Add(panel_ChatHeader);
             panel_ChatArea.Dock = DockStyle.Fill;
-            panel_ChatArea.Location = new Point(377, 3);
+            panel_ChatArea.Location = new Point(373, 3);
             panel_ChatArea.Margin = new Padding(2);
             panel_ChatArea.Name = "panel_ChatArea";
-            panel_ChatArea.Size = new Size(1009, 599);
+            panel_ChatArea.Size = new Size(1013, 599);
             panel_ChatArea.TabIndex = 1;
             // 
             // rtb_ChatMessages
@@ -859,7 +861,7 @@
             rtb_ChatMessages.Location = new Point(0, 120);
             rtb_ChatMessages.Margin = new Padding(2);
             rtb_ChatMessages.Name = "rtb_ChatMessages";
-            rtb_ChatMessages.Size = new Size(1009, 359);
+            rtb_ChatMessages.Size = new Size(1013, 359);
             rtb_ChatMessages.TabIndex = 2;
             rtb_ChatMessages.Text = "";
             // 
@@ -872,7 +874,7 @@
             panel_ChatInput.Location = new Point(0, 479);
             panel_ChatInput.Margin = new Padding(2);
             panel_ChatInput.Name = "panel_ChatInput";
-            panel_ChatInput.Size = new Size(1009, 120);
+            panel_ChatInput.Size = new Size(1013, 120);
             panel_ChatInput.TabIndex = 1;
             // 
             // btn_SendChat
@@ -882,7 +884,7 @@
             btn_SendChat.FlatStyle = FlatStyle.Flat;
             btn_SendChat.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             btn_SendChat.ForeColor = Color.White;
-            btn_SendChat.Location = new Point(586, 50);
+            btn_SendChat.Location = new Point(590, 50);
             btn_SendChat.Margin = new Padding(2);
             btn_SendChat.Name = "btn_SendChat";
             btn_SendChat.Size = new Size(120, 39);
@@ -897,7 +899,7 @@
             txt_ChatMessage.Location = new Point(50, 54);
             txt_ChatMessage.Margin = new Padding(2);
             txt_ChatMessage.Name = "txt_ChatMessage";
-            txt_ChatMessage.Size = new Size(518, 30);
+            txt_ChatMessage.Size = new Size(522, 30);
             txt_ChatMessage.TabIndex = 0;
             // 
             // panel_ChatHeader
@@ -909,7 +911,7 @@
             panel_ChatHeader.Location = new Point(0, 0);
             panel_ChatHeader.Margin = new Padding(2);
             panel_ChatHeader.Name = "panel_ChatHeader";
-            panel_ChatHeader.Size = new Size(1009, 120);
+            panel_ChatHeader.Size = new Size(1013, 120);
             panel_ChatHeader.TabIndex = 0;
             // 
             // lbl_ChatRole
@@ -946,7 +948,7 @@
             panel_UserList.Location = new Point(3, 3);
             panel_UserList.Margin = new Padding(2);
             panel_UserList.Name = "panel_UserList";
-            panel_UserList.Size = new Size(374, 599);
+            panel_UserList.Size = new Size(370, 599);
             panel_UserList.TabIndex = 0;
             // 
             // btn_ThongBao_PhucVu
@@ -1037,17 +1039,8 @@
             // 
             // tabPage2
             // 
-            tabPage2.BackColor = Color.FromArgb(250, 247, 242);
-            tabPage2.Controls.Add(button_DangXuatPhucVu);
-            tabPage2.Controls.Add(textbox_rolepv);
-            tabPage2.Controls.Add(textbox_tenphucvu);
-            tabPage2.Controls.Add(textbox_emailphucvu);
-            tabPage2.Controls.Add(textbox_usernamephucvu);
-            tabPage2.Controls.Add(label19);
-            tabPage2.Controls.Add(label16);
-            tabPage2.Controls.Add(label15);
-            tabPage2.Controls.Add(label14);
-            tabPage2.Controls.Add(label13);
+            tabPage2.BackColor = Color.BurlyWood;
+            tabPage2.Controls.Add(panel1);
             tabPage2.ForeColor = Color.FromArgb(101, 67, 33);
             tabPage2.Location = new Point(4, 29);
             tabPage2.Margin = new Padding(2);
@@ -1057,107 +1050,125 @@
             tabPage2.TabIndex = 4;
             tabPage2.Text = "ⓘ Tài khoản";
             // 
+            // panel1
+            // 
+            panel1.BackColor = Color.FromArgb(250, 240, 230);
+            panel1.Controls.Add(label20);
+            panel1.Controls.Add(button_DangXuatPhucVu);
+            panel1.Controls.Add(textbox_rolepv);
+            panel1.Controls.Add(textbox_tenphucvu);
+            panel1.Controls.Add(textbox_emailphucvu);
+            panel1.Controls.Add(textbox_usernamephucvu);
+            panel1.Controls.Add(label22);
+            panel1.Controls.Add(label23);
+            panel1.Controls.Add(label24);
+            panel1.Controls.Add(label25);
+            panel1.Location = new Point(472, 5);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(477, 595);
+            panel1.TabIndex = 20;
+            // 
+            // label20
+            // 
+            label20.AutoSize = true;
+            label20.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label20.Location = new Point(13, 287);
+            label20.Margin = new Padding(2, 0, 2, 0);
+            label20.Name = "label20";
+            label20.Size = new Size(54, 32);
+            label20.TabIndex = 25;
+            label20.Text = "Tên";
+            // 
             // button_DangXuatPhucVu
             // 
             button_DangXuatPhucVu.BackColor = Color.Sienna;
             button_DangXuatPhucVu.FlatStyle = FlatStyle.Flat;
             button_DangXuatPhucVu.Font = new Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
             button_DangXuatPhucVu.ForeColor = Color.White;
-            button_DangXuatPhucVu.Location = new Point(546, 495);
+            button_DangXuatPhucVu.Location = new Point(154, 457);
             button_DangXuatPhucVu.Margin = new Padding(2);
             button_DangXuatPhucVu.Name = "button_DangXuatPhucVu";
-            button_DangXuatPhucVu.Size = new Size(157, 44);
-            button_DangXuatPhucVu.TabIndex = 9;
+            button_DangXuatPhucVu.Size = new Size(179, 54);
+            button_DangXuatPhucVu.TabIndex = 24;
             button_DangXuatPhucVu.Text = "Đăng xuất";
             button_DangXuatPhucVu.UseVisualStyleBackColor = false;
             button_DangXuatPhucVu.Click += button_DangXuatPhucVu_Click;
             // 
             // textbox_rolepv
             // 
-            textbox_rolepv.Location = new Point(546, 419);
+            textbox_rolepv.Location = new Point(154, 376);
             textbox_rolepv.Margin = new Padding(2);
             textbox_rolepv.Name = "textbox_rolepv";
             textbox_rolepv.Size = new Size(268, 27);
-            textbox_rolepv.TabIndex = 8;
+            textbox_rolepv.TabIndex = 23;
             // 
             // textbox_tenphucvu
             // 
-            textbox_tenphucvu.Location = new Point(546, 335);
+            textbox_tenphucvu.Location = new Point(154, 292);
             textbox_tenphucvu.Margin = new Padding(2);
             textbox_tenphucvu.Name = "textbox_tenphucvu";
             textbox_tenphucvu.Size = new Size(268, 27);
-            textbox_tenphucvu.TabIndex = 7;
+            textbox_tenphucvu.TabIndex = 22;
             // 
             // textbox_emailphucvu
             // 
-            textbox_emailphucvu.Location = new Point(546, 257);
+            textbox_emailphucvu.Location = new Point(154, 214);
             textbox_emailphucvu.Margin = new Padding(2);
             textbox_emailphucvu.Name = "textbox_emailphucvu";
             textbox_emailphucvu.Size = new Size(268, 27);
-            textbox_emailphucvu.TabIndex = 6;
+            textbox_emailphucvu.TabIndex = 21;
             // 
             // textbox_usernamephucvu
             // 
-            textbox_usernamephucvu.Location = new Point(546, 184);
+            textbox_usernamephucvu.Location = new Point(154, 141);
             textbox_usernamephucvu.Margin = new Padding(2);
             textbox_usernamephucvu.Name = "textbox_usernamephucvu";
             textbox_usernamephucvu.Size = new Size(268, 27);
-            textbox_usernamephucvu.TabIndex = 5;
+            textbox_usernamephucvu.TabIndex = 20;
             // 
-            // label19
+            // label22
             // 
-            label19.AutoSize = true;
-            label19.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label19.Location = new Point(385, 413);
-            label19.Margin = new Padding(2, 0, 2, 0);
-            label19.Name = "label19";
-            label19.Size = new Size(106, 32);
-            label19.TabIndex = 4;
-            label19.Text = "Chức vụ";
+            label22.AutoSize = true;
+            label22.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label22.Location = new Point(13, 370);
+            label22.Margin = new Padding(2, 0, 2, 0);
+            label22.Name = "label22";
+            label22.Size = new Size(106, 32);
+            label22.TabIndex = 19;
+            label22.Text = "Chức vụ";
             // 
-            // label16
+            // label23
             // 
-            label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(385, 330);
-            label16.Margin = new Padding(2, 0, 2, 0);
-            label16.Name = "label16";
-            label16.Size = new Size(54, 32);
-            label16.TabIndex = 3;
-            label16.Text = "Tên";
+            label23.AutoSize = true;
+            label23.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label23.Location = new Point(13, 209);
+            label23.Margin = new Padding(2, 0, 2, 0);
+            label23.Name = "label23";
+            label23.Size = new Size(76, 32);
+            label23.TabIndex = 18;
+            label23.Text = "Email";
             // 
-            // label15
+            // label24
             // 
-            label15.AutoSize = true;
-            label15.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label15.Location = new Point(385, 251);
-            label15.Margin = new Padding(2, 0, 2, 0);
-            label15.Name = "label15";
-            label15.Size = new Size(76, 32);
-            label15.TabIndex = 2;
-            label15.Text = "Email";
+            label24.AutoSize = true;
+            label24.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label24.Location = new Point(13, 136);
+            label24.Margin = new Padding(2, 0, 2, 0);
+            label24.Name = "label24";
+            label24.Size = new Size(128, 32);
+            label24.TabIndex = 17;
+            label24.Text = "Username";
             // 
-            // label14
+            // label25
             // 
-            label14.AutoSize = true;
-            label14.Font = new Font("Segoe UI", 14F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label14.Location = new Point(385, 178);
-            label14.Margin = new Padding(2, 0, 2, 0);
-            label14.Name = "label14";
-            label14.Size = new Size(128, 32);
-            label14.TabIndex = 1;
-            label14.Text = "Username";
-            // 
-            // label13
-            // 
-            label13.AutoSize = true;
-            label13.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label13.Location = new Point(480, 82);
-            label13.Margin = new Padding(2, 0, 2, 0);
-            label13.Name = "label13";
-            label13.Size = new Size(334, 46);
-            label13.TabIndex = 0;
-            label13.Text = "Thông tin tài khoản";
+            label25.AutoSize = true;
+            label25.Font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label25.Location = new Point(88, 39);
+            label25.Margin = new Padding(2, 0, 2, 0);
+            label25.Name = "label25";
+            label25.Size = new Size(334, 46);
+            label25.TabIndex = 16;
+            label25.Text = "Thông tin tài khoản";
             // 
             // NVPhucVu
             // 
@@ -1203,7 +1214,8 @@
             panel_UserList.ResumeLayout(false);
             panel_UserList.PerformLayout();
             tabPage2.ResumeLayout(false);
-            tabPage2.PerformLayout();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -1274,16 +1286,6 @@
         private Label lbl_userInfo;
         private Label lbl_title;
         private TabPage tabPage2;
-        private Label label13;
-        private TextBox textbox_emailphucvu;
-        private TextBox textbox_usernamephucvu;
-        private Label label19;
-        private Label label16;
-        private Label label15;
-        private Label label14;
-        private TextBox textbox_rolepv;
-        private TextBox textbox_tenphucvu;
-        private Button button_DangXuatPhucVu;
         private SplitContainer splitContainer1;
         private DataGridView dgv_DonHangTongQuan;
         private ListView lv_ChiTietDon;
@@ -1304,5 +1306,16 @@
         private RichTextBox rtb_ChatMessages;
         private Button btn_SendChat;
         private Button btn_ThongBao_PhucVu;
+        private Panel panel1;
+        private Label label20;
+        private Button button_DangXuatPhucVu;
+        private TextBox textbox_rolepv;
+        private TextBox textbox_tenphucvu;
+        private TextBox textbox_emailphucvu;
+        private TextBox textbox_usernamephucvu;
+        private Label label22;
+        private Label label23;
+        private Label label24;
+        private Label label25;
     }
 }
