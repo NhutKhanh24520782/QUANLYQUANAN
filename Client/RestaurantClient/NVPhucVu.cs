@@ -1161,7 +1161,7 @@ namespace RestaurantClient
 
                                 if (response?.Success == true)
                                 {
-                                    // 1. Hiện QR
+                                    // 1. Hiện thị QR code
                                     HienThiMaQR(selectedPayment.TongTien, $"HD{selectedPayment.MaHD}");
                                     if (panel_qrthanhtoan != null) panel_qrthanhtoan.Visible = true;
 
