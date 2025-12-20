@@ -212,6 +212,7 @@ CREATE TABLE BAOCAO (
 );
 GO
 
+
 -- 12. THANHTOAN
 CREATE TABLE THANHTOAN (
     MaGiaoDich INT IDENTITY(1,1) PRIMARY KEY,
@@ -222,8 +223,8 @@ CREATE TABLE THANHTOAN (
     SoTienThanhToan DECIMAL(12,2) NOT NULL CHECK (SoTienThanhToan > 0),
     SoTienNhan DECIMAL(12,2) NULL,
     SoTienThua DECIMAL(12,2) NULL,
-    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'ThanhCong' 
-        CHECK (TrangThai IN (N'ThanhCong', N'ThatBai', N'Huy')),
+    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'DangXuLy'  -- SỬA DEFAULT
+        CHECK (TrangThai IN (N'DangXuLy', N'ThanhCong', N'ThatBai', N'Huy')), -- THÊM 'DangXuLy'
     MaGiaoDichNganHang NVARCHAR(255) NULL,
     QRCodeData NVARCHAR(MAX) NULL,
     ThoiGianTao DATETIME DEFAULT GETDATE(),
@@ -232,7 +233,6 @@ CREATE TABLE THANHTOAN (
     FOREIGN KEY (MaHD) REFERENCES HOADON(MaHD) ON DELETE CASCADE,
     FOREIGN KEY (MaNhanVien) REFERENCES NGUOIDUNG(MaNguoiDung)
 );
-GO
 
 -- =========================
 -- 3. INDEX cho hiệu năng
