@@ -1348,17 +1348,17 @@ namespace RestaurantServer
 
                         // 4. Thêm giao dịch thanh toán
                         string insertPaymentSql = @"
-                    INSERT INTO THANHTOAN (
-                        MaHD, MaNhanVien, PhuongThucThanhToan, 
-                        SoTienThanhToan, TrangThai, 
-                        MaGiaoDichNganHang, QRCodeData, GhiChu
-                    )
-                    VALUES (
-                        @MaHD, @MaNhanVien, N'ChuyenKhoan',
-                        @SoTienThanhToan, N'DangXuLy', -- <--- QUAN TRỌNG: ĐANG XỬ LÝ
-                        @MaGiaoDichNganHang, @QRCodeData, N'Đang chờ chuyển khoản'
-                    );
-                    SELECT CAST(SCOPE_IDENTITY() AS INT)";
+                        INSERT INTO THANHTOAN (
+                            MaHD, MaNhanVien, PhuongThucThanhToan, 
+                            SoTienThanhToan, TrangThai, 
+                            MaGiaoDichNganHang, QRCodeData, GhiChu
+                        )
+                        VALUES (
+                            @MaHD, @MaNhanVien, N'ChuyenKhoan',
+                            @SoTienThanhToan, @TrangThai, -- ✅ Sửa thành parameter
+                            @MaGiaoDichNganHang, @QRCodeData, N'Đang chờ chuyển khoản'
+                        );
+                        SELECT CAST(SCOPE_IDENTITY() AS INT)";
 
                         int maGiaoDich;
                         using (SqlCommand insertCmd = new SqlCommand(insertPaymentSql, conn, transaction))
@@ -1366,8 +1366,10 @@ namespace RestaurantServer
                             insertCmd.Parameters.AddWithValue("@MaHD", maHD);
                             insertCmd.Parameters.AddWithValue("@MaNhanVien", maNV);
                             insertCmd.Parameters.AddWithValue("@SoTienThanhToan", tongTien);
+                            insertCmd.Parameters.AddWithValue("@TrangThai", "DangXuLy"); // ✅ Sửa thành parameter
                             insertCmd.Parameters.AddWithValue("@MaGiaoDichNganHang", transactionNo);
                             insertCmd.Parameters.AddWithValue("@QRCodeData", qrCodeData);
+
                             maGiaoDich = Convert.ToInt32(insertCmd.ExecuteScalar());
                         }
 
