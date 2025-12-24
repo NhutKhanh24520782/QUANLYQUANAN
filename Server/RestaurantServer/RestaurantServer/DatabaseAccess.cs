@@ -1403,35 +1403,37 @@ namespace RestaurantServer
             {
                 conn.Open();
 
-                // Kiểm tra xem trong bảng THANHTOAN có dòng nào của HĐ này đã thành công chưa
+                // LOGIC MỚI: Chỉ cần HOADON là 'DaThanhToan' HOẶC bảng THANHTOAN là 'ThanhCong'
+                // là coi như xong. (Dễ tính hơn để tránh lỗi vặt).
                 string query = @"
-            SELECT COUNT(*) FROM THANHTOAN 
+            SELECT COUNT(*) 
+            FROM HOADON 
             WHERE MaHD = @MaHD 
-              AND PhuongThucThanhToan = 'ChuyenKhoan' 
-              AND TrangThai = N'ThanhCong'"; // Chỉ tính là xong nếu trạng thái là Thành Công
+              AND (TrangThai = N'DaThanhToan' OR TrangThai = 'DaThanhToan')";
+                // Check cả có N' ' và không có N' ' phòng lỗi Unicode
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
                     cmd.Parameters.AddWithValue("@MaHD", maHD);
                     int count = (int)cmd.ExecuteScalar();
 
-                    if (count > 0)
-                    {
-                        // Nếu tìm thấy thanh toán thành công -> Update luôn trạng thái HÓA ĐƠN
-                        // (Đề phòng trường hợp chưa update)
-                        string updateHD = @"UPDATE HOADON 
-                                    SET TrangThai = N'DaThanhToan', PhuongThucThanhToan = N'ChuyenKhoan' 
-                                    WHERE MaHD = @MaHD AND TrangThai = N'ChuaThanhToan'";
-                        using (SqlCommand cmdHD = new SqlCommand(updateHD, conn))
-                        {
-                            cmdHD.Parameters.AddWithValue("@MaHD", maHD);
-                            cmdHD.ExecuteNonQuery();
-                        }
-                        return true; // Báo về Client là xong rồi
-                    }
+                    if (count > 0) return true; // Đã thanh toán
+                }
+
+                // Kiểm tra thêm bảng THANHTOAN cho chắc
+                string query2 = @"
+            SELECT COUNT(*) 
+            FROM THANHTOAN 
+            WHERE MaHD = @MaHD 
+              AND (TrangThai = N'ThanhCong' OR TrangThai = 'ThanhCong')";
+
+                using (SqlCommand cmd2 = new SqlCommand(query2, conn))
+                {
+                    cmd2.Parameters.AddWithValue("@MaHD", maHD);
+                    int count2 = (int)cmd2.ExecuteScalar();
+                    return count2 > 0;
                 }
             }
-            return false; // Chưa thấy tiền
         }
         public static OrderMonResult GetMon()
         {
