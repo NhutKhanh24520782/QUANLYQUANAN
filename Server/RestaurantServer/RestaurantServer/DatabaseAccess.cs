@@ -1123,6 +1123,8 @@ namespace RestaurantServer
                             while (reader.Read())
                             {
                                 DateTime ngayDatabase = (DateTime)reader["NgayTao"];
+                                DateTime ngayVietNam = TimeHelper.ConvertVietnamTimeToUtc(ngayDatabase);
+                            
                                 payments.Add(new PendingPaymentData
                                 {
                                     MaHD = (int)reader["MaHD"],
@@ -1132,6 +1134,7 @@ namespace RestaurantServer
                                     TenNhanVien = reader["TenNhanVien"].ToString(),
                                     TongTien = Convert.ToDecimal(reader["TongTien"]),
                                     TrangThai = reader["TrangThai"].ToString(),
+                                    NgayTao = ngayVietNam,
                                     SoMon = (int)reader["SoMon"]
                                 });
                             }
@@ -1554,6 +1557,8 @@ namespace RestaurantServer
                 {
                     try
                     {
+
+
                         DateTime vietnamNow = TimeHelper.GetVietnamTime();
                         DateTime utcNow = TimeHelper.ConvertVietnamTimeToUtc(vietnamNow);
                         // ✅ 1. TẠO ĐƠN HÀNG (cho bếp)
@@ -1567,7 +1572,7 @@ namespace RestaurantServer
                         {
                             cmd.Parameters.AddWithValue("@MaBanAn", maBan);
                             cmd.Parameters.AddWithValue("@MaNVOrder", maNhanVien);
-                            cmd.Parameters.AddWithValue("@Ngay", utcNow); // ✅ LƯU UTC
+                            cmd.Parameters.AddWithValue("@Ngay", TimeHelper.GetVietnamTime()); // ✅ LƯU UTC
                             maDonHang = (int)cmd.ExecuteScalar();
                         }
 
@@ -1607,7 +1612,7 @@ namespace RestaurantServer
                             cmd.Parameters.AddWithValue("@MaBanAn", maBan);
                             cmd.Parameters.AddWithValue("@MaNV", maNhanVien);
                             cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
-                            cmd.Parameters.AddWithValue("@Ngay", utcNow); // ✅ LƯU UTC
+                            cmd.Parameters.AddWithValue("@Ngay", TimeHelper.GetVietnamTime()); // ✅ LƯU UTC
                             cmd.Parameters.AddWithValue("@TongTien", tongTien);
                             maHoaDon = (int)cmd.ExecuteScalar();
                         }
@@ -2034,6 +2039,9 @@ namespace RestaurantServer
 
                             // ✅ CHUYỂN ĐỔI TỪ UTC (Azure) SANG GIỜ VIỆT NAM
                             DateTime ngayOrderVietnam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayOrder);
+
+                            DateTime ngayDatabase = (DateTime)r["ThoiGianDuKienHoanThanh"];
+                            DateTime ngayVietNam = TimeHelper.ConvertVietnamTimeToUtc(ngayDatabase);
                             orderDetail = new KitchenOrderDetailData
                             {
                                 MaDonHang = (int)r["MaDonHang"],
@@ -2044,7 +2052,7 @@ namespace RestaurantServer
                                 TrangThaiDon = r["TrangThaiDon"].ToString(),
                                 TongTien = Convert.ToDecimal(r["TongTien"]),
                                 ThoiGianDuKienHoanThanh = r["ThoiGianDuKienHoanThanh"] != DBNull.Value ?
-                                    TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianDuKienHoanThanh"])) : null,
+                                    ngayVietNam : null,
                                 DanhSachMon = new List<KitchenDishData>(),
                                 TinNhan = new List<KitchenMessageData>()
                             };
@@ -2092,13 +2100,13 @@ namespace RestaurantServer
                         {
                             // ✅ CHUYỂN ĐỔI TẤT CẢ THỜI GIAN TỪ UTC SANG VIỆT NAM
                             DateTime? thoiGianBatDau = r["ThoiGianBatDau"] != DBNull.Value ?
-                                TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianBatDau"])) : null;
+                                TimeHelper.GetVietnamTime() : null;
 
                             DateTime? thoiGianHoanThanh = r["ThoiGianHoanThanh"] != DBNull.Value ?
-                                TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianHoanThanh"])) : null;
+                                TimeHelper.GetVietnamTime() : null;
 
                             DateTime? thoiGianDuKien = r["ThoiGianDuKien"] != DBNull.Value ?
-                                TimeHelper.ConvertDatabaseTimeToVietnamTime(Convert.ToDateTime(r["ThoiGianDuKien"])) : null;
+                                TimeHelper.GetVietnamTime() : null;
 
                             var dish = new KitchenDishData
                             {
@@ -2146,139 +2154,156 @@ namespace RestaurantServer
         {
             try
             {
+                // 1. Lấy thời gian hiện tại chuẩn Việt Nam
+                DateTime nowVietnam = TimeHelper.GetVietnamTime();
+
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
 
-                    // Lấy thông tin món cũ
+                    // 2. Lấy thông tin món cũ
                     string getOldInfo = @"
                 SELECT mi.TenMon, ctdh.TrangThai as TrangThaiCu
                 FROM CHITIET_DONHANG ctdh
                 INNER JOIN MENUITEMS mi ON ctdh.MaMon = mi.MaMon
                 WHERE ctdh.MaChiTiet = @MaChiTiet AND ctdh.MaDonHang = @MaDonHang";
 
-                    SqlCommand cmd = new SqlCommand(getOldInfo, conn);
-                    cmd.Parameters.AddWithValue("@MaChiTiet", maChiTiet);
-                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
-
                     string tenMon = "";
                     string trangThaiCu = "";
 
-                    using (SqlDataReader r = cmd.ExecuteReader())
+                    using (SqlCommand cmdInfo = new SqlCommand(getOldInfo, conn))
                     {
-                        if (r.Read())
+                        cmdInfo.Parameters.AddWithValue("@MaChiTiet", maChiTiet);
+                        cmdInfo.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                        using (SqlDataReader r = cmdInfo.ExecuteReader())
                         {
-                            tenMon = r["TenMon"].ToString();
-                            trangThaiCu = r["TrangThaiCu"].ToString();
+                            if (r.Read())
+                            {
+                                tenMon = r["TenMon"].ToString();
+                                trangThaiCu = r["TrangThaiCu"].ToString();
+                            }
                         }
                     }
 
                     if (string.IsNullOrEmpty(tenMon))
                     {
-                        return new UpdateDishStatusResult
-                        {
-                            Success = false,
-                            Message = "Không tìm thấy món cần cập nhật"
-                        };
+                        return new UpdateDishStatusResult { Success = false, Message = "Không tìm thấy món cần cập nhật" };
                     }
 
-                    // ✅ SỬA TRONG UpdateDishStatus:
-                    DateTime vietnamNow = TimeHelper.GetVietnamTime();
-                    DateTime utcNow = TimeHelper.ConvertVietnamTimeToUtc(vietnamNow);
+                    // 3. ✅ XỬ LÝ THỜI GIAN - FIX: CLIENT GỬI UTC NHƯNG NGHĨ LÀ VN
+                    object thoiGianDuKienValue = DBNull.Value;
+                    DateTime? correctVietnamTime = null;
 
-                    // Chuyển thời gian dự kiến từ Việt Nam sang UTC
-                    DateTime? utcThoiGianDuKien = null;
                     if (thoiGianDuKienHoanThanh.HasValue)
                     {
-                        utcThoiGianDuKien = TimeHelper.ConvertVietnamTimeToUtc(thoiGianDuKienHoanThanh.Value);
+                        DateTime rawTime = thoiGianDuKienHoanThanh.Value;
+                         
+
+                        Console.WriteLine($"🔍 SERVER DEBUG:");
+                        Console.WriteLine($"   - Client gửi: {rawTime:yyyy-MM-dd HH:mm:ss}");
+                        Console.WriteLine($"   - Server VN:  {TimeHelper.GetVietnamTime():yyyy-MM-dd HH:mm:ss}");
+
+
+                        try
+                        {
+                            // ✅ FIX: Client gửi giờ UTC, cần chuyển sang VN
+                            // Bước 1: Đánh dấu đây là UTC
+                            DateTime clientTimeAsUtc = DateTime.SpecifyKind(rawTime, DateTimeKind.Utc);
+
+                            // Bước 2: Chuyển UTC → VN bằng cách cộng 7 giờ (an toàn nhất)
+                            correctVietnamTime = rawTime;
+
+                            // Bước 3: Lưu UTC vào DB
+                            thoiGianDuKienValue = clientTimeAsUtc;
+
+                            // ✅ Log DEBUG chi tiết
+                            Console.WriteLine($"🔍 TIME DEBUG:");
+                            Console.WriteLine($"   - Giờ VN hiện tại:        {nowVietnam:yyyy-MM-dd HH:mm:ss}");
+                            Console.WriteLine($"   - Client gửi (raw):       {rawTime:yyyy-MM-dd HH:mm:ss}");
+                            Console.WriteLine($"   - Hiểu là UTC:            {clientTimeAsUtc:yyyy-MM-dd HH:mm:ss} UTC");
+                            Console.WriteLine($"   - Chuyển sang VN (+7h):   {correctVietnamTime:yyyy-MM-dd HH:mm:ss}");
+                            Console.WriteLine($"   - Lưu DB (UTC):           {clientTimeAsUtc:yyyy-MM-dd HH:mm:ss}");
+
+                            // ✅ KIỂM TRA với giờ VN đã sửa
+                            if (correctVietnamTime < nowVietnam)
+                            {
+                                Console.WriteLine($"⚠️ CẢNH BÁO: Thời gian dự kiến ({correctVietnamTime.Value:dd/MM HH:mm}) đã qua so với hiện tại ({nowVietnam:dd/MM HH:mm})");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"✅ Thời gian dự kiến hợp lệ: {correctVietnamTime.Value:dd/MM HH:mm}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"⚠️ Lỗi xử lý múi giờ: {ex.Message}");
+                            // Fallback: Giả sử client đã gửi đúng giờ VN
+                            correctVietnamTime = rawTime;
+
+                            // Chuyển về UTC để lưu (trừ 7 giờ)
+                            DateTime utcFallback = rawTime.AddHours(-7);
+                            thoiGianDuKienValue = DateTime.SpecifyKind(utcFallback, DateTimeKind.Utc);
+
+                            Console.WriteLine($"   → Fallback: Coi như client gửi VN: {rawTime:HH:mm}, lưu UTC: {utcFallback:HH:mm}");
+                        }
                     }
 
-                    // Update query
+                    // 4. CẬP NHẬT DATABASE
                     string updateQuery = @"
                 UPDATE CHITIET_DONHANG SET 
                     TrangThai = @TrangThaiMoi,
                     GhiChuBep = @GhiChuBep,
                     MaNhanVienCheBien = @MaNhanVienBep,
                     UuTien = @UuTien,
-                    ThoiGianDuKien = @ThoiGianDuKien
+                    ThoiGianDuKien = @ThoiGianDuKien,
+                    ThoiGianBatDau = CASE 
+                        WHEN @TrangThaiMoi = 'DangCheBien' AND ThoiGianBatDau IS NULL THEN @CurrentUtc 
+                        ELSE ThoiGianBatDau END,
+                    ThoiGianHoanThanh = CASE 
+                        WHEN @TrangThaiMoi = 'HoanThanh' THEN @CurrentUtc 
+                        ELSE ThoiGianHoanThanh END
                 WHERE MaChiTiet = @MaChiTiet AND MaDonHang = @MaDonHang";
 
-                    // Cập nhật thời gian bắt đầu
-                    if (trangThaiMoi == "DangCheBien" && trangThaiCu != "DangCheBien")
+                    using (SqlCommand cmdUpdate = new SqlCommand(updateQuery, conn))
                     {
-                        updateQuery = @"
-                    UPDATE CHITIET_DONHANG SET 
-                        TrangThai = @TrangThaiMoi,
-                        GhiChuBep = @GhiChuBep,
-                        MaNhanVienCheBien = @MaNhanVienBep,
-                        UuTien = @UuTien,
-                        ThoiGianDuKien = @ThoiGianDuKien,
-                        ThoiGianBatDau = @ThoiGianBatDau
-                    WHERE MaChiTiet = @MaChiTiet AND MaDonHang = @MaDonHang";
-                    }
+                        cmdUpdate.Parameters.AddWithValue("@MaChiTiet", maChiTiet);
+                        cmdUpdate.Parameters.AddWithValue("@MaDonHang", maDonHang);
+                        cmdUpdate.Parameters.AddWithValue("@TrangThaiMoi", trangThaiMoi);
+                        cmdUpdate.Parameters.AddWithValue("@GhiChuBep", ghiChuBep ?? (object)DBNull.Value);
+                        cmdUpdate.Parameters.AddWithValue("@MaNhanVienBep", (object)maNhanVienBep ?? DBNull.Value);
+                        cmdUpdate.Parameters.AddWithValue("@UuTien", uuTien);
+                        cmdUpdate.Parameters.AddWithValue("@ThoiGianDuKien", thoiGianDuKienValue);
+                        cmdUpdate.Parameters.AddWithValue("@CurrentUtc", DateTime.UtcNow);
 
-                    // Cập nhật thời gian hoàn thành
-                    if (trangThaiMoi == "HoanThanh" && trangThaiCu != "HoanThanh")
-                    {
-                        updateQuery = @"
-                    UPDATE CHITIET_DONHANG SET 
-                        TrangThai = @TrangThaiMoi,
-                        GhiChuBep = @GhiChuBep,
-                        MaNhanVienCheBien = @MaNhanVienBep,
-                        UuTien = @UuTien,
-                        ThoiGianDuKien = @ThoiGianDuKien,
-                        ThoiGianHoanThanh = @ThoiGianHoanThanh
-                    WHERE MaChiTiet = @MaChiTiet AND MaDonHang = @MaDonHang";
-                    }
+                        int rowsAffected = cmdUpdate.ExecuteNonQuery();
 
-                    cmd = new SqlCommand(updateQuery, conn);
-                    cmd.Parameters.AddWithValue("@MaChiTiet", maChiTiet);
-                    cmd.Parameters.AddWithValue("@MaDonHang", maDonHang);
-                    cmd.Parameters.AddWithValue("@TrangThaiMoi", trangThaiMoi);
-                    cmd.Parameters.AddWithValue("@GhiChuBep", ghiChuBep ?? "");
-                    cmd.Parameters.AddWithValue("@MaNhanVienBep", maNhanVienBep ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@UuTien", uuTien);
-                    cmd.Parameters.AddWithValue("@ThoiGianHoanThanh", utcNow);
-                    cmd.Parameters.AddWithValue("@ThoiGianBatDau", utcNow);
-                    cmd.Parameters.AddWithValue("@ThoiGianDuKien", utcThoiGianDuKien ?? (object)DBNull.Value);
-
-                    int rowsAffected = cmd.ExecuteNonQuery();
-
-                    if (rowsAffected > 0)
-                    {
-                        // Gửi thông báo
-                        if (guiThongBao)
+                        if (rowsAffected > 0)
                         {
-                            SendKitchenNotification(conn, maDonHang, tenMon, trangThaiCu, trangThaiMoi, ghiChuBep);
+                            if (guiThongBao)
+                            {
+                                SendKitchenNotification(conn, maDonHang, tenMon, trangThaiCu, trangThaiMoi, ghiChuBep);
+                            }
+
+                            return new UpdateDishStatusResult
+                            {
+                                Success = true,
+                                TenMon = tenMon,
+                                TrangThaiCu = trangThaiCu,
+                                TrangThaiMoi = trangThaiMoi,
+                                Message = $"Đã cập nhật trạng thái '{tenMon}' thành '{trangThaiMoi}'",
+                                ThoiGianDuKien = correctVietnamTime, // ✅ Trả về giờ VN đã sửa
+                                ThoiGianHoanThanh = (trangThaiMoi == "HoanThanh") ? nowVietnam : (DateTime?)null
+                            };
                         }
+                    }
 
-                        return new UpdateDishStatusResult
-                        {
-                            Success = true,
-                            TenMon = tenMon,
-                            TrangThaiCu = trangThaiCu,
-                            TrangThaiMoi = trangThaiMoi,
-                            Message = $"Đã cập nhật trạng thái '{tenMon}' thành công",
-                            ThoiGianHoanThanh = vietnamNow // Trả về giờ Việt Nam
-                        };
-                    }
-                    else
-                    {
-                        return new UpdateDishStatusResult
-                        {
-                            Success = false,
-                            Message = "Không thể cập nhật trạng thái món"
-                        };
-                    }
+                    return new UpdateDishStatusResult { Success = false, Message = "Không thể cập nhật bản ghi trong cơ sở dữ liệu" };
                 }
             }
             catch (Exception ex)
             {
-                return new UpdateDishStatusResult
-                {
-                    Success = false,
-                    Message = $"Lỗi cập nhật trạng thái: {ex.Message}"
-                };
+                Console.WriteLine($"❌ Lỗi nghiêm trọng UpdateDishStatus: {ex.Message}");
+                return new UpdateDishStatusResult { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
             }
         }
         /// <summary>

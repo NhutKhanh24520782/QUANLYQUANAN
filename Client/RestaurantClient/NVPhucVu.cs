@@ -52,12 +52,9 @@ namespace RestaurantClient
             cb_trangthai.Items.Clear();
             cb_trangthai.DropDownStyle = ComboBoxStyle.DropDownList;
             cb_trangthai.Items.AddRange(new string[] { "Tất cả", "Hoàn thành", "Đang chế biến" });
-            //cb_banan.SelectedIndexChanged += cb_banan_SelectedIndexChanged;
-            //cb_banan.SelectedIndexChanged += OnFilterChanged;
-            //cb_trangthai.SelectedIndexChanged += OnFilterChanged;
+      
             cb_banan.SelectedIndex = -1;
             cb_trangthai.SelectedIndex = -1;
-            // Đăng ký sự kiện click cho PictureBox
             pb_QR.Click += pb_QR_Click;
             cb_trangthai.SelectedIndexChanged += (s, e) => btn_lammoi_Click_1(null, null);
             SetupMasterDetailView();

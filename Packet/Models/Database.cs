@@ -350,6 +350,8 @@ namespace Models.Database
         public string TrangThaiMoi { get; set; } = "";
         public int SoMonDaCapNhat { get; set; }
         public object TenCacMon { get; set; }
+        public DateTime? ThoiGianDuKien { get; set; } // ✅ THÊM DÒNG NÀY
+
         public DateTime? ThoiGianHoanThanh { get; set; } // THÊM DÒNG NÀY
 
     }

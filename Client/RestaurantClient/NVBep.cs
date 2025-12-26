@@ -1042,7 +1042,25 @@ namespace RestaurantClient
 
             lbl_thongke.Text = thongKe.DisplayText;
         }
+        /// <summary>
+        /// Chuyển UTC sang giờ Việt Nam (nếu cần)
+        /// </summary>
+        private DateTime ConvertUtcToVietnam(DateTime utcTime)
+        {
+            try
+            {
+                // Nếu đã là Local hoặc Unspecified, giả sử đã là VN
+                if (utcTime.Kind != DateTimeKind.Utc)
+                    return utcTime;
 
+                // Chuyển UTC → VN (+7h)
+                return utcTime.AddHours(7);
+            }
+            catch
+            {
+                return utcTime.AddHours(7);
+            }
+        }
         private void UpdateOrderDetailDisplay()
         {
             if (_currentOrderDetail == null) return;
@@ -1053,11 +1071,85 @@ namespace RestaurantClient
                 return;
             }
 
-            // Cập nhật thông tin đơn hàng
-            lbl_orderinfo.Text = $"📋 {_currentOrderDetail.MaDonHangDisplay} - {_currentOrderDetail.TenBan} • {_currentOrderDetail.ThoiGianDisplay} • Ước tính: {_currentOrderDetail.ThoiGianConLaiDisplay}";
-            lbl_orderdetails.Text = $"NV Order: {_currentOrderDetail.TenNhanVienOrder} • Trạng thái: {ConvertStatusToDisplay(_currentOrderDetail.TrangThaiDon)}";
-        }
+            // Lấy giờ Việt Nam hiện tại
+            DateTime nowVietnam = GetVietnamTime();
 
+            // Tính thời gian ước tính
+            string thoiGianUocTinhDisplay;
+
+            if (_currentOrderDetail.ThoiGianDuKienHoanThanh.HasValue)
+            {
+                // TH1: Có thời gian dự kiến hoàn thành
+                DateTime duKienHoanThanh = _currentOrderDetail.ThoiGianDuKienHoanThanh.Value;
+
+                // Kiểm tra xem có phải UTC không, nếu có thì chuyển sang VN
+                if (duKienHoanThanh.Kind == DateTimeKind.Utc)
+                {
+                    duKienHoanThanh = ConvertUtcToVietnam(duKienHoanThanh);
+                }
+
+                TimeSpan thoiGianConLai = duKienHoanThanh - nowVietnam;
+
+                if (thoiGianConLai.TotalSeconds > 0)
+                {
+                    // Còn thời gian
+                    if (thoiGianConLai.TotalHours >= 1)
+                    {
+                        thoiGianUocTinhDisplay = $"Còn {(int)thoiGianConLai.TotalHours}h {thoiGianConLai.Minutes}phút";
+                    }
+                    else
+                    {
+                        thoiGianUocTinhDisplay = $"Còn {thoiGianConLai.Minutes} phút";
+                    }
+                }
+                else
+                {
+                    // Đã quá thời gian dự kiến
+                    TimeSpan quaHan = nowVietnam - duKienHoanThanh;
+                    thoiGianUocTinhDisplay = $"Quá hạn {quaHan.Minutes} phút";
+                }
+            }
+            else
+            {
+                // TH2: Không có thời gian dự kiến → dùng thời gian tạo order + 30 phút mặc định
+                DateTime ngayOrder = _currentOrderDetail.NgayOrder;
+
+                // Kiểm tra và chuyển đổi nếu cần
+                if (ngayOrder.Kind == DateTimeKind.Utc)
+                {
+                    ngayOrder = ConvertUtcToVietnam(ngayOrder);
+                }
+
+                DateTime duKienMacDinh = ngayOrder.AddMinutes(30);
+                TimeSpan thoiGianConLai = duKienMacDinh - nowVietnam;
+
+                if (thoiGianConLai.TotalSeconds > 0)
+                {
+                    thoiGianUocTinhDisplay = $"Ước tính: {thoiGianConLai.Minutes} phút";
+                }
+                else
+                {
+                    thoiGianUocTinhDisplay = "Đang chờ...";
+                }
+            }
+
+            // Cập nhật thông tin đơn hàng
+            lbl_orderinfo.Text = $"📋 {_currentOrderDetail.MaDonHangDisplay} - {_currentOrderDetail.TenBan} • {_currentOrderDetail.ThoiGianDisplay} • {thoiGianUocTinhDisplay}";
+
+            // Hiển thị thêm thời gian dự kiến nếu có
+            string thoiGianDuKienInfo = "";
+            if (_currentOrderDetail.ThoiGianDuKienHoanThanh.HasValue)
+            {
+                DateTime duKien = _currentOrderDetail.ThoiGianDuKienHoanThanh.Value;
+                if (duKien.Kind == DateTimeKind.Utc)
+                {
+                    duKien = ConvertUtcToVietnam(duKien);
+                }
+                thoiGianDuKienInfo = $" • Dự kiến: {duKien:HH:mm}";
+            }
+
+            lbl_orderdetails.Text = $"NV Order: {_currentOrderDetail.TenNhanVienOrder} • Trạng thái: {ConvertStatusToDisplay(_currentOrderDetail.TrangThaiDon)}{thoiGianDuKienInfo}";
+        }
         private void UpdateUpdatePanel(KitchenDishData dish)
         {
             if (dish == null) return;
@@ -1449,11 +1541,18 @@ namespace RestaurantClient
         }
         private async void btn_luuthaydoi_Click(object sender, EventArgs e)
         {
+            Console.WriteLine("===========================================");
+            Console.WriteLine("🔵 btn_luuthaydoi_Click được gọi!");
+            Console.WriteLine("===========================================");
+
             if (_selectedDish == null || _currentOrderDetail == null)
             {
+                Console.WriteLine("❌ _selectedDish hoặc _currentOrderDetail = null");
                 ShowWarning("Vui lòng chọn món cần cập nhật!");
                 return;
             }
+
+            Console.WriteLine($"✅ Món được chọn: {_selectedDish.TenMon}");
 
             string? trangThaiMoi = ConvertDisplayToStatus(cb_status.SelectedItem?.ToString());
             int uuTienMoi = cb_uutien.SelectedIndex + 1;
@@ -1462,45 +1561,65 @@ namespace RestaurantClient
 
             if (string.IsNullOrEmpty(trangThaiMoi))
             {
+                Console.WriteLine("❌ trangThaiMoi = null/empty");
                 ShowWarning("Vui lòng chọn trạng thái!");
                 return;
             }
 
-            DateTime? thoiGianDuKienUtc = null;
+            Console.WriteLine($"✅ Trạng thái mới: {trangThaiMoi}");
+
+            // ✅ SỬA LẠI: Xử lý thời gian ĐÚNG CÁCH
+            DateTime? thoiGianDuKien = null;
             string? timeString = cb_timedukien.SelectedItem?.ToString();
+
             if (!string.IsNullOrEmpty(timeString))
             {
                 try
                 {
                     if (TimeSpan.TryParse(timeString, out TimeSpan timeOfDay))
                     {
-                        // Lấy giờ Việt Nam hiện tại
-                        DateTime vietnamNow = GetVietnamTime();
+                        // ✅ Lấy giờ VIỆT NAM hiện tại
+                        DateTime vietnamNow = GetVietnamTime(); // Ví dụ: 2025-12-27 03:48:13
 
-                        // Tạo thời gian Việt Nam với giờ được chọn
-                        DateTime vietnamTime = vietnamNow.Date.Add(timeOfDay);
+                        // ✅ Tạo thời gian DỰ KIẾN với NGÀY HÔM NAY và GIỜ TỪ COMBOBOX
+                        DateTime vietnamTime = vietnamNow.Date.Add(timeOfDay); // 2025-12-27 04:00:00
 
-                        // Nếu đã qua trong ngày, cộng thêm 1 ngày
-                        if (vietnamTime < vietnamNow)
+                        // ✅ QUAN TRỌNG: Nếu giờ chọn ĐÃ QUA hoặc BẰNG thời gian hiện tại
+                        if (vietnamTime <= vietnamNow)
                         {
-                            vietnamTime = vietnamTime.AddDays(1);
+                            // Thêm 1 ngày → thành NGÀY MAI
+                            vietnamTime = vietnamTime.AddDays(1); // 2025-12-28 04:00:00
+                            Console.WriteLine($"   ⏰ Giờ đã qua/bằng hiện tại, chuyển sang ngày mai: {vietnamTime:dd/MM HH:mm}");
                         }
 
-                        // Chuyển sang UTC để lưu vào Azure
-                        thoiGianDuKienUtc = ConvertVietnamToUtc(vietnamTime);
+                        // ✅ GỬI GIỜ VN LÊN SERVER
+                        thoiGianDuKien = vietnamTime;
+
+                        Console.WriteLine($"📤 CLIENT DEBUG:");
+                        Console.WriteLine($"   - Giờ VN hiện tại: {vietnamNow:dd/MM HH:mm}");
+                        Console.WriteLine($"   - User chọn combo: {timeString}");
+                        Console.WriteLine($"   - Hiểu là:         {vietnamTime:dd/MM HH:mm} (VN)");
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Lỗi parse thời gian: {ex.Message}");
-                    thoiGianDuKienUtc = null;
+                    thoiGianDuKien = null;
                 }
             }
+            else
+            {
+                Console.WriteLine("   ℹ️ Không có thời gian dự kiến (cb_timedukien rỗng)");
+            }
+
+            Console.WriteLine($"📦 Chuẩn bị gửi request...");
 
             await ExecuteAsync(btn_luuthaydoi, "Đang lưu...", async () =>
             {
                 try
                 {
+                    Console.WriteLine("   → Đang tạo request...");
+
                     var request = new UpdateDishStatusRequest
                     {
                         MaDonHang = _currentOrderDetail.MaDonHang,
@@ -1508,18 +1627,23 @@ namespace RestaurantClient
                         TrangThaiMoi = trangThaiMoi,
                         MaNhanVienBep = maDauBep,
                         GhiChuBep = tb_ghichu.Text.Trim(),
-                        ThoiGianDuKienHoanThanh = thoiGianDuKienUtc, // Đã là UTC
+                        ThoiGianDuKienHoanThanh = thoiGianDuKien, // ✅ Dùng thời gian từ combobox
                         UuTien = uuTienMoi,
                         GuiThongBao = true
                     };
 
+                    Console.WriteLine($"   → Request: MaDonHang={request.MaDonHang}, MaChiTiet={request.MaChiTiet}");
+                    Console.WriteLine($"   → ThoiGianDuKien: {request.ThoiGianDuKienHoanThanh?.ToString("yyyy-MM-dd HH:mm:ss") ?? "NULL"}");
+                    Console.WriteLine("   → Đang gửi request đến server...");
+
                     var response = await SendRequest<UpdateDishStatusRequest, UpdateDishStatusResponse>(request);
+
+                    Console.WriteLine($"   ← Nhận response: Success={response?.Success}, Message={response?.Message}");
 
                     if (response?.Success == true)
                     {
                         ShowSuccess($"Đã cập nhật trạng thái '{_selectedDish.TenMon}' thành '{response.TrangThaiMoi}'");
 
-                        // ✅ THÊM: Gửi thông báo tự động cho Phục vụ
                         if (trangThaiMoi == "HoanThanh" || trangThaiMoi == "DangCheBien" || trangThaiMoi == "CoVanDe")
                         {
                             string tenBan = _currentOrderDetail?.TenBan ?? "Không rõ";
@@ -1529,10 +1653,8 @@ namespace RestaurantClient
                             );
                         }
 
-                        // Refresh
                         if (_dishesManager != null) await _dishesManager.RefreshAsync();
                         if (_ordersManager != null) await _ordersManager.RefreshAsync();
-
                         panel_update.Visible = false;
                     }
                     else
@@ -1542,11 +1664,16 @@ namespace RestaurantClient
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"❌ Exception trong ExecuteAsync: {ex.Message}");
+                    Console.WriteLine($"   Stack trace: {ex.StackTrace}");
                     ShowError($"Lỗi cập nhật: {ex.Message}");
                 }
             });
-        }
 
+            Console.WriteLine("===========================================");
+            Console.WriteLine("🔵 btn_luuthaydoi_Click kết thúc");
+            Console.WriteLine("===========================================");
+        }
         private async void btn_huymon_Click(object sender, EventArgs e)
         {
             if (_selectedDish == null || _currentOrderDetail == null)
@@ -3155,32 +3282,24 @@ namespace RestaurantClient
         {
             try
             {
+                // Nếu đã là UTC thì trả về luôn
                 if (vietnamTime.Kind == DateTimeKind.Utc)
                     return vietnamTime;
-                return vietnamTime.AddHours(-7);
-            }
-            catch
-            {
-                return vietnamTime.AddHours(-7);
-            }
-        }
 
-        /// <summary>
-        /// Chuyển UTC sang giờ Việt Nam (để hiển thị)
-        /// </summary>
-        private DateTime ConvertUtcToVietnam(DateTime utcTime)
-        {
-            try
-            {
-                if (utcTime.Kind == DateTimeKind.Local)
-                    return utcTime;
-                return utcTime.AddHours(7);
+                // Trừ 7 giờ và đánh dấu UTC
+                DateTime utc = DateTime.SpecifyKind(vietnamTime.AddHours(-7), DateTimeKind.Utc);
+
+                Console.WriteLine($"   [ConvertVietnamToUtc] {vietnamTime:HH:mm} VN → {utc:HH:mm} UTC (Kind: {utc.Kind})");
+
+                return utc;
             }
-            catch
+            catch (Exception ex)
             {
-                return utcTime.AddHours(7);
+                Console.WriteLine($"❌ Lỗi: {ex.Message}");
+                return DateTime.SpecifyKind(vietnamTime.AddHours(-7), DateTimeKind.Utc);
             }
         }
+      
 
         private async void btn_sendmess_Click_1(object sender, EventArgs e)
         {
