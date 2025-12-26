@@ -33,6 +33,7 @@ namespace RestaurantClient
         private System.Windows.Forms.Timer? _clockTimer; // ✅ THÊM DÒNG NÀY
         private KitchenOrderDetailData? _currentOrderDetail;
         private KitchenDishData? _selectedDish;
+        private System.Windows.Forms.Timer? _tokenRefreshTimer;
         #region CHAT FIELDS
         private System.Windows.Forms.Timer? _chatRefreshTimer;      // Timer polling tin nhắn mới
         private int _selectedChatUserId = 0;                        // ID user đang chat
@@ -57,6 +58,7 @@ namespace RestaurantClient
             InitializeEmptyDataGridView(); // THÊM DÒNG NÀY
             LoadKitchenUserInfo();
             InitializeChatFeature();
+            InitializeTokenRefreshTimer();
             // Thiết lập ngày mặc định (7 ngày gần nhất)
             dateTimePicker_tungay.Value = DateTime.Now.AddDays(-7);
             dateTimePicker_denngay.Value = DateTime.Now;
@@ -1974,19 +1976,10 @@ namespace RestaurantClient
         // ==================== FORM EVENTS ====================
         private void NVBep_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // Stop the auto refresh timer
-            if (_autoRefreshTimer != null)
-            {
-                _autoRefreshTimer.Stop();
-                _autoRefreshTimer.Dispose();
-            }
+            // Stop all timers
+            StopAllTimers();
 
-            // ✅ THÊM: Stop the clock timer
-            if (_clockTimer != null)
-            {
-                _clockTimer.Stop();
-                _clockTimer.Dispose();
-            }
+            // Cleanup chat resources
             CleanupChatResources();
         }
 
@@ -2161,7 +2154,7 @@ namespace RestaurantClient
             }
         }
 
-        private void button_dangxuatnvbep_Click(object sender, EventArgs e)
+        private async void button_dangxuatnvbep_Click(object sender, EventArgs e)
         {
             // Hỏi xác nhận
             var confirm = MessageBox.Show("Bạn có chắc muốn đăng xuất?",
@@ -2172,81 +2165,35 @@ namespace RestaurantClient
 
             try
             {
-                // Nếu có timer tự động refresh thì stop lại
-                try
-                {
-                    if (_autoRefreshTimer != null)
-                    {
-                        _autoRefreshTimer.Stop();
-                        _autoRefreshTimer.Tick -= null; // không bắt buộc nhưng cố gắng remove handlers nếu cần
-                        _autoRefreshTimer.Dispose();
-                        _autoRefreshTimer = null;
-                    }
-                }
-                catch { /* ignore */ }
+                // Disable button để tránh click nhiều lần
+                button_dangxuatnvbep.Enabled = false;
+                button_dangxuatnvbep.Text = "Đang đăng xuất...";
 
-                // Nếu có GridViewManager hoặc resource cần dispose thì xử lý (nếu class hỗ trợ Dispose)
-                try
-                {
-                    // Nếu GridViewManager implements IDisposable, dispose nó.
-                    // Nếu không, bạn có thể gán về null để GC thu dọn.
-                    (_ordersManager as IDisposable)?.Dispose();
-                    (_dishesManager as IDisposable)?.Dispose();
-                }
-                catch { /* ignore */ }
+                // 1. DỪNG TẤT CẢ TIMER
+                StopAllTimers();
 
-                // Reset thông tin người dùng (nếu bạn có class CurrentUser tĩnh)
-                try
-                {
-                    // Nếu project bạn có class CurrentUser, reset các thuộc tính
-                    CurrentUser.Id = 0;
-                    CurrentUser.Username = "";
-                    CurrentUser.Email = "";
-                    CurrentUser.FullName = "";
-                    CurrentUser.Role = "";
-                }
-                catch { /* nếu không có CurrentUser thì bỏ qua */ }
+                // 2. GỬI REQUEST LOGOUT VỚI TOKEN ĐẾN SERVER
+                await SendLogoutRequestAsync();
 
-                // --- TUỲ CHỌN: gọi API logout tới server ---
-                // Nếu server cần biết user logout, bạn có thể gửi request logout ở đây.
-                // Mình để ví dụ comment (bạn cần có model LogoutRequest/LogoutResponse):
-                /*
-                try
-                {
-                    var logoutRequest = new LogoutRequest { MaNguoiDung = _currentUserId };
-                    var logoutResp = await SendRequest<LogoutRequest, LogoutResponse>(logoutRequest);
-                    // xử lý logoutResp nếu cần
-                }
-                catch (Exception ex)
-                {
-                    // không bắt buộc phải fail nếu logout server lỗi
-                    Console.WriteLine("Lỗi gửi logout lên server: " + ex.Message);
-                }
-                */
+                // 3. XÓA THÔNG TIN USER LOCAL
+                CurrentUser.Clear();
 
-                // Mở form đăng nhập lại (tên form của bạn có thể khác: DangNhap, FormLogin, ...)
-                try
-                {
-                    var loginForm = new DangNhap(); // đổi tên nếu form đăng nhập của bạn khác
-                    loginForm.StartPosition = FormStartPosition.CenterScreen;
-                    loginForm.Show();
-                }
-                catch (Exception ex)
-                {
-                    // Nếu không thể mở lại form login, ít nhất thoát app
-                    Console.WriteLine("Không mở được form đăng nhập: " + ex.Message);
-                }
+                // 4. MỞ FORM ĐĂNG NHẬP
+                var loginForm = new DangNhap();
+                loginForm.StartPosition = FormStartPosition.CenterScreen;
+                loginForm.Show();
 
-                // Đóng form NVBep hiện tại (sẽ trở về login hoặc đóng app)
+                // 5. ĐÓNG FORM NVBEP
                 this.Close();
-
-                // Nếu bạn muốn restart app hoàn toàn thay vì show login, dùng:
-                // Application.Restart();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message,
                                 "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                // Re-enable button nếu có lỗi
+                button_dangxuatnvbep.Enabled = true;
+                button_dangxuatnvbep.Text = "Đăng xuất";
             }
         }
 
@@ -3291,9 +3238,166 @@ namespace RestaurantClient
         }
 
         #endregion
+        #region TOKEN AUTHENTICATION
+
+        /// <summary>
+        /// Khởi tạo timer tự động refresh token
+        /// </summary>
+        private void InitializeTokenRefreshTimer()
+        {
+            _tokenRefreshTimer = new System.Windows.Forms.Timer();
+            _tokenRefreshTimer.Interval = 30 * 60 * 1000; // 30 phút
+            _tokenRefreshTimer.Tick += async (s, e) => await RefreshTokenAsync();
+            _tokenRefreshTimer.Start();
+            Console.WriteLine("✅ Đã khởi tạo Token Refresh Timer");
+        }
+
+        /// <summary>
+        /// Tự động refresh token khi sắp hết hạn
+        /// </summary>
+        private async Task RefreshTokenAsync()
+        {
+            try
+            {
+                // Kiểm tra token còn hợp lệ không
+                if (!CurrentUser.IsTokenValid())
+                {
+                    Console.WriteLine("⚠️ Token đã hết hạn, cần đăng nhập lại");
+                    ForceLogout("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+                    return;
+                }
+
+                // Refresh token nếu còn dưới 1 giờ
+                if (CurrentUser.IsTokenExpiringSoon())
+                {
+                    Console.WriteLine("🔄 Token sắp hết hạn, đang refresh...");
+
+                    var request = new RefreshTokenRequest
+                    {
+                        MaNguoiDung = CurrentUser.Id,
+                        Token = CurrentUser.Token
+                    };
+
+                    var response = await SendRequest<RefreshTokenRequest, RefreshTokenResponse>(request);
+
+                    if (response?.Success == true)
+                    {
+                        CurrentUser.Token = response.NewToken;
+                        CurrentUser.TokenExpiry = response.TokenExpiry;
+                        Console.WriteLine($"✅ Token đã được refresh, hết hạn mới: {response.TokenExpiry:HH:mm:ss dd/MM/yyyy}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"⚠️ Refresh token thất bại: {response?.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Lỗi refresh token: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gửi request logout đến server
+        /// </summary>
+        private async Task SendLogoutRequestAsync()
+        {
+            try
+            {
+                if (CurrentUser.Id <= 0 || string.IsNullOrEmpty(CurrentUser.Token))
+                {
+                    Console.WriteLine("⚠️ Không có user/token để logout");
+                    return;
+                }
+
+                var request = new LogoutRequest
+                {
+                    MaNguoiDung = CurrentUser.Id,
+                    Token = CurrentUser.Token
+                };
+
+                var response = await SendRequest<LogoutRequest, LogoutResponse>(request);
+
+                if (response?.Success == true)
+                {
+                    Console.WriteLine($"✅ Server xác nhận logout lúc: {response.ThoiGianDangXuat:HH:mm:ss dd/MM/yyyy}");
+                }
+                else
+                {
+                    Console.WriteLine($"⚠️ Logout response: {response?.Message ?? "Không có phản hồi"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Không thể gửi logout request: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Buộc đăng xuất khi token hết hạn
+        /// </summary>
+        private void ForceLogout(string message)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => ForceLogout(message)));
+                return;
+            }
+
+            // Hiển thị thông báo
+            MessageBox.Show(message, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+            // Dừng tất cả timer
+            StopAllTimers();
+
+            // Xóa thông tin user
+            CurrentUser.Clear();
+
+            // Mở form đăng nhập
+            var loginForm = new DangNhap();
+            loginForm.StartPosition = FormStartPosition.CenterScreen;
+            loginForm.Show();
+
+            // Đóng form hiện tại
+            this.Close();
+        }
+
+        /// <summary>
+        /// Dừng tất cả timer
+        /// </summary>
+        private void StopAllTimers()
+        {
+            try
+            {
+                _autoRefreshTimer?.Stop();
+                _autoRefreshTimer?.Dispose();
+                _autoRefreshTimer = null;
+
+                _clockTimer?.Stop();
+                _clockTimer?.Dispose();
+                _clockTimer = null;
+
+                _chatRefreshTimer?.Stop();
+                _chatRefreshTimer?.Dispose();
+                _chatRefreshTimer = null;
+
+                _tokenRefreshTimer?.Stop();
+                _tokenRefreshTimer?.Dispose();
+                _tokenRefreshTimer = null;
+
+                Console.WriteLine("✅ Đã dừng tất cả timer");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Lỗi dừng timer: {ex.Message}");
+            }
+        }
+
         // ========== KẾT THÚC ĐOẠN CODE THÊM ==========
     }
 }
-    
 
 
+
+#endregion

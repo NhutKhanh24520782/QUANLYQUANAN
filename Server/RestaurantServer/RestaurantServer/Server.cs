@@ -125,7 +125,9 @@ namespace RestaurantServer
                         "MarkMessagesRead" => await HandleMarkMessagesReadRequestAsync(rawRequest),
                         "GetUnreadCount" => await HandleGetUnreadCountRequestAsync(rawRequest),
                         "CheckNewMessages" => await HandleCheckNewMessagesRequestAsync(rawRequest),
-
+                        "Logout" => await HandleLogoutRequestAsync(rawRequest),
+                        "VerifyToken" => await HandleVerifyTokenRequestAsync(rawRequest),
+                        "RefreshToken" => await HandleRefreshTokenRequestAsync(rawRequest),
                         _ => HandleUnknownRequest()
                     };
 
@@ -154,7 +156,7 @@ namespace RestaurantServer
                     var validation = request.Validate();
                     if (!validation.isValid) return CreateErrorResponse(validation.error);
 
-                    LoginResult result = DatabaseAccess.LoginUser(request.Username, request.Password);
+                    DatabaseAccess.LoginResult result = DatabaseAccess.LoginUser(request.Username, request.Password);
                     var response = new LoginResponse
                     {
                         Success = result.Success,
@@ -1177,6 +1179,111 @@ namespace RestaurantServer
                 catch (Exception ex)
                 {
                     return CreateErrorResponse($"Lỗi lấy danh sách đầu bếp: {ex.Message}");
+                }
+            });
+        }
+        // ==================== LOGOUT HANDLER ====================
+
+        private async Task<string> HandleLogoutRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<LogoutRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var validation = request.Validate();
+                    if (!validation.isValid) return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.LogoutUser(request.MaNguoiDung, request.Token);
+
+                    var response = new LogoutResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ThoiGianDangXuat = result.ThoiGianDangXuat
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"🚪 User {request.MaNguoiDung} đã đăng xuất");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi đăng xuất: {ex.Message}");
+                }
+            });
+        }
+
+        // ==================== VERIFY TOKEN HANDLER ====================
+
+        private async Task<string> HandleVerifyTokenRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<VerifyTokenRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var validation = request.Validate();
+                    if (!validation.isValid) return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.VerifyToken(request.MaNguoiDung, request.Token);
+
+                    var response = new VerifyTokenResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        IsValid = result.IsValid,
+                        MaNguoiDung = result.MaNguoiDung,
+                        VaiTro = result.VaiTro,
+                        TokenExpiry = result.TokenExpiry
+                    };
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi verify token: {ex.Message}");
+                }
+            });
+        }
+
+        // ==================== REFRESH TOKEN HANDLER ====================
+
+        private async Task<string> HandleRefreshTokenRequestAsync(JObject rawRequest)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var request = rawRequest.ToObject<RefreshTokenRequest>();
+                    if (request == null) return CreateErrorResponse("Request không hợp lệ");
+
+                    var validation = request.Validate();
+                    if (!validation.isValid) return CreateErrorResponse(validation.error);
+
+                    var result = DatabaseAccess.RefreshToken(request.MaNguoiDung, request.Token);
+
+                    var response = new RefreshTokenResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        NewToken = result.NewToken,
+                        TokenExpiry = result.TokenExpiry
+                    };
+
+                    if (result.Success)
+                        Console.WriteLine($"🔄 Token refreshed cho user {request.MaNguoiDung}");
+
+                    return JsonConvert.SerializeObject(response);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResponse($"Lỗi refresh token: {ex.Message}");
                 }
             });
         }

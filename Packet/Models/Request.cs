@@ -670,5 +670,81 @@ namespace Models.Request
         public int MaNguoiDung { get; set; }
         public DateTime TuThoiGian { get; set; }    // Lấy tin nhắn sau thời gian này
     }
+
+    // ==================== BASE REQUEST VỚI TOKEN ====================
+
+    /// <summary>
+    /// Base class cho các request cần xác thực token
+    /// </summary>
+    public abstract class AuthenticatedRequest
+    {
+        public abstract string Type { get; }
+        public string Token { get; set; } = string.Empty;
+        public int MaNguoiDung { get; set; }
+
+        public virtual (bool isValid, string error) ValidateToken()
+        {
+            if (string.IsNullOrWhiteSpace(Token))
+                return (false, "Token không được để trống");
+            if (MaNguoiDung <= 0)
+                return (false, "Mã người dùng không hợp lệ");
+            return (true, string.Empty);
+        }
+    }
+
+    // ==================== LOGOUT REQUEST ====================
+
+    public class LogoutRequest
+    {
+        public string Type => "Logout";
+        public int MaNguoiDung { get; set; }
+        public string Token { get; set; } = string.Empty;
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaNguoiDung <= 0)
+                return (false, "Mã người dùng không hợp lệ");
+            if (string.IsNullOrWhiteSpace(Token))
+                return (false, "Token không được để trống");
+            return (true, string.Empty);
+        }
+    }
+
+    // ==================== REFRESH TOKEN REQUEST ====================
+
+    public class RefreshTokenRequest
+    {
+        public string Type => "RefreshToken";
+        public int MaNguoiDung { get; set; }
+        public string Token { get; set; } = string.Empty;
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaNguoiDung <= 0)
+                return (false, "Mã người dùng không hợp lệ");
+            if (string.IsNullOrWhiteSpace(Token))
+                return (false, "Token không được để trống");
+            return (true, string.Empty);
+        }
+    }
+
+    // ==================== VERIFY TOKEN REQUEST ====================
+
+    public class VerifyTokenRequest
+    {
+        public string Type => "VerifyToken";
+        public int MaNguoiDung { get; set; }
+        public string Token { get; set; } = string.Empty;
+
+        public (bool isValid, string error) Validate()
+        {
+            if (MaNguoiDung <= 0)
+                return (false, "Mã người dùng không hợp lệ");
+            if (string.IsNullOrWhiteSpace(Token))
+                return (false, "Token không được để trống");
+            return (true, string.Empty);
+        }
+    }
+
 }
 

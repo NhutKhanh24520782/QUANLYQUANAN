@@ -14,15 +14,7 @@ namespace Models.Response
 
     // ==================== AUTHENTICATION RESPONSES ====================
 
-    public class LoginResponse : BaseResponse
-    {
-        public LoginResponse() => Type = "LoginResponse";
-
-        public string Role { get; set; } = string.Empty;
-        public string HoTen { get; set; } = string.Empty;
-        public int MaNguoiDung { get; set; }
-        public string Email { get; set; } = string.Empty;
-    }
+    
 
     public class RegisterResponse : BaseResponse
     {
@@ -1160,5 +1152,48 @@ namespace Models.Response
         public int MaNguoiGui { get; set; }
         public string TenNguoiGui { get; set; } = "";
         public int SoChuaDoc { get; set; }
+    }
+    // ==================== SỬA LOGIN RESPONSE (THÊM TOKEN) ====================
+
+    public class LoginResponse : BaseResponse
+    {
+        public LoginResponse() => Type = "LoginResponse";
+
+        public string Role { get; set; } = string.Empty;
+        public string HoTen { get; set; } = string.Empty;
+        public int MaNguoiDung { get; set; }
+        public string Email { get; set; } = string.Empty;
+
+        // ✅ THÊM MỚI - Token Authentication
+        public string Token { get; set; } = string.Empty;
+        public DateTime TokenExpiry { get; set; }
+    }
+
+    // ==================== LOGOUT RESPONSE ====================
+
+    public class LogoutResponse : BaseResponse
+    {
+        public LogoutResponse() => Type = "LogoutResponse";
+        public DateTime ThoiGianDangXuat { get; set; }
+    }
+
+    // ==================== REFRESH TOKEN RESPONSE ====================
+
+    public class RefreshTokenResponse : BaseResponse
+    {
+        public RefreshTokenResponse() => Type = "RefreshTokenResponse";
+        public string NewToken { get; set; } = string.Empty;
+        public DateTime TokenExpiry { get; set; }
+    }
+
+    // ==================== VERIFY TOKEN RESPONSE ====================
+
+    public class VerifyTokenResponse : BaseResponse
+    {
+        public VerifyTokenResponse() => Type = "VerifyTokenResponse";
+        public bool IsValid { get; set; }
+        public int? MaNguoiDung { get; set; }
+        public string? VaiTro { get; set; }
+        public DateTime? TokenExpiry { get; set; }
     }
 }

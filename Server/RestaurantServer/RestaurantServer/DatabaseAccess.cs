@@ -150,40 +150,7 @@ namespace RestaurantServer
                 return ConvertDatabaseTimeToVietnamTime(dbTime.Value);
             }
         }
-        public static LoginResult LoginUser(string username, string password)
-        {
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                string query = @"SELECT MaNguoiDung, TenDangNhap, MatKhau, VaiTro, HoTen, Email, TrangThai
-                                 FROM NGUOIDUNG WHERE TenDangNhap = @user AND TrangThai = 1";
-
-                SqlCommand cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@user", username);
-
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        string hashed = reader["MatKhau"].ToString();
-                        if (BCrypt.Net.BCrypt.Verify(password, hashed))
-                        {
-                            return new LoginResult
-                            {
-                                Success = true,
-                                MaNguoiDung = (int)reader["MaNguoiDung"],
-                                Role = reader["VaiTro"].ToString(),
-                                HoTen = reader["HoTen"].ToString(),
-                                Email = reader["Email"].ToString(),
-                                Message = "Đăng nhập thành công"
-                            };
-                        }
-                    }
-                }
-                return new LoginResult { Success = false, Message = "Sai tên đăng nhập hoặc mật khẩu" };
-            }
-        }
-
+        
         // ====================== REGISTER ======================
         public static RegisterResult RegisterUser(string username, string password, string fullName, string email, string role)
         {
@@ -3205,11 +3172,13 @@ namespace RestaurantServer
         /// <summary>
         /// Lấy danh sách user để chat (loại trừ user hiện tại)
         /// </summary>
-        public static ChatUsersResult GetChatUsers(int maNguoiDungHienTai, string timKiem = "")
+        public static GetChatUsersResponse GetChatUsers(int maNguoiDungHienTai, string? timKiem = null)
         {
+            var result = new GetChatUsersResponse { Success = false, Users = new List<ChatUserData>() };
+
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (var conn = new SqlConnection(connectionString))  // ✅ SỬA: chữ thường
                 {
                     conn.Open();
 
@@ -3218,66 +3187,60 @@ namespace RestaurantServer
                     nd.MaNguoiDung,
                     nd.HoTen,
                     nd.VaiTro,
-                    nd.TrangThai,
-                    -- Đếm số tin chưa đọc từ người này gửi đến user hiện tại
-                    (SELECT COUNT(*) FROM TINNHAN tn 
-                     WHERE tn.MaNguoiGui = nd.MaNguoiDung 
-                     AND tn.MaNguoiNhan = @MaNguoiDungHienTai 
-                     AND tn.DaDoc = 0) as SoTinChuaDoc
+                    ISNULL(nd.TrangThaiOnline, 0) AS TrangThaiOnline,
+                    (SELECT COUNT(*) FROM TINNHAN 
+                     WHERE MaNguoiGui = nd.MaNguoiDung 
+                     AND MaNguoiNhan = @MaNguoiDungHienTai 
+                     AND DaDoc = 0) AS SoTinChuaDoc
                 FROM NGUOIDUNG nd
                 WHERE nd.MaNguoiDung != @MaNguoiDungHienTai
-                AND nd.TrangThai = 1
-                AND nd.VaiTro IN ('Admin', 'PhucVu', 'Bep')
-                AND (@TimKiem = '' OR nd.HoTen LIKE '%' + @TimKiem + '%')
-                ORDER BY 
-                    CASE nd.VaiTro 
-                        WHEN 'Admin' THEN 1 
-                        WHEN 'Bep' THEN 2 
-                        WHEN 'PhucVu' THEN 3 
-                        ELSE 4 
-                    END,
-                    nd.HoTen";
+                  AND nd.TrangThai = 1";
 
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    if (!string.IsNullOrEmpty(timKiem))
+                    {
+                        query += " AND nd.HoTen LIKE @TimKiem";
+                    }
+
+                    query += " ORDER BY nd.TrangThaiOnline DESC, nd.HoTen";
+
+                    using (var cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@MaNguoiDungHienTai", maNguoiDungHienTai);
-                        cmd.Parameters.AddWithValue("@TimKiem", timKiem ?? "");
 
-                        var users = new List<ChatUserData>();
+                        if (!string.IsNullOrEmpty(timKiem))
+                        {
+                            cmd.Parameters.AddWithValue("@TimKiem", $"%{timKiem}%");
+                        }
 
-                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        using (var reader = cmd.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                users.Add(new ChatUserData
+                                var user = new ChatUserData
                                 {
-                                    MaNguoiDung = (int)reader["MaNguoiDung"],
-                                    HoTen = reader["HoTen"].ToString(),
-                                    VaiTro = reader["VaiTro"].ToString(),
-                                    DangOnline = true, // Giả định tất cả đều online (có thể cải tiến sau)
-                                    SoTinChuaDoc = (int)reader["SoTinChuaDoc"]
-                                });
+                                    MaNguoiDung = reader.GetInt32(reader.GetOrdinal("MaNguoiDung")),
+                                    HoTen = reader.GetString(reader.GetOrdinal("HoTen")),
+                                    VaiTro = reader.GetString(reader.GetOrdinal("VaiTro")),
+                                    DangOnline = reader.GetBoolean(reader.GetOrdinal("TrangThaiOnline")),
+                                    SoTinChuaDoc = reader.GetInt32(reader.GetOrdinal("SoTinChuaDoc"))
+                                };
+
+                                result.Users.Add(user);
                             }
                         }
-
-                        return new ChatUsersResult
-                        {
-                            Success = true,
-                            Users = users,
-                            TongSoUser = users.Count,
-                            Message = $"Tìm thấy {users.Count} người dùng"
-                        };
                     }
+
+                    result.Success = true;
+                    Console.WriteLine($"✅ GetChatUsers: {result.Users.Count} users, {result.Users.Count(u => u.DangOnline)} online");
                 }
             }
             catch (Exception ex)
             {
-                return new ChatUsersResult
-                {
-                    Success = false,
-                    Message = $"Lỗi lấy danh sách user: {ex.Message}"
-                };
+                result.Message = ex.Message;
+                Console.WriteLine($"❌ GetChatUsers Error: {ex.Message}");
             }
+
+            return result;
         }
 
         /// <summary>
@@ -3678,6 +3641,476 @@ namespace RestaurantServer
             public bool CoTinMoi { get; set; }
             public int SoTinMoi { get; set; }
             public List<ChatMessageData> TinNhanMoi { get; set; } = new List<ChatMessageData>();
+        }
+
+       
+
+        // ==================== LOGOUT METHOD ====================
+
+        /// <summary>
+        /// Xử lý đăng xuất người dùng - cập nhật trạng thái offline
+        /// </summary>
+        public static LogoutResult LogoutUser(int maNguoiDung)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    DateTime thoiGianDangXuat = TimeHelper.GetVietnamTime();
+
+                    // Kiểm tra user có tồn tại không
+                    string checkQuery = "SELECT COUNT(*) FROM NGUOIDUNG WHERE MaNguoiDung = @MaNguoiDung";
+                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                    {
+                        checkCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        int count = (int)checkCmd.ExecuteScalar();
+
+                        if (count == 0)
+                        {
+                            return new LogoutResult
+                            {
+                                Success = false,
+                                Message = "Không tìm thấy người dùng"
+                            };
+                        }
+                    }
+
+                    // Cập nhật thời gian đăng xuất (có thể thêm cột ThoiGianDangXuat vào bảng NGUOIDUNG nếu cần)
+                    // Hiện tại chỉ log và trả về thành công
+                    Console.WriteLine($"✅ User {maNguoiDung} đăng xuất lúc {thoiGianDangXuat:dd/MM/yyyy HH:mm:ss}");
+
+                    return new LogoutResult
+                    {
+                        Success = true,
+                        Message = "Đăng xuất thành công",
+                        ThoiGianDangXuat = thoiGianDangXuat
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new LogoutResult
+                {
+                    Success = false,
+                    Message = $"Lỗi đăng xuất: {ex.Message}"
+                };
+            }
+        }
+        // ==================== TOKEN HELPER CLASS ====================
+
+        public static class TokenHelper
+        {
+            private const int TOKEN_EXPIRY_HOURS = 8; // Token hết hạn sau 8 giờ
+
+            /// <summary>
+            /// Tạo token mới (GUID + Timestamp)
+            /// </summary>
+            public static string GenerateToken()
+            {
+                string guid = Guid.NewGuid().ToString("N"); // 32 ký tự
+                string timestamp = DateTime.UtcNow.Ticks.ToString("X"); // Hex timestamp
+                return $"{guid}{timestamp}".ToUpper();
+            }
+
+            /// <summary>
+            /// Tính thời gian hết hạn token
+            /// </summary>
+            public static DateTime GetTokenExpiry()
+            {
+                return TimeHelper.GetVietnamTime().AddHours(TOKEN_EXPIRY_HOURS);
+            }
+        }
+
+        // ==================== TOKEN RESULT CLASSES ====================
+
+        public class LoginResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public int MaNguoiDung { get; set; }
+            public string Role { get; set; } = "";
+            public string HoTen { get; set; } = "";
+            public string Email { get; set; } = "";
+
+            // ✅ THÊM MỚI
+            public string Token { get; set; } = "";
+            public DateTime TokenExpiry { get; set; }
+        }
+
+        public class LogoutResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public DateTime ThoiGianDangXuat { get; set; }
+        }
+
+        public class TokenVerifyResult
+        {
+            public bool Success { get; set; }
+            public bool IsValid { get; set; }
+            public string Message { get; set; } = "";
+            public int? MaNguoiDung { get; set; }
+            public string? VaiTro { get; set; }
+            public DateTime? TokenExpiry { get; set; }
+        }
+
+        public class RefreshTokenResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public string NewToken { get; set; } = "";
+            public DateTime TokenExpiry { get; set; }
+        }
+
+        // ==================== SỬA HÀM LOGIN (THÊM TOKEN) ====================
+
+        public static LoginResult LoginUser(string username, string password)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+
+                string query = @"SELECT MaNguoiDung, TenDangNhap, MatKhau, VaiTro, HoTen, Email, TrangThai
+                         FROM NGUOIDUNG WHERE TenDangNhap = @user AND TrangThai = 1";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@user", username);
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        string hashed = reader["MatKhau"].ToString();
+                        if (BCrypt.Net.BCrypt.Verify(password, hashed))
+                        {
+                            int maNguoiDung = (int)reader["MaNguoiDung"];
+                            string role = reader["VaiTro"].ToString();
+                            string hoTen = reader["HoTen"].ToString();
+                            string email = reader["Email"].ToString();
+
+                            reader.Close(); // Đóng reader trước khi thực hiện update
+
+                            // ✅ TẠO TOKEN MỚI
+                            string token = TokenHelper.GenerateToken();
+                            DateTime tokenExpiry = TokenHelper.GetTokenExpiry();
+                            DateTime thoiGianDangNhap = TimeHelper.GetVietnamTime();
+
+                            // ✅ LƯU TOKEN VÀO DATABASE
+                            string updateQuery = @"
+                        UPDATE NGUOIDUNG 
+                        SET Token = @Token, 
+                            ThoiGianHetHanToken = @TokenExpiry,
+                            TrangThaiOnline = 1,
+                            ThoiGianDangNhap = @ThoiGianDangNhap
+                        WHERE MaNguoiDung = @MaNguoiDung";
+
+                            using (SqlCommand updateCmd = new SqlCommand(updateQuery, conn))
+                            {
+                                updateCmd.Parameters.AddWithValue("@Token", token);
+                                updateCmd.Parameters.AddWithValue("@TokenExpiry", tokenExpiry);
+                                updateCmd.Parameters.AddWithValue("@ThoiGianDangNhap", thoiGianDangNhap);
+                                updateCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                                updateCmd.ExecuteNonQuery();
+                            }
+
+                            Console.WriteLine($"🔐 Token được tạo cho user {username}: {token.Substring(0, 8)}... (hết hạn: {tokenExpiry:HH:mm:ss})");
+
+                            return new LoginResult
+                            {
+                                Success = true,
+                                MaNguoiDung = maNguoiDung,
+                                Role = role,
+                                HoTen = hoTen,
+                                Email = email,
+                                Token = token,
+                                TokenExpiry = tokenExpiry,
+                                Message = "Đăng nhập thành công"
+                            };
+                        }
+                    }
+                }
+                return new LoginResult { Success = false, Message = "Sai tên đăng nhập hoặc mật khẩu" };
+            }
+        }
+
+        // ==================== HÀM LOGOUT (XÓA TOKEN) ====================
+
+        public static LogoutResult LogoutUser(int maNguoiDung, string token)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    DateTime thoiGianDangXuat = TimeHelper.GetVietnamTime();
+
+                    // Verify token trước khi logout
+                    string verifyQuery = @"
+                SELECT COUNT(*) FROM NGUOIDUNG 
+                WHERE MaNguoiDung = @MaNguoiDung 
+                AND Token = @Token 
+                AND TrangThai = 1";
+
+                    using (SqlCommand verifyCmd = new SqlCommand(verifyQuery, conn))
+                    {
+                        verifyCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        verifyCmd.Parameters.AddWithValue("@Token", token);
+                        int count = (int)verifyCmd.ExecuteScalar();
+
+                        if (count == 0)
+                        {
+                            return new LogoutResult
+                            {
+                                Success = false,
+                                Message = "Token không hợp lệ hoặc đã hết hạn"
+                            };
+                        }
+                    }
+
+                    // Xóa token và cập nhật trạng thái offline
+                    string updateQuery = @"
+                UPDATE NGUOIDUNG 
+                SET Token = NULL, 
+                    ThoiGianHetHanToken = NULL,
+                    TrangThaiOnline = 0,
+                    ThoiGianDangXuat = @ThoiGianDangXuat
+                WHERE MaNguoiDung = @MaNguoiDung";
+
+                    using (SqlCommand updateCmd = new SqlCommand(updateQuery, conn))
+                    {
+                        updateCmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+                        updateCmd.Parameters.AddWithValue("@ThoiGianDangXuat", thoiGianDangXuat);
+                        int rowsAffected = updateCmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            Console.WriteLine($"🚪 User {maNguoiDung} đăng xuất lúc {thoiGianDangXuat:HH:mm:ss}");
+                            return new LogoutResult
+                            {
+                                Success = true,
+                                Message = "Đăng xuất thành công",
+                                ThoiGianDangXuat = thoiGianDangXuat
+                            };
+                        }
+                        else
+                        {
+                            return new LogoutResult
+                            {
+                                Success = false,
+                                Message = "Không thể đăng xuất"
+                            };
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new LogoutResult
+                {
+                    Success = false,
+                    Message = $"Lỗi đăng xuất: {ex.Message}"
+                };
+            }
+        }
+
+        // ==================== VERIFY TOKEN ====================
+
+        public static TokenVerifyResult VerifyToken(int maNguoiDung, string token)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+                SELECT Token, ThoiGianHetHanToken, VaiTro, TrangThai
+                FROM NGUOIDUNG 
+                WHERE MaNguoiDung = @MaNguoiDung AND TrangThai = 1";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                string storedToken = reader["Token"]?.ToString() ?? "";
+                                DateTime? tokenExpiry = reader["ThoiGianHetHanToken"] as DateTime?;
+                                string vaiTro = reader["VaiTro"].ToString();
+
+                                // Kiểm tra token khớp
+                                if (storedToken != token)
+                                {
+                                    return new TokenVerifyResult
+                                    {
+                                        Success = true,
+                                        IsValid = false,
+                                        Message = "Token không khớp"
+                                    };
+                                }
+
+                                // Kiểm tra token hết hạn
+                                if (!tokenExpiry.HasValue || tokenExpiry.Value < TimeHelper.GetVietnamTime())
+                                {
+                                    return new TokenVerifyResult
+                                    {
+                                        Success = true,
+                                        IsValid = false,
+                                        Message = "Token đã hết hạn"
+                                    };
+                                }
+
+                                return new TokenVerifyResult
+                                {
+                                    Success = true,
+                                    IsValid = true,
+                                    MaNguoiDung = maNguoiDung,
+                                    VaiTro = vaiTro,
+                                    TokenExpiry = tokenExpiry,
+                                    Message = "Token hợp lệ"
+                                };
+                            }
+                            else
+                            {
+                                return new TokenVerifyResult
+                                {
+                                    Success = true,
+                                    IsValid = false,
+                                    Message = "Không tìm thấy người dùng"
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new TokenVerifyResult
+                {
+                    Success = false,
+                    IsValid = false,
+                    Message = $"Lỗi verify token: {ex.Message}"
+                };
+            }
+        }
+
+        // ==================== REFRESH TOKEN ====================
+
+        public static RefreshTokenResult RefreshToken(int maNguoiDung, string currentToken)
+        {
+            try
+            {
+                // Verify token hiện tại trước
+                var verifyResult = VerifyToken(maNguoiDung, currentToken);
+                if (!verifyResult.IsValid)
+                {
+                    return new RefreshTokenResult
+                    {
+                        Success = false,
+                        Message = verifyResult.Message
+                    };
+                }
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Tạo token mới
+                    string newToken = TokenHelper.GenerateToken();
+                    DateTime newExpiry = TokenHelper.GetTokenExpiry();
+
+                    string updateQuery = @"
+                UPDATE NGUOIDUNG 
+                SET Token = @NewToken, 
+                    ThoiGianHetHanToken = @NewExpiry
+                WHERE MaNguoiDung = @MaNguoiDung";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@NewToken", newToken);
+                        cmd.Parameters.AddWithValue("@NewExpiry", newExpiry);
+                        cmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            Console.WriteLine($"🔄 Token được refresh cho user {maNguoiDung}");
+                            return new RefreshTokenResult
+                            {
+                                Success = true,
+                                NewToken = newToken,
+                                TokenExpiry = newExpiry,
+                                Message = "Refresh token thành công"
+                            };
+                        }
+                        else
+                        {
+                            return new RefreshTokenResult
+                            {
+                                Success = false,
+                                Message = "Không thể refresh token"
+                            };
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new RefreshTokenResult
+                {
+                    Success = false,
+                    Message = $"Lỗi refresh token: {ex.Message}"
+                };
+            }
+        }
+
+        // ==================== KIỂM TRA USER ONLINE ====================
+
+        public static bool IsUserOnline(int maNguoiDung)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    string query = @"
+                SELECT TrangThaiOnline, Token, ThoiGianHetHanToken
+                FROM NGUOIDUNG 
+                WHERE MaNguoiDung = @MaNguoiDung AND TrangThai = 1";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@MaNguoiDung", maNguoiDung);
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                bool trangThaiOnline = reader["TrangThaiOnline"] != DBNull.Value && (bool)reader["TrangThaiOnline"];
+                                string token = reader["Token"]?.ToString() ?? "";
+                                DateTime? tokenExpiry = reader["ThoiGianHetHanToken"] as DateTime?;
+
+                                // User online nếu: có trạng thái online VÀ token còn hạn
+                                return trangThaiOnline
+                                    && !string.IsNullOrEmpty(token)
+                                    && tokenExpiry.HasValue
+                                    && tokenExpiry.Value > TimeHelper.GetVietnamTime();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi kiểm tra online: {ex.Message}");
+            }
+            return false;
         }
 
     }

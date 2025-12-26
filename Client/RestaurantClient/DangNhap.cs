@@ -8,7 +8,6 @@ using Models.Response;
 
 namespace RestaurantClient
 {
-
     public partial class DangNhap : Form
     {
         public DangNhap()
@@ -32,6 +31,10 @@ namespace RestaurantClient
                 return;
             }
 
+            // Disable button để tránh click nhiều lần
+            btn_dangnhap.Enabled = false;
+            btn_dangnhap.Text = "Đang đăng nhập...";
+
             try
             {
                 string response = await SendRequestAsync(request);
@@ -39,11 +42,22 @@ namespace RestaurantClient
 
                 if (loginResponse?.Success == true)
                 {
+                    // ✅ LƯU THÔNG TIN USER
                     CurrentUser.Id = loginResponse.MaNguoiDung;
                     CurrentUser.Username = request.Username;
                     CurrentUser.Email = loginResponse.Email ?? "";
                     CurrentUser.FullName = loginResponse.HoTen ?? "";
                     CurrentUser.Role = loginResponse.Role ?? "";
+
+                    // ✅ LƯU TOKEN AUTHENTICATION
+                    CurrentUser.Token = loginResponse.Token ?? "";
+                    CurrentUser.TokenExpiry = loginResponse.TokenExpiry;
+
+                    // Log token info
+                    Console.WriteLine($"🔐 Login thành công!");
+                    Console.WriteLine($"   User: {CurrentUser.FullName} ({CurrentUser.Role})");
+                    Console.WriteLine($"   Token: {CurrentUser.Token.Substring(0, Math.Min(8, CurrentUser.Token.Length))}...");
+                    Console.WriteLine($"   Hết hạn: {CurrentUser.TokenExpiry:dd/MM/yyyy HH:mm:ss}");
 
                     MessageBox.Show($"Đăng nhập thành công! Chào {loginResponse.HoTen}",
                         "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -74,10 +88,21 @@ namespace RestaurantClient
                         "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+            catch (SocketException)
+            {
+                MessageBox.Show("Không thể kết nối đến server!\nVui lòng kiểm tra server đã chạy chưa.",
+                    "Lỗi kết nối", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
             catch (Exception ex)
             {
                 MessageBox.Show($"Lỗi kết nối: {ex.Message}",
                     "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Enable lại button
+                btn_dangnhap.Enabled = true;
+                btn_dangnhap.Text = "Đăng nhập";
             }
         }
 
@@ -101,6 +126,7 @@ namespace RestaurantClient
                 }
             }
         }
+
         private void linkLabel_dangky_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
 
