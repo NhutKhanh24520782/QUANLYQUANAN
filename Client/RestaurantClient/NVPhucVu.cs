@@ -886,7 +886,7 @@ namespace RestaurantClient
                         .Select(p =>
                         {
                             // Chuyển từ UTC sang giờ Việt Nam để hiển thị
-                            p.NgayTao = ConvertUtcToVietnam(p.NgayTao);
+                            p.NgayTao = (p.NgayTao);
                             return p;
                         })
                         .OrderBy(p => p.MaHD)
@@ -990,7 +990,7 @@ namespace RestaurantClient
                 if (DateTime.TryParse(e.Value.ToString(), out DateTime date))
                 {
                     // Chuyển sang giờ Việt Nam trước khi hiển thị
-                    DateTime vnTime = ConvertUtcToVietnam(date);
+                    DateTime vnTime = (date);
                     e.Value = vnTime.ToString("HH:mm dd/MM/yyyy");
                     e.FormattingApplied = true;
                 }
@@ -1016,7 +1016,7 @@ namespace RestaurantClient
                 if (tb_dateBill != null)
                 {
                     // Hiển thị giờ Việt Nam
-                    DateTime displayTime = ConvertUtcToVietnam(payment.NgayTao);
+                    DateTime displayTime = (payment.NgayTao);
                     tb_dateBill.Text = displayTime.ToString("HH:mm dd/MM/yyyy");
                 }
 

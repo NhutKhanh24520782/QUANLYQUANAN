@@ -1,4 +1,4 @@
-﻿using BCrypt.Net;
+﻿﻿using BCrypt.Net;
 using Models;
 using Models.Database;
 using Models.Request;
@@ -83,74 +83,53 @@ namespace RestaurantServer
                 }
             }
 
+
+            public static DateTime ConvertUtcToVietnam(DateTime utcTime)
+            {
+
+                try
+                {
+                    // Nếu đã là Local hoặc Unspecified, giả sử đã là VN
+                    if (utcTime.Kind != DateTimeKind.Utc)
+                        return utcTime;
+
+                    // Chuyển UTC → VN (+7h)
+                    return utcTime.AddHours(7);
+                }
+                catch
+                {
+                    return utcTime.AddHours(7);
+                }
+            }
             // ✅ FIXED: Chuyển giờ Việt Nam sang UTC
             public static DateTime ConvertVietnamTimeToUtc(DateTime vietnamTime)
             {
                 try
                 {
-                    // Xử lý DateTime.Kind
-                    DateTime safeTime;
-                    if (vietnamTime.Kind == DateTimeKind.Unspecified)
-                    {
-                        // Giả định đây là giờ Việt Nam
-                        safeTime = DateTime.SpecifyKind(vietnamTime, DateTimeKind.Unspecified);
-                    }
-                    else if (vietnamTime.Kind == DateTimeKind.Local)
-                    {
-                        // Chuyển local sang unspecified
-                        safeTime = DateTime.SpecifyKind(vietnamTime, DateTimeKind.Unspecified);
-                    }
-                    else
-                    {
-                        safeTime = vietnamTime;
-                    }
+                    // Nếu đã là UTC thì trả về luôn
+                    if (vietnamTime.Kind == DateTimeKind.Utc)
+                        return vietnamTime;
 
-                    return TimeZoneInfo.ConvertTimeToUtc(safeTime, VietnamTimeZone);
+                    // Trừ 7 giờ và đánh dấu UTC
+                    DateTime utc = DateTime.SpecifyKind(vietnamTime.AddHours(-7), DateTimeKind.Utc);
+
+                    Console.WriteLine($"   [ConvertVietnamToUtc] {vietnamTime:HH:mm} VN → {utc:HH:mm} UTC (Kind: {utc.Kind})");
+
+                    return utc;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"⚠️ Lỗi ConvertVietnamTimeToUtc: {ex.Message}");
-                    // Fallback an toàn
-                    return vietnamTime.ToUniversalTime();
+                    Console.WriteLine($"❌ Lỗi: {ex.Message}");
+                    return DateTime.SpecifyKind(vietnamTime.AddHours(-7), DateTimeKind.Utc);
                 }
             }
 
-            // ✅ FIXED: Chuyển từ database sang giờ Việt Nam
-            public static DateTime ConvertDatabaseTimeToVietnamTime(DateTime dbTime)
-            {
-                try
-                {
-                    // Azure SQL trả về DateTime với Kind = Unspecified
-                    // Giả sử đây là UTC
-                    DateTime utcTime;
 
-                    if (dbTime.Kind == DateTimeKind.Utc)
-                    {
-                        utcTime = dbTime;
-                    }
-                    else
-                    {
-                        // Chuyển Unspecified/Local sang UTC
-                        utcTime = DateTime.SpecifyKind(dbTime, DateTimeKind.Utc);
-                    }
 
-                    return TimeZoneInfo.ConvertTimeFromUtc(utcTime, VietnamTimeZone);
-                }
-                catch
-                {
-                    // Fallback: thêm 7 giờ
-                    return dbTime.AddHours(7);
-                }
-            }
 
-            // ✅ THÊM: Xử lý nullable
-            public static DateTime? ConvertDatabaseTimeToVietnamTimeNullable(DateTime? dbTime)
-            {
-                if (!dbTime.HasValue) return null;
-                return ConvertDatabaseTimeToVietnamTime(dbTime.Value);
-            }
+
         }
-        
+
         // ====================== REGISTER ======================
         public static RegisterResult RegisterUser(string username, string password, string fullName, string email, string role)
         {
@@ -615,7 +594,7 @@ namespace RestaurantServer
                             while (reader.Read())
                             {
                                 DateTime ngayDatabase = (DateTime)reader["Ngay"];
-                                DateTime ngayVietNam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayDatabase);
+                                DateTime ngayVietNam = TimeHelper.ConvertUtcToVietnam(ngayDatabase);
                                 bills.Add(new BillData
                                 {
                                     MaHoaDon = (int)reader["MaHD"],
@@ -1123,7 +1102,7 @@ namespace RestaurantServer
                             while (reader.Read())
                             {
                                 DateTime ngayDatabase = (DateTime)reader["NgayTao"];
-                                DateTime ngayVietNam = TimeHelper.ConvertVietnamTimeToUtc(ngayDatabase);
+                                DateTime ngayVietNam = TimeHelper.ConvertUtcToVietnam(ngayDatabase);
                             
                                 payments.Add(new PendingPaymentData
                                 {
@@ -1560,7 +1539,7 @@ namespace RestaurantServer
 
 
                         DateTime vietnamNow = TimeHelper.GetVietnamTime();
-                        DateTime utcNow = TimeHelper.ConvertVietnamTimeToUtc(vietnamNow);
+                        DateTime utcNow = TimeHelper.ConvertUtcToVietnam(vietnamNow);
                         // ✅ 1. TẠO ĐƠN HÀNG (cho bếp)
                         string insertDonHang = @"
                     INSERT INTO DONHANG (MaBanAn, MaNVOrder, NgayOrder, TrangThai)
@@ -1905,7 +1884,7 @@ namespace RestaurantServer
                         while (r.Read())
                         {
                             DateTime ngayOrderDB = (DateTime)r["NgayOrder"];
-                            DateTime ngayOrderVietnam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayOrderDB);
+                            DateTime ngayOrderVietnam = TimeHelper.ConvertUtcToVietnam(ngayOrderDB);
 
                             var order = new KitchenOrderData
                             {
@@ -2038,10 +2017,16 @@ namespace RestaurantServer
                             DateTime ngayOrder = (DateTime)r["NgayOrder"];
 
                             // ✅ CHUYỂN ĐỔI TỪ UTC (Azure) SANG GIỜ VIỆT NAM
-                            DateTime ngayOrderVietnam = TimeHelper.ConvertDatabaseTimeToVietnamTime(ngayOrder);
+                            DateTime ngayOrderVietnam = TimeHelper.ConvertUtcToVietnam(ngayOrder);
 
-                            DateTime ngayDatabase = (DateTime)r["ThoiGianDuKienHoanThanh"];
-                            DateTime ngayVietNam = TimeHelper.ConvertVietnamTimeToUtc(ngayDatabase);
+                            DateTime? ngayVietNam = null;
+
+                            if (r["ThoiGianDuKienHoanThanh"] != DBNull.Value)
+                            {
+                                DateTime ngayDatabase = (DateTime)r["ThoiGianDuKienHoanThanh"];
+                                ngayVietNam = TimeHelper.ConvertUtcToVietnam(ngayDatabase);
+                            }
+
                             orderDetail = new KitchenOrderDetailData
                             {
                                 MaDonHang = (int)r["MaDonHang"],
@@ -2098,15 +2083,18 @@ namespace RestaurantServer
                     {
                         while (r.Read())
                         {
-                            // ✅ CHUYỂN ĐỔI TẤT CẢ THỜI GIAN TỪ UTC SANG VIỆT NAM
-                            DateTime? thoiGianBatDau = r["ThoiGianBatDau"] != DBNull.Value ?
-                                TimeHelper.GetVietnamTime() : null;
+                            DateTime? thoiGianBatDau = r["ThoiGianBatDau"] != DBNull.Value
+     ? TimeHelper.ConvertUtcToVietnam((DateTime)r["ThoiGianBatDau"])
+     : null;
 
-                            DateTime? thoiGianHoanThanh = r["ThoiGianHoanThanh"] != DBNull.Value ?
-                                TimeHelper.GetVietnamTime() : null;
+                            DateTime? thoiGianHoanThanh = r["ThoiGianHoanThanh"] != DBNull.Value
+                                ? TimeHelper.ConvertUtcToVietnam((DateTime)r["ThoiGianHoanThanh"])
+                                : null;
 
-                            DateTime? thoiGianDuKien = r["ThoiGianDuKien"] != DBNull.Value ?
-                                TimeHelper.GetVietnamTime() : null;
+                            DateTime? thoiGianDuKien = r["ThoiGianDuKien"] != DBNull.Value
+                                ? TimeHelper.ConvertUtcToVietnam((DateTime)r["ThoiGianDuKien"])
+                                : null;
+
 
                             var dish = new KitchenDishData
                             {
@@ -2210,11 +2198,11 @@ namespace RestaurantServer
                             // Bước 1: Đánh dấu đây là UTC
                             DateTime clientTimeAsUtc = DateTime.SpecifyKind(rawTime, DateTimeKind.Utc);
 
-                            // Bước 2: Chuyển UTC → VN bằng cách cộng 7 giờ (an toàn nhất)
-                            correctVietnamTime = rawTime;
 
                             // Bước 3: Lưu UTC vào DB
-                            thoiGianDuKienValue = clientTimeAsUtc;
+                            DateTime clientUtc = DateTime.SpecifyKind(rawTime, DateTimeKind.Utc);
+                            correctVietnamTime = TimeHelper.ConvertUtcToVietnam(clientUtc);
+                            thoiGianDuKienValue = clientUtc; // lưu DB UTC
 
                             // ✅ Log DEBUG chi tiết
                             Console.WriteLine($"🔍 TIME DEBUG:");
@@ -2222,7 +2210,7 @@ namespace RestaurantServer
                             Console.WriteLine($"   - Client gửi (raw):       {rawTime:yyyy-MM-dd HH:mm:ss}");
                             Console.WriteLine($"   - Hiểu là UTC:            {clientTimeAsUtc:yyyy-MM-dd HH:mm:ss} UTC");
                             Console.WriteLine($"   - Chuyển sang VN (+7h):   {correctVietnamTime:yyyy-MM-dd HH:mm:ss}");
-                            Console.WriteLine($"   - Lưu DB (UTC):           {clientTimeAsUtc:yyyy-MM-dd HH:mm:ss}");
+                            Console.WriteLine($"   - Lưu DB (UTC):           {clientUtc:yyyy-MM-dd HH:mm:ss}");
 
                             // ✅ KIỂM TRA với giờ VN đã sửa
                             if (correctVietnamTime < nowVietnam)
