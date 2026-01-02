@@ -20,6 +20,9 @@ namespace RestaurantServer
 
         public void Start(int port)
         {
+            // ✅ CLEANUP EXPIRED SESSIONS TRƯỚC KHI BẮT ĐẦU
+            CleanupExpiredSessionsOnStartup();
+
             listener = new TcpListener(IPAddress.Any, port);
             listener.Start();
             isRunning = true;
@@ -27,6 +30,40 @@ namespace RestaurantServer
 
             _ = Task.Run(async () => await ListenForClientsAsync());
         }
+
+        /// <summary>
+        /// Cleanup các session hết hạn khi server khởi động
+        /// Reset TrangThaiOnline = 0 cho các user có token hết hạn hoặc null
+        /// </summary>
+        private void CleanupExpiredSessionsOnStartup()
+        {
+            try
+            {
+                Console.WriteLine();
+                Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
+                Console.WriteLine("║     🧹 CLEANUP EXPIRED SESSIONS ON STARTUP              ║");
+                Console.WriteLine("╚══════════════════════════════════════════════════════════╝");
+
+                int affected = DatabaseAccess.CleanupExpiredSessions();
+
+                if (affected > 0)
+                {
+                    Console.WriteLine($"✅ Đã cleanup {affected} session hết hạn từ lần chạy trước");
+                }
+                else
+                {
+                    Console.WriteLine("✅ Không có session nào cần cleanup");
+                }
+
+                Console.WriteLine();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Lỗi cleanup sessions: {ex.Message}");
+                Console.WriteLine();
+            }
+        }
+
 
         public void Stop()
         {
@@ -157,6 +194,7 @@ namespace RestaurantServer
                     if (!validation.isValid) return CreateErrorResponse(validation.error);
 
                     DatabaseAccess.LoginResult result = DatabaseAccess.LoginUser(request.Username, request.Password);
+
                     var response = new LoginResponse
                     {
                         Success = result.Success,
@@ -164,8 +202,27 @@ namespace RestaurantServer
                         HoTen = result.HoTen,
                         Message = result.Message,
                         MaNguoiDung = result.MaNguoiDung,
-                        Email = result.Email
+                        Email = result.Email,
+                        // ✅ THÊM 2 DÒNG NÀY:
+                        Token = result.Token,
+                        TokenExpiry = result.TokenExpiry
                     };
+
+                    // ✅ THÊM LOG ĐỂ DEBUG:
+                    if (result.Success)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
+                        Console.WriteLine("║              🔐 LOGIN THÀNH CÔNG                         ║");
+                        Console.WriteLine("╠══════════════════════════════════════════════════════════╣");
+                        Console.WriteLine($"║  User: {result.HoTen} ({result.Role})");
+                        Console.WriteLine($"║  MaNguoiDung: {result.MaNguoiDung}");
+                        Console.WriteLine($"║  Token: {result.Token?.Substring(0, Math.Min(20, result.Token?.Length ?? 0))}...");
+                        Console.WriteLine($"║  Hết hạn: {result.TokenExpiry:dd/MM/yyyy HH:mm:ss}");
+                        Console.WriteLine("╚══════════════════════════════════════════════════════════╝");
+                        Console.WriteLine();
+                    }
+
                     return JsonConvert.SerializeObject(response);
                 }
                 catch (Exception ex) { return CreateErrorResponse($"Lỗi đăng nhập: {ex.Message}"); }

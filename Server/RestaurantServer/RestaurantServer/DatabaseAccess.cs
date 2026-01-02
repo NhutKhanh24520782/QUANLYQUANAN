@@ -4125,6 +4125,94 @@ namespace RestaurantServer
             }
             return false;
         }
+        public static int CleanupExpiredSessions()
+        {
+            try
+            {
+                using (var conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // 1. Lấy danh sách user bị ảnh hưởng trước khi cleanup (để log)
+                    string selectQuery = @"
+                        SELECT MaNguoiDung, HoTen, VaiTro, ThoiGianDangNhap
+                        FROM NGUOIDUNG 
+                        WHERE TrangThaiOnline = 1 
+                          AND (Token IS NULL 
+                               OR ThoiGianHetHanToken IS NULL 
+                               OR ThoiGianHetHanToken < GETDATE())";
+
+                    var usersToCleanup = new List<(int Id, string HoTen, string VaiTro, DateTime? DangNhap)>();
+
+                    using (var selectCmd = new SqlCommand(selectQuery, conn))
+                    using (var reader = selectCmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            usersToCleanup.Add((
+                                reader.GetInt32(0),
+                                reader.IsDBNull(1) ? "" : reader.GetString(1),
+                                reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                reader.IsDBNull(3) ? null : (DateTime?)reader.GetDateTime(3)
+                            ));
+                        }
+                    }
+
+                    // 2. Log thông tin chi tiết nếu có user cần cleanup
+                    if (usersToCleanup.Count > 0)
+                    {
+                        Console.WriteLine("╠══════════════════════════════════════════════════════════╣");
+                        Console.WriteLine("║  Danh sách user có session hết hạn:                     ║");
+                        Console.WriteLine("╠══════════════════════════════════════════════════════════╣");
+
+                        foreach (var user in usersToCleanup)
+                        {
+                            string vaiTroIcon = user.VaiTro switch
+                            {
+                                "Admin" => "👑",
+                                "Bep" => "👨‍🍳",
+                                "PhucVu" => "🍽️",
+                                _ => "👤"
+                            };
+
+                            Console.WriteLine($"║ {vaiTroIcon} {user.HoTen,-20} │ {user.VaiTro,-8} │ ID: {user.Id,-4} ║");
+
+                            if (user.DangNhap.HasValue)
+                            {
+                                // Chuyển sang giờ VN để hiển thị
+                                DateTime vnTime = user.DangNhap.Value.AddHours(7);
+                                Console.WriteLine($"║    └─ Đăng nhập lúc: {vnTime:HH:mm:ss dd/MM/yyyy}              ║");
+                            }
+                        }
+
+                        Console.WriteLine("╠══════════════════════════════════════════════════════════╣");
+                    }
+
+                    // 3. Thực hiện cleanup
+                    string updateQuery = @"
+                        UPDATE NGUOIDUNG 
+                        SET TrangThaiOnline = 0, 
+                            Token = NULL, 
+                            ThoiGianHetHanToken = NULL,
+                            ThoiGianDangXuat = GETDATE()
+                        WHERE TrangThaiOnline = 1 
+                          AND (Token IS NULL 
+                               OR ThoiGianHetHanToken IS NULL 
+                               OR ThoiGianHetHanToken < GETDATE())";
+
+                    using (var updateCmd = new SqlCommand(updateQuery, conn))
+                    {
+                        int affected = updateCmd.ExecuteNonQuery();
+                        return affected;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi CleanupExpiredSessions: {ex.Message}");
+                return 0;
+            }
+        }
 
     }
 }
